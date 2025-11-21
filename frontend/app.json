@@ -2,7 +2,7 @@
   "expo": {
     "name": "Taist",
     "slug": "Taist",
-    "version": "28.0.2",
+    "version": "28.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "taistexpo",
