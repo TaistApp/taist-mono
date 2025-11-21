@@ -2,9 +2,6 @@
   "cli": {
     "appVersionSource": "remote"
   },
-  "hooks": {
-    "prebuild": "./eas-hooks/eas-build-pre-install.sh"
-  },
   "build": {
     "development": {
       "developmentClient": true,
@@ -22,7 +19,8 @@
       },
       "ios": {
         "resourceClass": "m-medium"
-      }
+      },
+      "prebuildCommand": "./eas-hooks/eas-build-pre-install.sh"
     },
     "production": {
       "env": {
