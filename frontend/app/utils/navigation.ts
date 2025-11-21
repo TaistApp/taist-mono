@@ -154,6 +154,7 @@ export const navigate = {
       router.push('/screens/customer/(tabs)/(home)/checkout/creditCard' as any);
     },
     earnByCooking: () => router.push('/screens/customer/earnByCooking' as any),
+    cart: () => router.push('/screens/customer/cart' as any),
   },
   toChef: {
     home: () => router.push('/screens/chef/(tabs)/home' as any),

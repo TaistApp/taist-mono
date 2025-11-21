@@ -1,6 +1,7 @@
 import { FAB, TextInput } from '@react-native-material/core';
 import { useEffect, useState } from 'react';
 import {
+  Alert,
   Linking,
   SafeAreaView,
   ScrollView,
@@ -149,7 +150,22 @@ console.log("order detail useeffect....");
   };
 
   const handleCancel = () => {
-    handleStatus(4);
+    Alert.alert(
+      'Cancel Order',
+      'Are you sure you want to cancel this order? This action cannot be undone.',
+      [
+        {
+          text: 'NO',
+          style: 'cancel',
+        },
+        {
+          text: 'YES, CANCEL',
+          style: 'destructive',
+          onPress: () => handleStatus(4),
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   const handleMap = () => { };

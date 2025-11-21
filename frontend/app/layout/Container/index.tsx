@@ -22,6 +22,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useRouter, useSegments } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import DrawerModal from '../../components/DrawerModal';
+import CartIcon from '../../components/cartIcon';
 import { useAppSelector } from '../../hooks/useRedux';
 
 interface IProps {
@@ -137,6 +138,7 @@ const Container = ({
               flexDirection:'row',
               gap: 4
             }}>
+            {isInCustomerContext && <CartIcon />}
             <TouchableOpacity
               onPress={handleMessagePress}
               style={styles.button}>

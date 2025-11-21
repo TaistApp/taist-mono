@@ -198,19 +198,21 @@ const DrawerModal: React.FC<DrawerModalProps> = ({ visible, onClose }) => {
             )}
             
             {/* Customer-specific menu items */}
-            {isInCustomerContext && (
+            {/* Hidden per TMA-000 */}
+            {/* {isInCustomerContext && (
               <TouchableOpacity
                 onPress={() => handleGotoScreen('EarnByCooking')}
                 style={styles.drawerItem}>
                 <Text style={styles.drawerItemText}>EARN BY COOKING</Text>
               </TouchableOpacity>
-            )}
+            )} */}
             
-            <TouchableOpacity
+            {/* Hidden per TMA-000 */}
+            {/* <TouchableOpacity
               onPress={() => handleGotoScreen('ContactUs')}
               style={styles.drawerItem}>
               <Text style={styles.drawerItemText}>CONTACT TAIST</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
             
             <TouchableOpacity
               onPress={() => handleGotoScreen('Privacy')}

@@ -64,9 +64,9 @@ const StyledPhotoPicker = ({style, content, onPhoto, onHide}: Props) => {
           <TouchableOpacity onPress={onCamera} style={styles.button}>
             <Text style={styles.text}>Camera</Text>
           </TouchableOpacity>
-          {/* <TouchableOpacity onPress={onLibrary} style={styles.button}>
+          <TouchableOpacity onPress={onLibrary} style={styles.button}>
             <Text style={styles.text}>Library</Text>
-          </TouchableOpacity> */}
+          </TouchableOpacity>
           <TouchableOpacity onPress={hideSheet} style={styles.button}>
             <Text style={styles.text}>Cancel</Text>
           </TouchableOpacity>
