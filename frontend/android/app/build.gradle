@@ -62,9 +62,14 @@ react {
     /* Autolinking */
     autolinkLibrariesWithApp()
 }
+
+// Load keystore properties if the file exists (for local builds)
 def keystorePropertiesFile = rootProject.file("key.properties")
 def keystoreProperties = new Properties()
-keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+def hasKeystoreFile = keystorePropertiesFile.exists()
+if (hasKeystoreFile) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
 
 /**
  * Set this to true to Run Proguard on Release builds to minify the Java bytecode.
@@ -95,16 +100,19 @@ android {
         applicationId 'com.taist.app'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 143
-        versionName "6.1"
+        versionCode 7
+        versionName "28.0.3"
     }
     signingConfigs {
         release {
-            storeFile file(keystoreProperties['MY_KEYSTORE_FILE'])
-            storePassword keystoreProperties['MY_KEYSTORE_PASSWORD']
-            keyAlias keystoreProperties['MY_KEY_ALIAS']
-            keyPassword keystoreProperties['MY_KEY_PASSWORD']
-
+            // Only use local keystore if key.properties exists
+            // Otherwise, EAS will inject credentials automatically
+            if (hasKeystoreFile) {
+                storeFile file(keystoreProperties['MY_KEYSTORE_FILE'])
+                storePassword keystoreProperties['MY_KEYSTORE_PASSWORD']
+                keyAlias keystoreProperties['MY_KEY_ALIAS']
+                keyPassword keystoreProperties['MY_KEY_PASSWORD']
+            }
         }
     }
     buildTypes {

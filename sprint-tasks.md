@@ -16,7 +16,7 @@
 | TMA-007 | Coupon code functionality | Not Started |
 | TMA-008 | **Overall entire chef signup flow (not 1 long form, prepopulate stuff if available, address auto finish) | Not Started |
 | TMA-009 | *AI for menu page | In Progress |
-| TMA-010 | Move from AWS to Railway | In Progress |
+| TMA-010 | Move from AWS to Railway | In Progress - Planning Complete ✅ |
 | TMA-011 | **Calendar overhaul | Not Started |
 | TMA-012 | Enable camera roll option for chef profile pic | Completed |
 | TMA-013 | Show Current Location on Home tab | Not Started |
