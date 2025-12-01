@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "370030528124",
+    "project_id": "taist-mobile-app",
+    "storage_bucket": "taist-mobile-app.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:370030528124:android:3d61fc7a0a23e455b62bf9",
+        "android_client_info": {
+          "package_name": "com.taist.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVMqcugwFgu1ohIrTf6FkTgF3oZje93kU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:370030528124:android:271d4e2f78fcb0e2b62bf9",
+        "android_client_info": {
+          "package_name": "com.taist_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVMqcugwFgu1ohIrTf6FkTgF3oZje93kU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
