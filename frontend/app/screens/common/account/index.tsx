@@ -344,12 +344,7 @@ const user: IUser = typeof params?.user === 'string'
   };
 
   const checkEmptyFieldInUserInfo = () => {
-    if (userInfo.first_name == undefined || userInfo.first_name.length == 0) {
-      return 'Please enter the first name';
-    }
-    if (userInfo.last_name == undefined || userInfo.last_name.length == 0) {
-      return 'Please enter the last name';
-    }
+    // Required for all users
     if (userInfo.phone == undefined || userInfo.phone.length == 0) {
       return 'Please enter the phone number';
     }
@@ -359,25 +354,31 @@ const user: IUser = typeof params?.user === 'string'
 
     // Chef-specific required fields
     if (userInfo.user_type === 2) {
-    if (userInfo.birthday == undefined || userInfo.birthday == 0) {
-      return 'Please select the birthday';
-    }
-    if (userInfo.address == undefined || userInfo.address.length == 0) {
-      return 'Please enter the address';
-    }
-    if (userInfo.city == undefined || userInfo.city.length == 0) {
-      return 'Please enter the city';
-    }
-    if (userInfo.state == undefined || userInfo.state.length == 0) {
-      return 'Please select a state';
-    }
+      if (userInfo.first_name == undefined || userInfo.first_name.length == 0) {
+        return 'Please enter the first name';
+      }
+      if (userInfo.last_name == undefined || userInfo.last_name.length == 0) {
+        return 'Please enter the last name';
+      }
+      if (userInfo.birthday == undefined || userInfo.birthday == 0) {
+        return 'Please select the birthday';
+      }
+      if (userInfo.address == undefined || userInfo.address.length == 0) {
+        return 'Please enter the address';
+      }
+      if (userInfo.city == undefined || userInfo.city.length == 0) {
+        return 'Please enter the city';
+      }
+      if (userInfo.state == undefined || userInfo.state.length == 0) {
+        return 'Please select a state';
+      }
       if (userInfo.photo == undefined || userInfo.photo.length == 0) {
         return 'Please add your photo';
-    }
+      }
     }
 
-    // Birthday, address, city, state are optional for customers (user_type === 1)
-    // They can be collected later at checkout
+    // For customers (user_type === 1): first_name, last_name, birthday, address, city, state are all optional
+    // They can be collected later when actually needed (e.g., at checkout)
     
     return '';
   };

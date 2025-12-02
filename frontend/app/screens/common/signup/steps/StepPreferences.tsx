@@ -83,11 +83,9 @@ export const StepPreferences: React.FC<StepPreferencesProps> = ({
     }
   };
 
-  const handleSkip = () => {
-    onComplete();
-  };
-
   const handleContinue = () => {
+    // Complete signup regardless of permission state
+    // Users can enable permissions later in settings
     onComplete();
   };
 
@@ -132,12 +130,9 @@ export const StepPreferences: React.FC<StepPreferencesProps> = ({
 
       <View style={styles.buttonContainer}>
         <StyledButton
-          title="Get Started"
+          title="Continue"
           onPress={handleContinue}
         />
-        <Pressable onPress={handleSkip} style={styles.skipButton}>
-          <Text style={styles.skipButtonText}>Skip for Now</Text>
-        </Pressable>
         <Pressable onPress={onBack} style={styles.backButton}>
           <Text style={styles.backButtonText}>Back</Text>
         </Pressable>
@@ -185,19 +180,6 @@ const styles = StyleSheet.create({
   buttonContainer: {
     gap: Spacing.md,
     marginTop: Spacing.xl,
-  },
-  skipButton: {
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    backgroundColor: AppColors.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: AppColors.textSecondary + '40',
-  },
-  skipButtonText: {
-    color: AppColors.textSecondary,
-    fontSize: 16,
-    fontWeight: '600',
   },
   backButton: {
     alignItems: 'center',

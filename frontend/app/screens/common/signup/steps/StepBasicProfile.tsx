@@ -27,14 +27,6 @@ export const StepBasicProfile: React.FC<StepBasicProfileProps> = ({
   const [isVerifying, setIsVerifying] = useState(false);
 
   const validateAndProceed = () => {
-    if (!userInfo.first_name || userInfo.first_name.trim().length === 0) {
-      ShowErrorToast('Please enter your first name');
-      return;
-    }
-    if (!userInfo.last_name || userInfo.last_name.trim().length === 0) {
-      ShowErrorToast('Please enter your last name');
-      return;
-    }
     if (!userInfo.phone || userInfo.phone.trim().length === 0) {
       ShowErrorToast('Please enter your phone number');
       return;
@@ -70,27 +62,9 @@ export const StepBasicProfile: React.FC<StepBasicProfileProps> = ({
 
   return (
     <SignupStepContainer
-      title="Tell us about yourself"
-      subtitle="We need some basic information to get you started"
+      title="What's your phone number?"
+      subtitle="We'll use this to keep you updated on your orders"
     >
-      <StyledTextInput
-        label="First Name"
-        placeholder="Enter your first name"
-        value={userInfo.first_name ?? ''}
-        onChangeText={(val) => onUpdateUserInfo({ first_name: val })}
-        autoCapitalize="words"
-        autoComplete="name-given"
-      />
-
-      <StyledTextInput
-        label="Last Name"
-        placeholder="Enter your last name"
-        value={userInfo.last_name ?? ''}
-        onChangeText={(val) => onUpdateUserInfo({ last_name: val })}
-        autoCapitalize="words"
-        autoComplete="name-family"
-      />
-
       <StyledTextInput
         label="Phone Number"
         placeholder="(555) 123-4567"

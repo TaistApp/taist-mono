@@ -23,6 +23,8 @@ export const AddressCollectionModal: React.FC<AddressCollectionModalProps> = ({
   onSave,
   onCancel,
 }) => {
+  const [firstName, setFirstName] = useState(userInfo.first_name || '');
+  const [lastName, setLastName] = useState(userInfo.last_name || '');
   const [address, setAddress] = useState(userInfo.address || '');
   const [city, setCity] = useState(userInfo.city || '');
   const [state, setState] = useState(userInfo.state || '');
@@ -85,6 +87,14 @@ export const AddressCollectionModal: React.FC<AddressCollectionModalProps> = ({
   const handleUseCurrentLocation = async () => {
     setIsGettingLocation(true);
     try {
+      // Check if location services are enabled
+      const isEnabled = await Location.hasServicesEnabledAsync();
+      if (!isEnabled) {
+        ShowErrorToast('Please enable location services in your device settings');
+        setIsGettingLocation(false);
+        return;
+      }
+
       const { status } = await Location.requestForegroundPermissionsAsync();
       
       if (status !== 'granted') {
@@ -93,14 +103,21 @@ export const AddressCollectionModal: React.FC<AddressCollectionModalProps> = ({
         return;
       }
 
+      // Use lower accuracy for emulator compatibility
       const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
+        accuracy: Location.Accuracy.Low,
+        timeInterval: 5000,
+        distanceInterval: 0,
       });
+
+      console.log('✅ Got location:', location.coords);
 
       const [addressData] = await Location.reverseGeocodeAsync({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       });
+
+      console.log('✅ Reverse geocoded address:', addressData);
 
       if (addressData) {
         const streetAddress = [
@@ -116,15 +133,31 @@ export const AddressCollectionModal: React.FC<AddressCollectionModalProps> = ({
       } else {
         ShowErrorToast('Could not determine address from location');
       }
-    } catch (error) {
-      console.error('Location error:', error);
-      ShowErrorToast('Failed to get location');
+    } catch (error: any) {
+      console.error('❌ Location error:', error);
+      const errorMessage = error?.message || 'Unknown error';
+      
+      if (errorMessage.includes('unavailable') || errorMessage.includes('location services')) {
+        ShowErrorToast('Location unavailable on emulator. Please enter manually');
+      } else if (errorMessage.includes('timed out')) {
+        ShowErrorToast('Location request timed out. Please enter manually');
+      } else {
+        ShowErrorToast('Could not get location. Please enter manually');
+      }
     } finally {
       setIsGettingLocation(false);
     }
   };
 
   const validateAndSave = () => {
+    if (!firstName || firstName.trim().length === 0) {
+      ShowErrorToast('Please enter your first name');
+      return;
+    }
+    if (!lastName || lastName.trim().length === 0) {
+      ShowErrorToast('Please enter your last name');
+      return;
+    }
     if (!address || address.trim().length === 0) {
       ShowErrorToast('Please enter your address');
       return;
@@ -142,7 +175,7 @@ export const AddressCollectionModal: React.FC<AddressCollectionModalProps> = ({
       return;
     }
 
-    onSave({ address, city, state, zip });
+    onSave({ first_name: firstName, last_name: lastName, address, city, state, zip });
   };
 
   return (
@@ -155,26 +188,44 @@ export const AddressCollectionModal: React.FC<AddressCollectionModalProps> = ({
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Delivery Address</Text>
+            <Text style={styles.modalTitle}>Complete Your Profile</Text>
             <Text style={styles.modalSubtitle}>
-              We need your delivery address to complete your order
+              We need your name and delivery address to complete your order
             </Text>
           </View>
 
-          <View style={styles.locationButtonWrapper}>
-            <Pressable 
-              style={styles.locationButton} 
-              onPress={handleUseCurrentLocation}
-              disabled={isGettingLocation}
-            >
-              <FontAwesomeIcon icon={faLocationArrow} size={20} color={AppColors.primary} />
-              <Text style={styles.locationButtonText}>
-                {isGettingLocation ? 'Getting location...' : 'Use Current Location'}
-              </Text>
-            </Pressable>
-          </View>
-
           <View style={styles.formContent}>
+            <StyledTextInput
+              label="First Name"
+              placeholder="John"
+              value={firstName}
+              onChangeText={setFirstName}
+              autoCapitalize="words"
+              autoComplete="name-given"
+            />
+
+            <StyledTextInput
+              label="Last Name"
+              placeholder="Doe"
+              value={lastName}
+              onChangeText={setLastName}
+              autoCapitalize="words"
+              autoComplete="name-family"
+            />
+
+            <View style={styles.locationButtonWrapper}>
+              <Pressable 
+                style={styles.locationButton} 
+                onPress={handleUseCurrentLocation}
+                disabled={isGettingLocation}
+              >
+                <FontAwesomeIcon icon={faLocationArrow} size={20} color={AppColors.primary} />
+                <Text style={styles.locationButtonText}>
+                  {isGettingLocation ? 'Getting location...' : 'Use Current Location'}
+                </Text>
+              </Pressable>
+            </View>
+
             <StyledTextInput
               label="Street Address"
               placeholder="123 Main St"
@@ -218,7 +269,7 @@ export const AddressCollectionModal: React.FC<AddressCollectionModalProps> = ({
           </View>
 
           <View style={styles.buttonContainer}>
-            <StyledButton title="Save Address" onPress={validateAndSave} />
+            <StyledButton title="Save & Continue" onPress={validateAndSave} />
             <Pressable onPress={onCancel} style={styles.cancelButton}>
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </Pressable>
@@ -259,7 +310,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   locationButtonWrapper: {
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   locationButton: {
     flexDirection: 'row',

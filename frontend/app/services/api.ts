@@ -1,6 +1,7 @@
 import Geolocation from "@react-native-community/geolocation";
 import axios from "axios";
 import Constants from "expo-constants";
+import { Platform } from "react-native";
 import { GetFCMToken } from "../firebase";
 import { updateChefPaymentMthod, updateChefProfile } from "../reducers/chefSlice";
 
@@ -40,11 +41,13 @@ const APP_ENV = Constants.expoConfig?.extra?.APP_ENV || 'production';
 const getEnvironmentUrls = () => {
   switch (APP_ENV) {
     case 'local':
-      // Local development - your machine
+      // Local development - Android emulator needs 10.0.2.2 to reach host's localhost
+      // iOS simulator and web can use localhost
+      const localHost = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
       return {
-        BASE_URL: 'http://localhost:8000/mapi/',
-        Photo_URL: 'http://localhost:8000/assets/uploads/images/',
-        HTML_URL: 'http://localhost:8000/assets/uploads/html/',
+        BASE_URL: `http://${localHost}:8000/mapi/`,
+        Photo_URL: `http://${localHost}:8000/assets/uploads/images/`,
+        HTML_URL: `http://${localHost}:8000/assets/uploads/html/`,
       };
     
     case 'staging':

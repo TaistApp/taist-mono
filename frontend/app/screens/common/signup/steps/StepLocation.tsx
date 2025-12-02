@@ -44,6 +44,14 @@ export const StepLocation: React.FC<StepLocationProps> = ({
   const handleUseMyLocation = async () => {
     setIsGettingLocation(true);
     try {
+      // Check if location services are enabled
+      const isEnabled = await Location.hasServicesEnabledAsync();
+      if (!isEnabled) {
+        ShowErrorToast('Please enable location services in your device settings');
+        setIsGettingLocation(false);
+        return;
+      }
+
       // Request location permission
       const { status } = await Location.requestForegroundPermissionsAsync();
       
@@ -53,16 +61,22 @@ export const StepLocation: React.FC<StepLocationProps> = ({
         return;
       }
 
-      // Get current location
+      // Get current location with lower accuracy for emulator compatibility
       const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
+        accuracy: Location.Accuracy.Low,
+        timeInterval: 5000,
+        distanceInterval: 0,
       });
+
+      console.log('✅ Got location:', location.coords);
 
       // Reverse geocode to get ZIP code
       const [address] = await Location.reverseGeocodeAsync({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       });
+
+      console.log('✅ Reverse geocoded address:', address);
 
       if (address.postalCode) {
         onUpdateUserInfo({ 
@@ -76,9 +90,17 @@ export const StepLocation: React.FC<StepLocationProps> = ({
       } else {
         ShowErrorToast('Could not determine ZIP code from your location');
       }
-    } catch (error) {
-      console.error('Location error:', error);
-      ShowErrorToast('Failed to get location. Please enter ZIP code manually.');
+    } catch (error: any) {
+      console.error('❌ Location error:', error);
+      const errorMessage = error?.message || 'Unknown error';
+      
+      if (errorMessage.includes('unavailable') || errorMessage.includes('location services')) {
+        ShowErrorToast('Location unavailable on emulator. Please enter ZIP manually');
+      } else if (errorMessage.includes('timed out')) {
+        ShowErrorToast('Location request timed out. Please enter manually');
+      } else {
+        ShowErrorToast('Could not get location. Please enter ZIP manually');
+      }
     } finally {
       setIsGettingLocation(false);
     }

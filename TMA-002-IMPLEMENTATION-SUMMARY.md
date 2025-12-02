@@ -14,21 +14,26 @@ Successfully modernized the customer signup flow to reduce friction and improve 
 ### 🎯 Key Improvements
 
 1. **Multi-Step Signup Flow (Customer Only)**
-   - Reduced required fields from 11 → 5
+   - Reduced required fields from 11 → 2 (just phone + ZIP)
    - Split into logical, digestible steps
    - Added visual progress indicators
    - Improved UX with back navigation support
 
-2. **Removed Birthday Requirement**
+2. **Removed Name Fields from Signup**
+   - First name and last name no longer required at signup
+   - Can be collected later when actually needed (e.g., at checkout)
+   - Reduces signup friction by 40% fewer fields
+
+3. **Removed Birthday Requirement**
    - Completely removed from customer signup
    - Still required for chefs (if needed for compliance)
 
-3. **Deferred Address Collection**
+4. **Deferred Address Collection**
    - Only ZIP code required during signup (for chef discovery)
    - Full address (street, city, state) collected at checkout
    - Reduces initial friction significantly
 
-4. **Smart Location Features**
+5. **Smart Location Features**
    - "Use My Location" button for automatic ZIP detection
    - Auto-fills address data from GPS at checkout
    - Fallback to manual entry always available
@@ -41,9 +46,9 @@ Successfully modernized the customer signup flow to reduce friction and improve 
 
 #### 1. **Step Components**
 - `/frontend/app/screens/common/signup/steps/StepBasicProfile.tsx`
-  - Collects: First Name, Last Name, Phone Number
+  - Collects: Phone Number only
   - Includes SMS verification modal (ready for future implementation)
-  - Validates all fields before proceeding
+  - Validates phone number before proceeding
 
 - `/frontend/app/screens/common/signup/steps/StepLocation.tsx`
   - Collects: ZIP code
@@ -90,7 +95,7 @@ Successfully modernized the customer signup flow to reduce friction and improve 
 Step 0: Onboarding
 Step 1: User Type Selection
 Step 2: Email & Password
-Step 3: Basic Profile (Name + Phone) [CUSTOMER ONLY]
+Step 3: Phone Number [CUSTOMER ONLY]
 Step 4: Location (ZIP) [CUSTOMER ONLY]
 Step 5: Preferences (Permissions) [CUSTOMER ONLY]
 → Auto-register & login → Customer Home
@@ -104,7 +109,7 @@ Step 5: Preferences (Permissions) [CUSTOMER ONLY]
 - Removed birthday requirement
 
 **Required Fields by User Type:**
-- **Customer**: first_name, last_name, phone, zip
+- **Customer**: phone, zip (that's it!)
 - **Chef**: first_name, last_name, phone, zip, birthday, address, city, state, photo
 
 #### 3. **Checkout Flow** (`/frontend/app/screens/customer/checkout/index.tsx`)
@@ -153,8 +158,8 @@ The Laravel registration endpoint (`/backend/app/Http/Controllers/MapiController
 2. Select user type
 3. Email + Password
 4. [GIANT FORM]
-   - First Name
-   - Last Name
+   - First Name ❌
+   - Last Name ❌
    - Birthday ❌
    - Phone Number
    - Address
@@ -179,10 +184,8 @@ The Laravel registration endpoint (`/backend/app/Http/Controllers/MapiController
 3. Email + Password
    ├─ Progress: ●●●○○ (3/5)
    
-4. Basic Profile
-   ├─ First Name
-   ├─ Last Name
-   ├─ Phone Number
+4. Phone Number
+   ├─ Single field!
    └─ Progress: ●●●●○ (4/5)
    
 5. Location
@@ -200,14 +203,16 @@ The Laravel registration endpoint (`/backend/app/Http/Controllers/MapiController
    └─ User can browse chefs immediately!
 
 8. (Later) At first checkout
-   └─ Modal: "Please add delivery address"
+   └─ Modal: "Please add delivery address & name"
        ├─ [Use Current Location]
+       ├─ First Name
+       ├─ Last Name
        ├─ Street Address
        ├─ City
        ├─ State
        └─ ZIP
 ```
-**Benefits**: Only 5 required fields, clear progress, contextual data collection
+**Benefits**: Only 2 required fields (phone + ZIP), clear progress, contextual data collection
 
 ---
 
@@ -309,9 +314,9 @@ Checkout → Check Address → Show Modal (if needed) → UpdateUserAPI → Proc
 - **Drop-off by Step**: Where users abandon signup (if any)
 
 ### Current Baseline
-- **Required Fields**: 11 → **5** (55% reduction)
+- **Required Fields**: 11 → **2** (82% reduction!)
 - **Steps**: 1 long form → **5 short steps**
-- **Optional Data**: 0 fields → **6 fields** (address components + birthday)
+- **Optional Data**: 0 fields → **8 fields** (first_name, last_name, address components, birthday)
 
 ---
 
@@ -394,14 +399,14 @@ Checkout → Check Address → Show Modal (if needed) → UpdateUserAPI → Proc
 
 This implementation successfully modernizes the customer signup experience by:
 
-✅ **Reducing friction** - 55% fewer required fields  
+✅ **Reducing friction** - 82% fewer required fields (11 → 2)  
 ✅ **Improving UX** - Clear multi-step progression  
 ✅ **Smart defaults** - GPS integration where available  
 ✅ **Contextual collection** - Ask for data when it's needed  
 ✅ **Maintaining quality** - Full validation and error handling  
 ✅ **Zero backend changes** - Purely frontend enhancement  
 
-The new flow should significantly improve signup completion rates while maintaining data quality. Full address is still collected but at a more natural point in the user journey (checkout), reducing initial cognitive load.
+The new flow should significantly improve signup completion rates while maintaining data quality. Customer names and full address are collected at checkout when they're actually needed, reducing initial cognitive load and signup friction to an absolute minimum.
 
 ---
 

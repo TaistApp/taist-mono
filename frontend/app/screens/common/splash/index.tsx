@@ -94,8 +94,8 @@ const Splash = () => {
     }, 2000);
   }, []);
 
-  const CURRENT_VERSION = '26.0.0';
-  const REQUIRED_VERSION = '27.0.0';
+  const CURRENT_VERSION = '28.0.3';
+  const REQUIRED_VERSION = '28.0.3';
 
   const autoLogin = async () => {
     try {

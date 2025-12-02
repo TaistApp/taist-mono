@@ -1645,6 +1645,25 @@ class MapiController extends Controller
 
     // Special functions
 
+    private function _geocodeZipCode($zipCode)
+    {
+        // Simple US ZIP code to approximate lat/long mapping
+        // This is a fallback - ideally use a proper geocoding API
+        $zipMappings = [
+            '60657' => ['lat' => 41.9342, 'lng' => -87.6561], // Chicago - Lakeview
+            '60614' => ['lat' => 41.9220, 'lng' => -87.6531], // Chicago - Lincoln Park
+            '60610' => ['lat' => 41.9029, 'lng' => -87.6324], // Chicago - Near North
+            // Add more as needed
+        ];
+        
+        if (isset($zipMappings[$zipCode])) {
+            return $zipMappings[$zipCode];
+        }
+        
+        // Default to Chicago downtown if ZIP not found
+        return ['lat' => 41.8781, 'lng' => -87.6298];
+    }
+
     public function getSearchChefs(Request $request, $id)
     {
         if ($this->_checktaistApiKey($request->header('apiKey')) === false)
@@ -1652,10 +1671,31 @@ class MapiController extends Controller
         else if ($this->_checktaistApiKey($request->header('apiKey')) === -1)
             return response()->json(['success' => 0, 'error' => "Token has been expired."]);
 
-        $user = Listener::where('id', $id)->where('user_type', 1)->first(['latitude', 'longitude']);
+        $user = Listener::where('id', $id)->where('user_type', 1)->first(['latitude', 'longitude', 'zip']);
         if (!$user) {
             return response()->json(['success' => false, 'message' => 'User not found.']);
         }
+        
+        // If user doesn't have lat/long, try to geocode their ZIP code
+        if (empty($user->latitude) || empty($user->longitude)) {
+            if (!empty($user->zip)) {
+                $coords = $this->_geocodeZipCode($user->zip);
+                $user->latitude = $coords['lat'];
+                $user->longitude = $coords['lng'];
+                
+                // Update user record with geocoded coordinates
+                Listener::where('id', $id)->update([
+                    'latitude' => $coords['lat'],
+                    'longitude' => $coords['lng']
+                ]);
+            } else {
+                return response()->json([
+                    'success' => 0, 
+                    'error' => 'Location not available. Please enable location services or update your ZIP code in settings.'
+                ]);
+            }
+        }
+        
         $radius = 30000;
 
         $whereDayTime = "";
