@@ -1,0 +1,2 @@
+[php]
+extensions = ["gd", "gmp", "pdo_mysql", "mbstring", "xml", "curl"]
