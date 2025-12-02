@@ -61,10 +61,10 @@ export const StepLocation: React.FC<StepLocationProps> = ({
         return;
       }
 
-      // Get current location with lower accuracy for emulator compatibility
+      // Get current location - using High accuracy to force GPS provider on emulator
       const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Low,
-        timeInterval: 5000,
+        accuracy: Location.Accuracy.High,
+        timeInterval: 10000,
         distanceInterval: 0,
       });
 
