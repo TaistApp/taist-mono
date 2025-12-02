@@ -31,12 +31,25 @@ class FixRailwayMigrations extends Command
     {
         $this->info('Checking for existing tables and marking migrations as complete...');
 
+        // Try to connect to database - if it fails, just skip this command
+        try {
+            DB::connection()->getPdo();
+        } catch (\Exception $e) {
+            $this->warn('Database not ready yet, skipping migration fix...');
+            return 0;
+        }
+
         // Get all migration files
         $migrationPath = database_path('migrations');
         $migrationFiles = scandir($migrationPath);
 
         // Get current batch number (or start at 1)
-        $currentBatch = DB::table('migrations')->max('batch') ?? 0;
+        try {
+            $currentBatch = DB::table('migrations')->max('batch') ?? 0;
+        } catch (\Exception $e) {
+            $this->warn('Cannot access migrations table, skipping...');
+            return 0;
+        }
         $newBatch = $currentBatch + 1;
 
         $marked = 0;

@@ -52,11 +52,11 @@ const getEnvironmentUrls = () => {
     
     case 'staging':
     case 'development':
-    // Staging environment
+    // Staging environment - Railway
     return {
-      BASE_URL: 'https://taist.cloudupscale.com/mapi/',
-      Photo_URL: 'https://taist.cloudupscale.com/assets/uploads/images/',
-      HTML_URL: 'https://taist.cloudupscale.com/assets/uploads/html/',
+      BASE_URL: 'https://taist-mono-staging.up.railway.app/mapi/',
+      Photo_URL: 'https://taist-mono-staging.up.railway.app/assets/uploads/images/',
+      HTML_URL: 'https://taist-mono-staging.up.railway.app/assets/uploads/html/',
     };
     
     case 'production':
