@@ -92,24 +92,26 @@ class FixRailwayMigrations extends Command
     {
         // Match patterns like "create_xxx_table" or "create_xxx"
         if (preg_match('/create_(.+?)_table/', $migrationName, $matches)) {
-            return $matches[1];
+            $tableName = $matches[1];
+
+            // Check if table exists with this name
+            if (Schema::hasTable($tableName)) {
+                return $tableName;
+            }
+
+            // Some tables might have tbl_ prefix, check that too
+            if (Schema::hasTable('tbl_' . $tableName)) {
+                return 'tbl_' . $tableName;
+            }
         }
 
-        // Special cases for OAuth tables
-        if (str_contains($migrationName, 'oauth_auth_codes')) {
-            return 'oauth_auth_codes';
-        }
-        if (str_contains($migrationName, 'oauth_access_tokens')) {
-            return 'oauth_access_tokens';
-        }
-        if (str_contains($migrationName, 'oauth_refresh_tokens')) {
-            return 'oauth_refresh_tokens';
-        }
-        if (str_contains($migrationName, 'oauth_clients')) {
-            return 'oauth_clients';
-        }
-        if (str_contains($migrationName, 'oauth_personal_access_clients')) {
-            return 'oauth_personal_access_clients';
+        // Extract the base table name from the migration name
+        // For "2016_06_01_000001_create_oauth_auth_codes_table" -> "oauth_auth_codes"
+        if (preg_match('/_create_(.+?)_table/', $migrationName, $matches)) {
+            $tableName = $matches[1];
+            if (Schema::hasTable($tableName)) {
+                return $tableName;
+            }
         }
 
         return null;
