@@ -49,7 +49,13 @@ class MapiController extends Controller
     public function __construct(Request $request)
     {
         $this->request = $request;
-        $this->notification = Firebase::messaging();
+        try {
+            $this->notification = Firebase::messaging();
+        } catch (\Exception $e) {
+            // Firebase credentials not available - skip push notifications
+            $this->notification = null;
+            \Log::warning('Firebase not configured: ' . $e->getMessage());
+        }
     }
 
     private function _generateCode()
@@ -257,22 +263,26 @@ class MapiController extends Controller
             $notificationBody = $body;
         }
 
-        $message = CloudMessage::fromArray([
-            'token' => $token,
-            'notification' => [
-                'title' => $title,
-                'body' => $notificationBody,
-            ],
-            'data' => [
-                'order_id' => $orderID,
-                'role' => $role,
-                'body' => $body
-            ],
-            //'content_available' => true,
-            //'priority' => 'high'
-        ]);
+        if ($this->notification) {
+            $message = CloudMessage::fromArray([
+                'token' => $token,
+                'notification' => [
+                    'title' => $title,
+                    'body' => $notificationBody,
+                ],
+                'data' => [
+                    'order_id' => $orderID,
+                    'role' => $role,
+                    'body' => $body
+                ],
+                //'content_available' => true,
+                //'priority' => 'high'
+            ]);
 
-        $this->notification->send($message);
+            $this->notification->send($message);
+        } else {
+            \Log::warning('Skipping push notification - Firebase not configured');
+        }
     }
 
     public function register(Request $request)
