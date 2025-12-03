@@ -66,7 +66,9 @@ export const StepChefPhone: React.FC<StepChefPhoneProps> = ({
   };
 
   const handleVerify = () => {
-    if (verificationCode !== serverCode) {
+    console.log('Verifying code:', verificationCode, 'Server code:', serverCode);
+
+    if (verificationCode.trim() !== serverCode.toString().trim()) {
       ShowErrorToast('Incorrect verification code');
       return;
     }

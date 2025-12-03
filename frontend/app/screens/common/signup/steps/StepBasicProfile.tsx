@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, Modal, StyleSheet } from 'react-native';
+import { View, Text, Pressable, Modal, StyleSheet, ActivityIndicator } from 'react-native';
 import { TextInput } from 'react-native-paper';
 import { SignupStepContainer } from '../components/SignupStepContainer';
 import { AppColors, Spacing, Shadows } from '../../../../../constants/theme';
 import { IUser } from '../../../../types/index';
-import { ShowErrorToast } from '../../../../utils/toast';
+import { ShowErrorToast, ShowSuccessToast } from '../../../../utils/toast';
 import StyledTextInput from '../../../../components/styledTextInput';
 import StyledButton from '../../../../components/styledButton';
+import { VerifyPhoneAPI } from '../../../../services/api';
 
 interface StepBasicProfileProps {
   userInfo: IUser;
@@ -25,38 +26,54 @@ export const StepBasicProfile: React.FC<StepBasicProfileProps> = ({
   const [verificationCode, setVerificationCode] = useState('');
   const [serverCode, setServerCode] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isSendingCode, setIsSendingCode] = useState(false);
 
-  const validateAndProceed = () => {
+  const validateAndProceed = async () => {
     if (!userInfo.phone || userInfo.phone.trim().length === 0) {
       ShowErrorToast('Please enter your phone number');
       return;
     }
-    
-    // Basic phone validation (you may want more sophisticated validation)
+
+    // Basic phone validation - must be at least 10 digits
     const phoneDigits = userInfo.phone.replace(/\D/g, '');
     if (phoneDigits.length < 10) {
-      ShowErrorToast('Please enter a valid phone number');
+      ShowErrorToast('Please enter a valid 10-digit phone number');
       return;
     }
 
-    // For now, skip phone verification in MVP - just proceed
-    // TODO: Implement phone verification with backend API
-    onNext();
+    // Send verification code via SMS
+    await handleVerifyPhone();
   };
 
   const handleVerifyPhone = async () => {
-    // TODO: Call VerifyPhoneAPI when ready
-    // For now, skip verification
-    setVisibleVerifyCode(true);
-    setServerCode('123456'); // Mock code
+    setIsSendingCode(true);
+    try {
+      const response = await VerifyPhoneAPI(userInfo.phone!);
+
+      if (response.success === 1) {
+        setServerCode(response.data.code);
+        setVisibleVerifyCode(true);
+        ShowSuccessToast('Verification code sent to your phone!');
+      } else {
+        ShowErrorToast(response.error || 'Failed to send verification code');
+      }
+    } catch (error) {
+      console.error('Error sending verification code:', error);
+      ShowErrorToast('Failed to send verification code. Please try again.');
+    } finally {
+      setIsSendingCode(false);
+    }
   };
 
   const handleVerify = () => {
-    if (verificationCode !== serverCode) {
+    console.log('Verifying code:', verificationCode, 'Server code:', serverCode);
+
+    if (verificationCode.trim() !== serverCode.toString().trim()) {
       ShowErrorToast('Incorrect verification code');
       return;
     }
     setVisibleVerifyCode(false);
+    ShowSuccessToast('Phone verified successfully!');
     onNext();
   };
 
@@ -76,30 +93,54 @@ export const StepBasicProfile: React.FC<StepBasicProfileProps> = ({
 
       <View style={styles.buttonContainer}>
         <StyledButton
-          title="Continue"
+          title={isSendingCode ? "Sending code..." : "Continue"}
           onPress={validateAndProceed}
+          disabled={isSendingCode}
         />
-        <Pressable onPress={onBack} style={styles.backButton}>
+        <Pressable onPress={onBack} style={styles.backButton} disabled={isSendingCode}>
           <Text style={styles.backButtonText}>Back</Text>
         </Pressable>
       </View>
 
-      {/* Phone Verification Modal - Optional for future */}
+      {/* Phone Verification Modal */}
       <Modal transparent visible={visibleVerifyCode}>
         <Pressable
-          onPress={() => setVisibleVerifyCode(false)}
+          onPress={() => !isVerifying && setVisibleVerifyCode(false)}
           style={styles.modalBG}
         >
-          <View style={styles.modal}>
-            <Text style={styles.modalText}>Please check your phone</Text>
+          <Pressable onPress={(e) => e.stopPropagation()} style={styles.modal}>
+            <Text style={styles.modalTitle}>Verify Your Phone</Text>
+            <Text style={styles.modalSubtext}>
+              Enter the 6-digit code sent to {userInfo.phone}
+            </Text>
+
             <StyledTextInput
               label="Verification Code"
               value={verificationCode}
               onChangeText={setVerificationCode}
               keyboardType="number-pad"
+              maxLength={6}
+              autoFocus
             />
-            <StyledButton title="Verify" onPress={handleVerify} />
-          </View>
+
+            <View style={styles.modalButtons}>
+              <StyledButton
+                title={isVerifying ? "Verifying..." : "Verify"}
+                onPress={handleVerify}
+                disabled={isVerifying || verificationCode.length !== 6}
+              />
+
+              <Pressable
+                onPress={handleVerifyPhone}
+                style={styles.resendButton}
+                disabled={isSendingCode}
+              >
+                <Text style={styles.resendButtonText}>
+                  {isSendingCode ? "Sending..." : "Resend Code"}
+                </Text>
+              </Pressable>
+            </View>
+          </Pressable>
         </Pressable>
       </Modal>
     </SignupStepContainer>
@@ -136,11 +177,29 @@ const styles = StyleSheet.create({
     gap: Spacing.lg,
     ...Shadows.lg,
   },
-  modalText: {
-    fontSize: 18,
-    fontWeight: '600',
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '700',
     color: AppColors.text,
     textAlign: 'center',
+  },
+  modalSubtext: {
+    fontSize: 14,
+    color: AppColors.textSecondary,
+    textAlign: 'center',
+    marginTop: -Spacing.sm,
+  },
+  modalButtons: {
+    gap: Spacing.md,
+  },
+  resendButton: {
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+  },
+  resendButtonText: {
+    color: AppColors.primary,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 
