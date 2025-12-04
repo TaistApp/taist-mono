@@ -84,7 +84,7 @@ class FixRailwayMigrations extends Command
             }
         }
 
-        // Third, handle known problematic migrations that failed before
+        // Third, handle known problematic migrations that should NEVER run
         $this->info("\nChecking known problematic migrations...");
         $problematicMigrations = $this->getKnownProblematicMigrations();
 
@@ -100,18 +100,14 @@ class FixRailwayMigrations extends Command
                 continue;
             }
 
-            // Check if table exists in database
-            if (Schema::hasTable($tableName)) {
-                DB::table('migrations')->insert([
-                    'migration' => $migrationName,
-                    'batch' => $newBatch,
-                ]);
-                $this->line("✓ Marked as migrated: {$migrationName} (existing broken table: {$tableName})");
-                $marked++;
-            } else {
-                $this->line("  Skipped: {$migrationName} (table doesn't exist)");
-                $skipped++;
-            }
+            // ALWAYS mark these as migrated so they NEVER run
+            // Don't care if table exists or not - these migrations are broken
+            DB::table('migrations')->insert([
+                'migration' => $migrationName,
+                'batch' => $newBatch,
+            ]);
+            $this->line("✓ Marked as migrated (will never run): {$migrationName}");
+            $marked++;
         }
 
         // Fourth, handle regular app migrations
