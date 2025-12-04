@@ -16,7 +16,7 @@ class AdminSeeder extends Seeder
      */
     public function run()
     {
-        // Default admin user
+        // Default admin user - update password if exists, create if not
         $admin = Admins::firstOrCreate(
             ['email' => 'admin@taist.com'],
             [
@@ -25,15 +25,19 @@ class AdminSeeder extends Seeder
                 'password' => 'admin123', // Will be hashed automatically by the model mutator
                 'active' => 1,
                 'api_token' => uniqid() . Str::random(60),
-                'created_at' => (string)time(),
-                'updated_at' => (string)time(),
             ]
         );
 
-        echo "✅ Admin user created:\n";
+        // Always update password to ensure it's correct (in case user already existed)
+        $admin->password = 'admin123'; // Will be hashed by mutator
+        $admin->active = 1;
+        $admin->save();
+
+        echo "✅ Admin user ready:\n";
         echo "   Email: admin@taist.com\n";
         echo "   Password: admin123\n";
-        echo "   Status: Active\n\n";
+        echo "   Status: Active\n";
+        echo "   ID: {$admin->id}\n\n";
 
         // You can add more admin users here
         // Example:
