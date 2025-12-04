@@ -80,6 +80,36 @@ class FixRailwayMigrations extends Command
             }
         }
 
+        // Second, handle known problematic migrations that failed before
+        $this->info("\nChecking known problematic migrations...");
+        $problematicMigrations = $this->getKnownProblematicMigrations();
+
+        foreach ($problematicMigrations as $migrationName => $tableName) {
+            // Check if migration is already recorded
+            $exists = DB::table('migrations')
+                ->where('migration', $migrationName)
+                ->exists();
+
+            if ($exists) {
+                $this->line("  Already migrated: {$migrationName}");
+                $skipped++;
+                continue;
+            }
+
+            // Check if table exists in database
+            if (Schema::hasTable($tableName)) {
+                DB::table('migrations')->insert([
+                    'migration' => $migrationName,
+                    'batch' => $newBatch,
+                ]);
+                $this->line("✓ Marked as migrated: {$migrationName} (existing broken table: {$tableName})");
+                $marked++;
+            } else {
+                $this->line("  Skipped: {$migrationName} (table doesn't exist)");
+                $skipped++;
+            }
+        }
+
         // Then handle regular app migrations
         $this->info("\nChecking application migrations...");
         $migrationPath = database_path('migrations');
@@ -146,6 +176,21 @@ class FixRailwayMigrations extends Command
             '2016_06_01_000003_create_oauth_refresh_tokens_table' => 'oauth_refresh_tokens',
             '2016_06_01_000004_create_oauth_clients_table' => 'oauth_clients',
             '2016_06_01_000005_create_oauth_personal_access_clients_table' => 'oauth_personal_access_clients',
+        ];
+    }
+
+    /**
+     * Get known problematic migration mappings
+     *
+     * Explicitly maps migrations that have failed before or have non-standard table names
+     * that the guessTableName() method might miss.
+     *
+     * @return array
+     */
+    private function getKnownProblematicMigrations()
+    {
+        return [
+            '2025_12_03_000003_create_availability_overrides' => 'tbl_availability_overrides',
         ];
     }
 
