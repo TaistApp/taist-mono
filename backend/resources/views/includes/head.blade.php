@@ -8,17 +8,17 @@
 	<title>@yield('title', config('admin.title'))</title>
 
     <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css" />
-    <link rel="stylesheet" href="{{ url('assets/libs/css/bootstrap.css') }}">
-    <link rel="stylesheet" href="{{ url('assets/libs/css/bootstrap-switch.css') }}">
-    <link rel="stylesheet" href="{{ url('assets/libs/css/font-awesome.css') }}">
-    <link rel="stylesheet" href="{{ url('assets/libs/css/bootstrap-table.css') }}">
+    <link rel="stylesheet" href="/assets/libs/css/bootstrap.css">
+    <link rel="stylesheet" href="/assets/libs/css/bootstrap-switch.css">
+    <link rel="stylesheet" href="/assets/libs/css/font-awesome.css">
+    <link rel="stylesheet" href="/assets/libs/css/bootstrap-table.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.18/css/bootstrap-select.min.css">
     <link href="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/css/bootstrap4-toggle.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.10.22/css/jquery.dataTables.min.css">
 
-    <link rel="stylesheet" href="{{ url('assets/css/main.css?r='.time()) }}">
-    <link rel="stylesheet" href="{{ url('assets/css/index.css?r='.time()) }}">
+    <link rel="stylesheet" href="/assets/css/main.css?r={{ time() }}">
+    <link rel="stylesheet" href="/assets/css/index.css?r={{ time() }}">
 
     <script type="text/javascript">
         var serverURL = "{{ config('admin.server_url') }}";
@@ -40,4 +40,4 @@
             }
         });
     </script>
-    <script src="{{ url('assets/js/config.js?r='.time()) }}"></script>
+    <script src="/assets/js/config.js?r={{ time() }}"></script>

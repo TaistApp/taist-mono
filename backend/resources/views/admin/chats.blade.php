@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 @section('content')
-   <link rel="stylesheet" href="{{ url('assets/admin/index.css?r='.time()) }}">
+   <link rel="stylesheet" href="/assets/admin/index.css?r={{ time() }}">
 	<div class="admin_wrapper">
       <div class="flex flex_acenter mb24">
          <div class="fsize24 font_bold">Chats</div>
@@ -42,8 +42,8 @@
 
 @endsection
 @section('page-scripts')
-   <script src="{{ url('assets/admin/index.js?r='.time()) }}"></script>
-   <script src="{{ url('assets/admin/chats.js?r='.time()) }}"></script>
+   <script src="/assets/admin/index.js?r={{ time() }}"></script>
+   <script src="/assets/admin/chats.js?r={{ time() }}"></script>
    <script>
       $('.l_menu_item_chats').addClass('sel');
    </script>

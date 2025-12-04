@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 @section('content')
-   <link rel="stylesheet" href="{{ url('assets/admin/index.css?r='.time()) }}">
+   <link rel="stylesheet" href="/assets/admin/index.css?r={{ time() }}">
 	<div class="admin_wrapper">
       <div class="fsize24 font_bold mb24">Menu items</div>
       <div class="div_table">
@@ -51,8 +51,8 @@
 
 @endsection
 @section('page-scripts')
-   <script src="{{ url('assets/admin/index.js?r='.time()) }}"></script>
-   <script src="{{ url('assets/admin/menus.js?r='.time()) }}"></script>
+   <script src="/assets/admin/index.js?r={{ time() }}"></script>
+   <script src="/assets/admin/menus.js?r={{ time() }}"></script>
    <script>
       $('.l_menu_item_menus').addClass('sel');
       $('.sub_chefs').toggleClass('sub_menu1');

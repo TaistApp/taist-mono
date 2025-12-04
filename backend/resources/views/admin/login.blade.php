@@ -14,20 +14,20 @@
     <meta name="author" content="">
     <title>{{ config('admin.title') }}</title>
 
-    <link rel="stylesheet" href="{{ url('assets/libs/css/bootstrap.css') }}">
-    <link rel="stylesheet" href="{{ url('assets/libs/css/bootstrap-switch.css') }}">
-    <link rel="stylesheet" href="{{ url('assets/libs/css/font-awesome.css') }}">
-    <link rel="stylesheet" href="{{ url('assets/libs/css/bootstrap-table.css') }}">
+    <link rel="stylesheet" href="/assets/libs/css/bootstrap.css">
+    <link rel="stylesheet" href="/assets/libs/css/bootstrap-switch.css">
+    <link rel="stylesheet" href="/assets/libs/css/font-awesome.css">
+    <link rel="stylesheet" href="/assets/libs/css/bootstrap-table.css">
 
-    <link rel="stylesheet" href="{{ url('assets/css/main.css?r='.time()) }}">
-    <link rel="stylesheet" href="{{ url('assets/css/index.css?r='.time()) }}">
-    <link rel="stylesheet" href="{{ url('assets/login/index.css?r='.time()) }}">
+    <link rel="stylesheet" href="/assets/css/main.css?r={{ time() }}">
+    <link rel="stylesheet" href="/assets/css/index.css?r={{ time() }}">
+    <link rel="stylesheet" href="/assets/login/index.css?r={{ time() }}">
 
     <script type="text/javascript">
         var serverURL = "{{ config('admin.server_url') }}";
     </script>
-    <script src="{{ url('assets/js/config.js?r='.time()) }}"></script>
-    <script src="{{ url('assets/libs/js/jwt-decode.js') }}"></script>
+    <script src="/assets/js/config.js?r={{ time() }}"></script>
+    <script src="/assets/libs/js/jwt-decode.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
 </head>
@@ -64,12 +64,12 @@
 
 </body>
 
-    <script src="{{ url('assets/libs/js/jquery-3.1.1.js') }}"></script>
-    <script src="{{ url('assets/libs/js/bootstrap.js') }}"></script>
-    <script src="{{ url('assets/libs/js/bootstrap-switch.js') }}"></script>
-    <script src="{{ url('assets/libs/js/bootstrap-table.js') }}"></script>
+    <script src="/assets/libs/js/jquery-3.1.1.js"></script>
+    <script src="/assets/libs/js/bootstrap.js"></script>
+    <script src="/assets/libs/js/bootstrap-switch.js"></script>
+    <script src="/assets/libs/js/bootstrap-table.js"></script>
 
-    <script src="{{ url('assets/js/main.js?r='.time()) }}"></script>
+    <script src="/assets/js/main.js?r={{ time() }}"></script>
     <script>
         $(function() {
 
