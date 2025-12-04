@@ -1,7 +1,6 @@
     <!-- <div class="div_loading">
         <img src="/assets/images/load_image.webp" />
     </div> -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.22/css/jquery.dataTables.min.css">
     <div class="div_loading">
         <div>
             <img src="/assets/images/loading.gif" />

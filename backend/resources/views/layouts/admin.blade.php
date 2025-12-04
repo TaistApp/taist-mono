@@ -13,9 +13,7 @@
         @endif
     @endunless
 
-    <div class="main_content @if(Request::is('admin/login') || Request::is('admin')) login-page @endif">
-        @yield('content')
-    </div>
+    @yield('content')
 
     @unless(Request::is('admin/login') || Request::is('admin'))
         @include('includes.admin_footer')
