@@ -39,6 +39,10 @@ class FixRailwayMigrations extends Command
             return 0;
         }
 
+        // FIRST: Brutally drop any broken tables that can't be fixed with migrations
+        $this->info("\nForce dropping broken tables...");
+        $this->forceDropProblematicTables();
+
         // Get current batch number (or start at 1)
         try {
             $currentBatch = DB::table('migrations')->max('batch') ?? 0;
@@ -51,7 +55,7 @@ class FixRailwayMigrations extends Command
         $marked = 0;
         $skipped = 0;
 
-        // First, handle Passport OAuth migrations from vendor
+        // Second, handle Passport OAuth migrations from vendor
         $this->info("\nChecking Passport OAuth tables...");
         $passportMigrations = $this->getPassportMigrations();
 
@@ -80,7 +84,7 @@ class FixRailwayMigrations extends Command
             }
         }
 
-        // Second, handle known problematic migrations that failed before
+        // Third, handle known problematic migrations that failed before
         $this->info("\nChecking known problematic migrations...");
         $problematicMigrations = $this->getKnownProblematicMigrations();
 
@@ -110,7 +114,7 @@ class FixRailwayMigrations extends Command
             }
         }
 
-        // Then handle regular app migrations
+        // Fourth, handle regular app migrations
         $this->info("\nChecking application migrations...");
         $migrationPath = database_path('migrations');
         $migrationFiles = scandir($migrationPath);
@@ -190,8 +194,35 @@ class FixRailwayMigrations extends Command
     private function getKnownProblematicMigrations()
     {
         return [
+            // Old broken migrations - mark as complete so they never run
             '2025_12_03_000003_create_availability_overrides' => 'tbl_availability_overrides',
+            '2025_12_04_000004_fix_availability_overrides_foreign_key' => 'tbl_availability_overrides',
         ];
+    }
+
+    /**
+     * Force drop problematic tables using raw SQL
+     *
+     * Some tables get into a state where Schema::dropIfExists() doesn't work.
+     * This nukes them with raw SQL before migrations run.
+     *
+     * @return void
+     */
+    private function forceDropProblematicTables()
+    {
+        $tablesToDrop = [
+            'tbl_availability_overrides', // Has wrong foreign key type, needs brutal drop
+        ];
+
+        foreach ($tablesToDrop as $tableName) {
+            try {
+                $this->line("  Force dropping: {$tableName}");
+                DB::statement("DROP TABLE IF EXISTS `{$tableName}`");
+                $this->line("  ✓ Dropped: {$tableName}");
+            } catch (\Exception $e) {
+                $this->warn("  ! Could not drop {$tableName}: " . $e->getMessage());
+            }
+        }
     }
 
     /**
