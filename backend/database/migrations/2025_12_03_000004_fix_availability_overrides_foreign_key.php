@@ -3,25 +3,18 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 /**
- * Create Availability Overrides Table
+ * Fix Availability Overrides Foreign Key
  *
- * TMA-011 REVISED Phase 1
+ * This migration fixes the foreign key type mismatch that caused the initial
+ * availability_overrides migration to fail on Railway.
  *
- * This table stores day-specific availability overrides that take precedence
- * over the weekly recurring schedule in tbl_availabilities.
- *
- * Use cases:
- * 1. Chef confirms/modifies tomorrow's hours via 24-hour reminder
- * 2. Chef manually toggles availability for today/tomorrow (0-36 hours)
- *
- * Key points:
- * - One override per chef per day (unique constraint)
- * - start_time/end_time NULL = cancelled for that day
- * - Does NOT affect weekly recurring schedule
+ * Issue: chef_id was defined as INT but tbl_users.id is BIGINT UNSIGNED
+ * Solution: Drop the broken table and recreate with correct types
  */
-class CreateAvailabilityOverrides extends Migration
+class FixAvailabilityOverridesForeignKey extends Migration
 {
     /**
      * Run the migrations.
@@ -30,10 +23,14 @@ class CreateAvailabilityOverrides extends Migration
      */
     public function up()
     {
+        // Drop the table if it exists (it may be in a broken state from failed migration)
+        Schema::dropIfExists('tbl_availability_overrides');
+
+        // Recreate with correct column types
         Schema::create('tbl_availability_overrides', function (Blueprint $table) {
             $table->id();
 
-            // Which chef this override is for (must match tbl_users.id type: BIGINT UNSIGNED)
+            // FIXED: Changed from integer() to unsignedBigInteger() to match tbl_users.id
             $table->unsignedBigInteger('chef_id');
 
             // Which specific date this override applies to (YYYY-MM-DD)
@@ -56,7 +53,7 @@ class CreateAvailabilityOverrides extends Migration
             // Ensure one override per chef per day
             $table->unique(['chef_id', 'override_date'], 'unique_chef_date');
 
-            // Foreign key to tbl_users table
+            // Foreign key to tbl_users table - now with matching types!
             $table->foreign('chef_id')
                   ->references('id')
                   ->on('tbl_users')
