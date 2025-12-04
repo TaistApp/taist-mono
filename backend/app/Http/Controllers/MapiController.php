@@ -3065,6 +3065,56 @@ Write only the review text:";
             }
         }
 
+        // TMA-011 REVISED: Filter out chefs who are unavailable due to overrides
+        // This checks if chef has cancelled or modified their availability for the selected date
+        if (isset($request->week_day)) {
+            // Calculate the actual date from week_day
+            // week_day: 0=Sunday, 1=Monday, etc.
+            $today = new \DateTime();
+            $currentWeekday = (int)$today->format('w'); // 0=Sunday
+            $targetWeekday = (int)$request->week_day;
+
+            // Calculate days to add to get to target weekday
+            $daysToAdd = $targetWeekday - $currentWeekday;
+            if ($daysToAdd < 0) {
+                $daysToAdd += 7; // Next week
+            }
+
+            $targetDate = clone $today;
+            $targetDate->modify("+{$daysToAdd} days");
+            $dateString = $targetDate->format('Y-m-d');
+
+            // Get time slot range to check
+            $timeSlot = isset($request->time_slot) ? (int)$request->time_slot : 0;
+            $checkTime = '12:00:00'; // Default to midday
+
+            switch ($timeSlot) {
+                case 1: // Breakfast (5-11)
+                    $checkTime = '08:00:00';
+                    break;
+                case 2: // Lunch (11-16)
+                    $checkTime = '13:00:00';
+                    break;
+                case 3: // Dinner (16-22)
+                    $checkTime = '18:00:00';
+                    break;
+                case 4: // Late (22-5)
+                    $checkTime = '23:00:00';
+                    break;
+            }
+
+            // Filter out unavailable chefs
+            $data = array_values(array_filter($data, function($chef) use ($dateString, $checkTime) {
+                $chefModel = app(Listener::class)->find($chef->id);
+                if (!$chefModel) {
+                    return false;
+                }
+
+                $orderDateTime = $dateString . ' ' . $checkTime;
+                return $chefModel->isAvailableForOrder($orderDateTime);
+            }));
+        }
+
         // Log::info('checfssss' . $data);
 
         return response()->json(['success' => 1, 'data' => $data]);
