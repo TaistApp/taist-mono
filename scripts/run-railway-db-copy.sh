@@ -39,3 +39,4 @@ fi
 # Run the direct connection script
 ./scripts/copy-local-to-railway-direct.sh
 
+

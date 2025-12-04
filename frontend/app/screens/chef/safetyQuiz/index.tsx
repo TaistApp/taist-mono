@@ -4,9 +4,7 @@ import {
   View,
   Text,
   TouchableOpacity,
-  ScrollView,
   StyleSheet,
-  Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAppDispatch, useAppSelector } from '../../../hooks/useRedux';
@@ -108,10 +106,7 @@ const SafetyQuiz = () => {
   return (
     <SafeAreaView style={styles.main}>
       <Container>
-        <ScrollView
-          contentContainerStyle={styles.pageView}
-          showsVerticalScrollIndicator={false}
-        >
+        <View style={styles.pageView}>
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Safety Quiz</Text>
@@ -143,25 +138,27 @@ const SafetyQuiz = () => {
 
             <Text style={styles.questionText}>{currentQuestion.question}</Text>
 
-            {/* Answer Options */}
-            <View style={styles.answersContainer}>
-              {currentQuestion.answers.map((answer) => (
-                <TouchableOpacity
-                  key={answer.id}
-                  style={getAnswerButtonStyle(answer)}
-                  onPress={() => handleAnswerSelect(answer)}
-                  disabled={showExplanation}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.answerLabelContainer}>
-                    <View style={getAnswerLabelStyle(answer)}>
-                      <Text style={styles.answerLabelText}>{answer.id}</Text>
+            {/* Answer Options - Hidden when correct answer is shown */}
+            {!showExplanation && (
+              <View style={styles.answersContainer}>
+                {currentQuestion.answers.map((answer) => (
+                  <TouchableOpacity
+                    key={answer.id}
+                    style={getAnswerButtonStyle(answer)}
+                    onPress={() => handleAnswerSelect(answer)}
+                    disabled={showExplanation}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.answerLabelContainer}>
+                      <View style={getAnswerLabelStyle(answer)}>
+                        <Text style={styles.answerLabelText}>{answer.id}</Text>
+                      </View>
                     </View>
-                  </View>
-                  <Text style={styles.answerText}>{answer.text}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+                    <Text style={styles.answerText}>{answer.text}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
 
             {/* Explanation (shown after correct answer) */}
             {showExplanation && (
@@ -187,7 +184,7 @@ const SafetyQuiz = () => {
             )}
           </View>
 
-          {/* Next Button (only shown after correct answer) */}
+          {/* Next Button (only shown after correct answer) - OUTSIDE question card */}
           {showExplanation && (
             <TouchableOpacity
               style={styles.nextButton}
@@ -206,7 +203,7 @@ const SafetyQuiz = () => {
               </LinearGradient>
             </TouchableOpacity>
           )}
-        </ScrollView>
+        </View>
       </Container>
     </SafeAreaView>
   );
@@ -218,11 +215,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
   },
   pageView: {
+    flex: 1,
     padding: 20,
-    paddingBottom: 40,
   },
   header: {
-    marginBottom: 24,
+    marginBottom: 16,
   },
   headerTitle: {
     fontSize: 32,
@@ -267,11 +264,13 @@ const styles = StyleSheet.create({
   },
   categoryBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: AppColors.primaryLight || '#FFE8DC',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
     marginBottom: 16,
+    borderWidth: 2,
+    borderColor: AppColors.primary,
   },
   categoryText: {
     fontSize: 11,
