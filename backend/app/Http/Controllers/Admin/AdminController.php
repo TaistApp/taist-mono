@@ -85,72 +85,60 @@ class AdminController extends Controller
     }
 
     public function index(Request $request) {
-        $data['title'] = "Taist - Admin Panel";
         $user = $this->guard()->user();
-        $data['user'] = $user;
 
-        return view("admin.chefs", $data);
+        return view("admin.chefs", compact('user'));
     }
 
     public function chefs(Request $request) {
-        $data['title'] = "Taist - Admin Panel";
         $user = $this->guard()->user();
-        $data['user'] = $user;
-        //$data['chefs'] = app(Listener::class)->where(['user_type'=>2, 'is_pending'=>0])->get();
-        $data['chefs'] = app(Listener::class)->where(['user_type'=>2])->get();
+        //$chefs = app(Listener::class)->where(['user_type'=>2, 'is_pending'=>0])->get();
+        $chefs = app(Listener::class)->where(['user_type'=>2])->get();
 
-        return view("admin.chefs", $data);
+        return view("admin.chefs", compact('user', 'chefs'));
     }
 
     public function pendings(Request $request) {
-        $data['title'] = "Taist - Admin Panel";
         $user = $this->guard()->user();
-        $data['user'] = $user;
-        $data['pendings'] = DB::table('tbl_users as u')
+        $pendings = DB::table('tbl_users as u')
             ->leftJoin('tbl_availabilities as a', 'a.user_id', '=', 'u.id')
             ->where(['user_type' => 2, 'is_pending' => 1])
             ->select(['u.*', 'a.bio', 'a.monday_start', 'a.monday_end', 'a.tuesday_start', 'a.tuesday_end', 'a.wednesday_start', 'a.wednesday_end', 'a.thursday_start', 'a.thursday_end', 'a.friday_start', 'a.friday_end', 'a.saterday_start', 'a.saterday_end', 'a.sunday_start', 'a.sunday_end', 'a.minimum_order_amount', 'a.max_order_distance'])
             ->get();
 
-        return view("admin.pendings", $data);
+        return view("admin.pendings", compact('user', 'pendings'));
     }
 
     public function categories(Request $request) {
-        $data['title'] = "Taist - Admin Panel";
         $user = $this->guard()->user();
-        $data['user'] = $user;
-        $data['categories'] = DB::table('tbl_categories as c')->leftJoin('tbl_users as u', 'c.chef_id', '=', 'u.id')
+        $categories = DB::table('tbl_categories as c')->leftJoin('tbl_users as u', 'c.chef_id', '=', 'u.id')
             ->select(['c.*', 'u.email as user_email'])->get();
 
-        return view("admin.categories", $data);
+        return view("admin.categories", compact('user', 'categories'));
     }
 
     public function menus(Request $request) {
-        $data['title'] = "Taist - Admin Panel";
         $user = $this->guard()->user();
-        $data['user'] = $user;
-        $data['menus'] = DB::table('tbl_menus as m')
+        $menus = DB::table('tbl_menus as m')
             ->leftJoin('tbl_users as u', 'm.user_id', '=', 'u.id')
             //->leftJoin('tbl_categories as c', 'm.category_id', '=', 'c.id')
             ->select(['m.*', 'u.email as user_email', 'u.first_name as user_first_name', 'u.last_name as user_last_name', 'u.photo as user_photo'])
             ->groupBy('m.id', 'm.allergens', 'm.appliances')->get();
 
-        foreach ($data['menus'] as &$a) {
+        foreach ($menus as &$a) {
             $a->category_list = app(Categories::class)->whereRaw('FIND_IN_SET(id, "'.$a->category_ids.'") > 0')->selectRaw('GROUP_CONCAT(name) as title')->first();
             $a->allergen_list = app(Allergens::class)->whereRaw('FIND_IN_SET(id, "'.$a->allergens.'") > 0')->selectRaw('GROUP_CONCAT(name) as title')->first();
             $a->appliance_list = app(Appliances::class)->whereRaw('FIND_IN_SET(id, "'.$a->appliances.'") > 0')->selectRaw('GROUP_CONCAT(name) as title')->first();
         }
 
-        return view("admin.menus", $data);
+        return view("admin.menus", compact('user', 'menus'));
     }
 
     public function editMenu(Request $request, $id) {
-        $data['title'] = "Taist - Admin Panel";
         $user = $this->guard()->user();
-        $data['user'] = $user;
-        $data['menu'] = app(Menus::class)->where(['id'=>$id])->first();
+        $menu = app(Menus::class)->where(['id'=>$id])->first();
 
-        return view("admin.menus_edit", $data);
+        return view("admin.menus_edit", compact('user', 'menu'));
     }
 
     public function updateMenu(Request $request, $id) {
@@ -160,22 +148,18 @@ class AdminController extends Controller
     }
 
     public function customizations(Request $request) {
-        $data['title'] = "Taist - Admin Panel";
         $user = $this->guard()->user();
-        $data['user'] = $user;
-        $data['customizations'] = DB::table('tbl_customizations as c')->leftJoin('tbl_menus as m', 'm.id', '=', 'c.menu_id')
+        $customizations = DB::table('tbl_customizations as c')->leftJoin('tbl_menus as m', 'm.id', '=', 'c.menu_id')
             ->select(['c.*', 'm.title as menu_title'])->get();
 
-        return view("admin.customizations", $data);
+        return view("admin.customizations", compact('user', 'customizations'));
     }
 
     public function editCustomizations(Request $request, $id) {
-        $data['title'] = "Taist - Admin Panel";
         $user = $this->guard()->user();
-        $data['user'] = $user;
-        $data['customization'] = app(Customizations::class)->where(['id'=>$id])->first();
+        $customization = app(Customizations::class)->where(['id'=>$id])->first();
 
-        return view("admin.customizations_edit", $data);
+        return view("admin.customizations_edit", compact('user', 'customization'));
     }
 
     public function updateCustomizations(Request $request, $id) {
@@ -185,22 +169,18 @@ class AdminController extends Controller
     }
 
     public function profiles(Request $request) {
-        $data['title'] = "Taist - Admin Panel";
         $user = $this->guard()->user();
-        $data['user'] = $user;
-        $data['profiles'] = DB::table('tbl_users as u')->leftJoin('tbl_availabilities as a', 'a.user_id', '=', 'u.id')->where(['user_type' => 2, 'is_pending' => 0, 'verified' => 1])
+        $profiles = DB::table('tbl_users as u')->leftJoin('tbl_availabilities as a', 'a.user_id', '=', 'u.id')->where(['user_type' => 2, 'is_pending' => 0, 'verified' => 1])
             ->select(['u.*', 'a.bio', 'a.monday_start', 'a.monday_end', 'a.tuesday_start', 'a.tuesday_end', 'a.wednesday_start', 'a.wednesday_end', 'a.thursday_start', 'a.thursday_end', 'a.friday_start', 'a.friday_end', 'a.saterday_start', 'a.saterday_end', 'a.sunday_start', 'a.sunday_end', 'a.minimum_order_amount', 'a.max_order_distance'])->get();
 
-        return view("admin.profiles", $data);
+        return view("admin.profiles", compact('user', 'profiles'));
     }
 
     public function editProfiles(Request $request, $id) {
-        $data['title'] = "Taist - Admin Panel";
         $user = $this->guard()->user();
-        $data['user'] = $user;
-        $data['profile'] = app(Availabilities::class)->where(['user_id'=>$id])->first();
+        $profile = app(Availabilities::class)->where(['user_id'=>$id])->first();
 
-        return view("admin.profiles_edit", $data);
+        return view("admin.profiles_edit", compact('user', 'profile'));
     }
 
     public function updateProfiles(Request $request, $id) {
@@ -210,44 +190,36 @@ class AdminController extends Controller
     }
 
     public function earnings(Request $request) {
-        $data['title'] = "Taist - Admin Panel";
         $user = $this->guard()->user();
-        $data['user'] = $user;
-        $data['earnings'] = DB::table('tbl_users as u')->join('tbl_orders as o', 'o.chef_user_id', '=', 'u.id')
+        $earnings = DB::table('tbl_users as u')->join('tbl_orders as o', 'o.chef_user_id', '=', 'u.id')
             ->where(['user_type' => 2, 'is_pending' => 0, 'verified' => 1])
             ->where(['status' => 3])
             ->selectRaw('u.*, SUM(CASE WHEN o.updated_at > DATE_SUB(NOW(), INTERVAL 1 MONTH) THEN o.total_price ELSE 0 END) AS monthly_earning, SUM(CASE WHEN o.updated_at > DATE_SUB(NOW(), INTERVAL 1 MONTH) THEN 1 ELSE 0 END) AS monthly_orders, SUM(CASE WHEN o.updated_at > DATE_SUB(NOW(), INTERVAL 1 MONTH) THEN o.amount ELSE 0 END) AS monthly_items, SUM(CASE WHEN o.updated_at > DATE_SUB(NOW(), INTERVAL 1 YEAR) THEN o.total_price ELSE 0 END) AS yearly_earning, SUM(CASE WHEN o.updated_at > DATE_SUB(NOW(), INTERVAL 1 YEAR) THEN 1 ELSE 0 END) AS yearly_orders, SUM(CASE WHEN o.updated_at > DATE_SUB(NOW(), INTERVAL 1 YEAR) THEN o.amount ELSE 0 END) AS yearly_items')
             ->get();
 
-        return view("admin.earnings", $data);
+        return view("admin.earnings", compact('user', 'earnings'));
     }
 
     public function customers(Request $request) {
-        $data['title'] = "Taist - Admin Panel";
         $user = $this->guard()->user();
-        $data['user'] = $user;
-        $data['customers'] = app(Listener::class)->where(['user_type'=>1])->get();
+        $customers = app(Listener::class)->where(['user_type'=>1])->get();
 
-        return view("admin.customers", $data);
+        return view("admin.customers", compact('user', 'customers'));
     }
 
     public function chats(Request $request) {
-        $data['title'] = "Taist - Admin Panel";
         $user = $this->guard()->user();
-        $data['user'] = $user;
-        $data['chats'] = DB::table('tbl_conversations as c')->leftJoin('tbl_users as f', 'c.from_user_id', '=', 'f.id')->leftJoin('tbl_users as t', 'c.to_user_id', '=', 't.id')
+        $chats = DB::table('tbl_conversations as c')->leftJoin('tbl_users as f', 'c.from_user_id', '=', 'f.id')->leftJoin('tbl_users as t', 'c.to_user_id', '=', 't.id')
             ->select(['c.*', 'f.email as from_user_email', 'f.first_name as from_first_name', 'f.last_name as from_last_name', 't.email as to_user_email', 't.first_name as to_first_name', 't.last_name as to_last_name'])->get();
 
-        return view("admin.chats", $data);
+        return view("admin.chats", compact('user', 'chats'));
     }
 
     public function orders(Request $request) {
-        $data['title'] = "Taist - Admin Panel";
         $user = $this->guard()->user();
-        $data['user'] = $user;
         
         // Fetch orders with all related data including cancellation details
-        $data['orders'] = DB::table('tbl_orders as o')
+        $orders = DB::table('tbl_orders as o')
             ->leftJoin('tbl_users as f', 'o.customer_user_id', '=', 'f.id')
             ->leftJoin('tbl_users as t', 'o.chef_user_id', '=', 't.id')
             ->leftJoin('tbl_menus as m', 'm.id', '=', 'o.menu_id')
@@ -273,49 +245,41 @@ class AdminController extends Controller
             ->orderBy('o.id', 'DESC')
             ->get();
 
-        foreach ($data['orders'] as &$a) {
+        foreach ($orders as &$a) {
             $a->status_str = $this->getOrderStatus($a->status);
         }
 
-        return view("admin.orders", $data);
+        return view("admin.orders", compact('user', 'orders'));
     }
 
     public function reviews(Request $request) {
-        $data['title'] = "Taist - Admin Panel";
         $user = $this->guard()->user();
-        $data['user'] = $user;
-        $data['reviews'] = DB::table('tbl_reviews as r')->leftJoin('tbl_users as f', 'r.from_user_id', '=', 'f.id')->leftJoin('tbl_users as t', 'r.to_user_id', '=', 't.id')
+        $reviews = DB::table('tbl_reviews as r')->leftJoin('tbl_users as f', 'r.from_user_id', '=', 'f.id')->leftJoin('tbl_users as t', 'r.to_user_id', '=', 't.id')
             ->select(['r.*', 'f.email as from_user_email', 't.email as to_user_email'])->get();
 
-        return view("admin.reviews", $data);
+        return view("admin.reviews", compact('user', 'reviews'));
     }
 
     public function contacts(Request $request) {
-        $data['title'] = "Taist - Admin Panel";
         $user = $this->guard()->user();
-        $data['user'] = $user;
-        $data['contacts'] = DB::table('tbl_tickets as t')->leftJoin('tbl_users as u', 't.user_id', '=', 'u.id')
+        $contacts = DB::table('tbl_tickets as t')->leftJoin('tbl_users as u', 't.user_id', '=', 'u.id')
             ->select(['t.*', 'u.email as user_email'])->get();
 
-        return view("admin.contacts", $data);
+        return view("admin.contacts", compact('user', 'contacts'));
     }
 
     public function transactions(Request $request) {
-        $data['title'] = "Taist - Admin Panel";
         $user = $this->guard()->user();
-        $data['user'] = $user;
-        $data['transactions'] = app(Transactions::class)->get();
+        $transactions = app(Transactions::class)->get();
 
-        return view("admin.transactions", $data);
+        return view("admin.transactions", compact('user', 'transactions'));
     }
 
     public function zipcodes(Request $request) {
-        $data['title'] = "Taist - Admin Panel";
         $user = $this->guard()->user();
-        $data['user'] = $user;
-        $data['zipcodes'] = app(Zipcodes::class)->first();
+        $zipcodes = app(Zipcodes::class)->first();
 
-        return view("admin.zipcodes", $data);
+        return view("admin.zipcodes", compact('user', 'zipcodes'));
     }
 
     public function updateZipcodes(Request $request) {
@@ -520,14 +484,12 @@ class AdminController extends Controller
     // Discount Codes Management
 
     public function discountCodes(Request $request) {
-        $data['title'] = "Taist - Discount Codes";
         $user = $this->guard()->user();
-        $data['user'] = $user;
-        $data['codes'] = app(DiscountCodes::class)
+        $codes = app(DiscountCodes::class)
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return view("admin.discount_codes", $data);
+        return view("admin.discount_codes", compact('user', 'codes'));
     }
 
     public function createDiscountCode(Request $request) {

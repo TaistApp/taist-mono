@@ -1,46 +1,17 @@
-<?php 
-    include $_SERVER['DOCUMENT_ROOT'].'/include/config.php';
-    $is_signup = isset($_GET['signup']) && $_GET['signup']==1 ? true : false;
-?>
-<!DOCTYPE html>
+@extends('layouts.admin')
 
-<html lang="en"><head>
+@section('title', config('admin.title') . ' - Login')
 
-    <meta charset="utf-8">
-    
-    <link rel="icon" type="image/png" href="/assets/images/favicon.png" />    
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <meta name="robots" content="NOINDEX, NOFOLLOW">
-    <meta name="description" content="">
-    <meta name="author" content="">
-    <title><?php echo $title;?></title>
-
-    <link rel="stylesheet" href="{{ url('assets/libs/css/bootstrap.css') }}">
-    <link rel="stylesheet" href="{{ url('assets/libs/css/bootstrap-switch.css') }}">
-    <link rel="stylesheet" href="{{ url('assets/libs/css/font-awesome.css') }}">
-    <link rel="stylesheet" href="{{ url('assets/libs/css/bootstrap-table.css') }}">
-
-    <link rel="stylesheet" href="{{ url('assets/css/main.css?r='.time()) }}">
-    <link rel="stylesheet" href="{{ url('assets/css/index.css?r='.time()) }}">
+@push('styles')
     <link rel="stylesheet" href="{{ url('assets/login/index.css?r='.time()) }}">
+@endpush
 
-    <script type="text/javascript">
-        var serverURL = "<?php echo $serverURL; ?>";
-    </script>
-    <script src="{{ url('assets/js/config.js?r='.time()) }}"></script>
-    <script src="{{ url('assets/libs/js/jwt-decode.js') }}"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-
-</head>
-
-<body>
-
+@section('content')
     <div class="div_loading">
         <img src="/assets/images/load_image.webp" />
     </div>
 
     <div class="wrapper">   
-
         <form class="slogin div_login" method="POST" action="/admin/login" id="login_form">
             {{ csrf_field() }}
             <div class="flex flex_jcenter mb10">
@@ -62,18 +33,17 @@
             <button type="submit" class="bt" id="bt_login" style="width:100%">SIGN IN</button>
         </form>
     </div>
+@endsection
 
-</body>
-
+@push('scripts')
     <script src="{{ url('assets/libs/js/jquery-3.1.1.js') }}"></script>
     <script src="{{ url('assets/libs/js/bootstrap.js') }}"></script>
     <script src="{{ url('assets/libs/js/bootstrap-switch.js') }}"></script>
     <script src="{{ url('assets/libs/js/bootstrap-table.js') }}"></script>
-
     <script src="{{ url('assets/js/main.js?r='.time()) }}"></script>
     <script>
         $(function() {
 
         })
     </script>
-</html>
+@endpush

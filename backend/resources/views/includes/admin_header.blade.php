@@ -155,9 +155,9 @@
                 <img src="/assets/images/admin/Avatar.png">
                 <div>
                     <div class="font_medium">ADMIN ACCOUNT</div>
-                    <div class="clrgray0 fsize12"><?php echo $user->email;?></div>
+                    <div class="clrgray0 fsize12">{{ $user->email ?? '' }}</div>
                 </div>
-                <div class="flex flex_acenter change_my_password cursorp clrblue1 w100 fsize12" style="padding-left: 8px; padding-top: 10px ;" id="<?php echo $user->id;?>">
+                <div class="flex flex_acenter change_my_password cursorp clrblue1 w100 fsize12" style="padding-left: 8px; padding-top: 10px ;" id="{{ $user->id ?? '' }}">
                     <i class="fa fa-key mr16 fsize16"></i>
                     <span>Change password?</span>
                 </div>

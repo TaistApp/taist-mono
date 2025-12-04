@@ -2,9 +2,6 @@
 @section('content')
    <link rel="stylesheet" href="{{ url('assets/admin/index.css?r='.time()) }}">
    <link rel="stylesheet" href="{{ url('assets/admin/orders-cancellation.css?r='.time()) }}">
-   <?php 
-      include $_SERVER['DOCUMENT_ROOT'].'/include/config.php';
-   ?>
 	<div class="admin_wrapper">
       <div class="fsize24 font_bold mb24">Orders</div>
       <div class="div_table">

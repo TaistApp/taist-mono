@@ -1,9 +1,6 @@
 @extends('layouts.admin')
 @section('content')
    <link rel="stylesheet" href="{{ url('assets/admin/index.css?r='.time()) }}">
-   <?php 
-      include $_SERVER['DOCUMENT_ROOT'].'/include/config.php';
-   ?>
 	<div class="admin_wrapper">
       <div class="flex flex_acenter mb24">
          <div class="fsize24 font_bold">Customers</div>
