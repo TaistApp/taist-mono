@@ -1,7 +1,7 @@
 import { navigate } from '@/app/utils/navigation';
 import { Text, TextInput } from 'react-native-paper';
-import React from 'react';
-import { Image, Pressable, ScrollView, View } from 'react-native';
+import React, { useRef } from 'react';
+import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import { IUser } from '../../../types/index';
 import { ShowErrorToast } from '../../../utils/toast';
@@ -30,6 +30,9 @@ const Signup = () => {
   const [email, onChangeEmail] = React.useState('');
   const [password, onChangePassword] = React.useState('');
   const [userInfo, setUserInfo] = React.useState<IUser>({});
+  
+  // Refs for input fields to enable keyboard navigation
+  const passwordInputRef = useRef<any>(null);
 
   const handleUserType = (selectedUserType: number) => {
     setUserType(selectedUserType);
@@ -194,120 +197,138 @@ const Signup = () => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.center}>
-        <Image
-          style={styles.logo}
-          source={require('../../../assets/images/logo-2.png')}
-        />
-      </View>
-
-      {/* Show progress indicator for steps 2+ */}
-      {step >= 2 && (
-        <ProgressIndicator 
-          currentStep={getCurrentStepNumber()} 
-          totalSteps={getTotalSteps()} 
-        />
-      )}
-
-      {/* Step 0: Onboarding */}
-      {step === 0 && (
-        <Onboarding
-          onStart={() => {
-            setStep(1);
-          }}
-        />
-      )}
-
-      {/* Step 1: User Type Selection */}
-      {step === 1 && (
-        <View style={styles.signupOptionWrapper}>
-          <View style={styles.signupOption}>
-            <Text style={styles.signupOptionHeading}>
-              Have a taist for something?
-            </Text>
-            <Text style={styles.signupOptionText}>
-              Choose from people in your area to craft delicious dishes out of
-              your kitchen.
-            </Text>
-            <Pressable style={styles.button} onPress={() => handleUserType(1)}>
-              <Text style={styles.buttonText}>I am a customer</Text>
-            </Pressable>
-          </View>
-          <View style={styles.signupOption}>
-            <Text style={styles.signupOptionHeading}>
-              Looking to bring a new taist?
-            </Text>
-            <Text style={styles.signupOptionText}>
-              Be your own boss and create something special for people right
-              from their kitchen.
-            </Text>
-            <Pressable style={styles.button} onPress={() => handleUserType(2)}>
-              <Text style={styles.buttonText}>I want to be a chef</Text>
-            </Pressable>
-          </View>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    >
+      <ScrollView 
+        style={styles.container}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.center}>
+          <Image
+            style={styles.logo}
+            source={require('../../../assets/images/logo-2.png')}
+          />
         </View>
-      )}
 
-      {/* Step 2: Email & Password */}
-      {step === 2 && (
-        <>
-        <View style={styles.formContainer}>
-          <View>
-            <Text style={styles.heading}>Sign Up</Text>
-            <Text style={styles.subheading}>Create your account to get started</Text>
-          </View>
-          <View style={styles.formContent}>
-            <View style={styles.inputWrapper}>
-              <Text style={styles.inputLabel}>Email</Text>
-              <TextInput
-                placeholder="Enter your email"
-                placeholderTextColor={'#999999'}
-                mode="outlined"
-                onChangeText={txt => onChangeEmail(txt.toLowerCase())}
-                value={email}
-                keyboardType="email-address"
-                autoCapitalize={'none'}
-                style={styles.input}
-              />
+        {/* Show progress indicator for steps 2+ */}
+        {step >= 2 && (
+          <ProgressIndicator 
+            currentStep={getCurrentStepNumber()} 
+            totalSteps={getTotalSteps()} 
+          />
+        )}
+
+        {/* Step 0: Onboarding */}
+        {step === 0 && (
+          <Onboarding
+            onStart={() => {
+              setStep(1);
+            }}
+          />
+        )}
+
+        {/* Step 1: User Type Selection */}
+        {step === 1 && (
+          <View style={styles.signupOptionWrapper}>
+            <View style={styles.signupOption}>
+              <Text style={styles.signupOptionHeading}>
+                Have a taist for something?
+              </Text>
+              <Text style={styles.signupOptionText}>
+                Choose from people in your area to craft delicious dishes out of
+                your kitchen.
+              </Text>
+              <Pressable style={styles.button} onPress={() => handleUserType(1)}>
+                <Text style={styles.buttonText}>I am a customer</Text>
+              </Pressable>
             </View>
-            <View style={styles.inputWrapper}>
-              <Text style={styles.inputLabel}>Password</Text>
-              <TextInput
-                placeholder="Enter your password"
-                placeholderTextColor={'#999999'}
-                mode="outlined"
-                onChangeText={onChangePassword}
-                value={password}
-                textContentType="password"
-                secureTextEntry={true}
-                style={styles.input}
-              />
+            <View style={styles.signupOption}>
+              <Text style={styles.signupOptionHeading}>
+                Looking to bring a new taist?
+              </Text>
+              <Text style={styles.signupOptionText}>
+                Be your own boss and create something special for people right
+                from their kitchen.
+              </Text>
+              <Pressable style={styles.button} onPress={() => handleUserType(2)}>
+                <Text style={styles.buttonText}>I want to be a chef</Text>
+              </Pressable>
             </View>
           </View>
-        </View>
-        <View style={styles.buttonContainer}>
-            <Pressable style={styles.signupButton} onPress={handleEmailPasswordSubmit}>
-              <Text style={styles.signupButtonText}>Continue</Text>
-          </Pressable>
-          <Pressable
-            style={styles.loginLink}
-            onPress={() => navigate.toCommon.login()}>
-            <Text style={styles.loginLinkText}>Already have an account? Log in</Text>
-          </Pressable>
-        </View>
-        <View style={styles.termsContainer}>
-          <View style={styles.terms}>
-            <Text style={styles.termsText}>By signing up, you agree to Taist's </Text>
-            <Text
-              style={styles.termsLink}
-              onPress={() => navigate.toCommon.terms()}>
-              Terms and Conditions
-            </Text>
+        )}
+
+        {/* Step 2: Email & Password */}
+        {step === 2 && (
+          <>
+          <View style={styles.formContainer}>
+            <View>
+              <Text style={styles.heading}>Sign Up</Text>
+              <Text style={styles.subheading}>Create your account to get started</Text>
+            </View>
+            <View style={styles.formContent}>
+              <View style={styles.inputWrapper}>
+                <Text style={styles.inputLabel}>Email</Text>
+                <TextInput
+                  placeholder="Enter your email"
+                  placeholderTextColor={'#999999'}
+                  mode="outlined"
+                  onChangeText={txt => onChangeEmail(txt.toLowerCase())}
+                  value={email}
+                  keyboardType="email-address"
+                  autoCapitalize={'none'}
+                  style={styles.input}
+                  returnKeyType="next"
+                  onSubmitEditing={() => {
+                    passwordInputRef.current?.focus();
+                  }}
+                  blurOnSubmit={false}
+                />
+              </View>
+              <View style={styles.inputWrapper}>
+                <Text style={styles.inputLabel}>Password</Text>
+                <TextInput
+                  ref={passwordInputRef}
+                  placeholder="Enter your password"
+                  placeholderTextColor={'#999999'}
+                  mode="outlined"
+                  onChangeText={onChangePassword}
+                  value={password}
+                  textContentType="password"
+                  secureTextEntry={true}
+                  style={styles.input}
+                  returnKeyType="done"
+                  onSubmitEditing={handleEmailPasswordSubmit}
+                  blurOnSubmit={true}
+                />
+              </View>
+            </View>
           </View>
-        </View>
-        </>
-      )}
+          <View style={styles.buttonContainer}>
+              <Pressable style={styles.signupButton} onPress={handleEmailPasswordSubmit}>
+                <Text style={styles.signupButtonText}>Continue</Text>
+            </Pressable>
+            <Pressable
+              style={styles.loginLink}
+              onPress={() => navigate.toCommon.login()}>
+              <Text style={styles.loginLinkText}>Already have an account? Log in</Text>
+            </Pressable>
+          </View>
+          <View style={styles.termsContainer}>
+            <View style={styles.terms}>
+              <Text style={styles.termsText}>By signing up, you agree to Taist's </Text>
+              <Text
+                style={styles.termsLink}
+                onPress={() => navigate.toCommon.terms()}>
+                Terms and Conditions
+              </Text>
+            </View>
+          </View>
+          </>
+        )}
 
       {/* Step 3: Basic Profile (Customer only) */}
       {step === 3 && userType === 1 && (
@@ -389,7 +410,8 @@ const Signup = () => {
           onBack={() => setStep(6)}
         />
       )}
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 

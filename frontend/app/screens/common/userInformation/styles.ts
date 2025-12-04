@@ -102,4 +102,45 @@ export const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 5,
   },
+  
+  // Date picker modal styling
+  datePickerModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  datePickerModalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 34, // Safe area for home indicator
+  },
+  datePickerModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
+  },
+  datePickerModalCancel: {
+    fontSize: 16,
+    color: AppColors.textSecondary,
+    fontWeight: '600',
+  },
+  datePickerModalTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: AppColors.text,
+  },
+  datePickerModalDone: {
+    fontSize: 16,
+    color: AppColors.primary,
+    fontWeight: '600',
+  },
+  datePickerPicker: {
+    width: '100%',
+    height: 200,
+  },
 });

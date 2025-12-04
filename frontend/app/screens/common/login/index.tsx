@@ -1,6 +1,6 @@
 import { Button, IconButton, Text, TextInput } from '@react-native-material/core';
-import React, { useState } from 'react';
-import { Image, Pressable, ScrollView, View } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 
 import { navigate } from '@/app/utils/navigation';
 import { useAppDispatch } from '../../../hooks/useRedux';
@@ -20,6 +20,9 @@ const Login = () => {
   const [visiblePassword, onChangeVisiblePassword] = useState(false);
   const [chefMode, onChangeChefMode] = useState(false);
   const [pendingChef, onChangePending] = useState(false);
+  
+  // Refs for input fields to enable keyboard navigation
+  const passwordInputRef = useRef<any>(null);
 
   const handleLogin = async () => {
     var errorMsg = emailValidation(email);
@@ -55,11 +58,17 @@ const Login = () => {
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{flexGrow: 1}}
-      keyboardShouldPersistTaps="handled"
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{flexGrow: 1}}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
       {/* Logo Section */}
       <View style={styles.logoContainer}>
         <Image
@@ -90,6 +99,12 @@ const Login = () => {
             keyboardType="email-address"
             color="#1a1a1a"
             autoCapitalize={'none'}
+            returnKeyType="next"
+            onSubmitEditing={() => {
+              // Move focus to password field when user presses "Next"
+              passwordInputRef.current?.focus();
+            }}
+            blurOnSubmit={false}
           />
         </View>
 
@@ -97,6 +112,7 @@ const Login = () => {
         <View style={styles.inputWrapper}>
           <Text style={styles.inputLabel}>Password</Text>
           <TextInput
+            ref={passwordInputRef}
             style={styles.formFields}
             inputStyle={styles.formInputFields}
             placeholder="Enter your password"
@@ -107,6 +123,9 @@ const Login = () => {
             textContentType="password"
             secureTextEntry={!visiblePassword}
             color="#1a1a1a"
+            returnKeyType="done"
+            onSubmitEditing={handleLogin}
+            blurOnSubmit={true}
             trailing={props => (
               <IconButton
                 icon={props => (
@@ -160,7 +179,8 @@ const Login = () => {
           <Text style={styles.signupButtonText}>Sign Up</Text>
         </Pressable>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 

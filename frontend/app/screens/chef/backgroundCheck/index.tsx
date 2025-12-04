@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { SafeAreaView, ScrollView, Text, View } from 'react-native';
+import { Modal, Platform, Pressable, SafeAreaView, ScrollView, Text, View } from 'react-native';
 
 import {
   faAngleDown,
@@ -224,23 +224,76 @@ const BackgroundCheck = () => {
             />
           </View>
         </ScrollView>
-        {openBirthdayPicker && (
-          <DateTimePicker
-            mode="date"
-            value={
-              bgInfo.birthday
-                ? moment(bgInfo.birthday * 1000).toDate()
-                : moment().subtract(18, 'years').toDate()
-            }
-            onChange={(event, date) => {
-              setOpenBirthdayPicker(false);
-              if (date) {
-                setBgInfo({...bgInfo, birthday: date.getTime() / 1000});
+        {Platform.OS === 'ios' ? (
+          <Modal
+            visible={openBirthdayPicker}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setOpenBirthdayPicker(false)}
+          >
+            <Pressable 
+              style={styles.datePickerModalOverlay}
+              onPress={() => setOpenBirthdayPicker(false)}
+            >
+              <View style={styles.datePickerModalContent}>
+                <View style={styles.datePickerModalHeader}>
+                  <Pressable onPress={() => setOpenBirthdayPicker(false)}>
+                    <Text style={styles.datePickerModalCancel}>Cancel</Text>
+                  </Pressable>
+                  <Text style={styles.datePickerModalTitle}>Select Birthday</Text>
+                  <Pressable 
+                    onPress={() => {
+                      setOpenBirthdayPicker(false);
+                    }}
+                  >
+                    <Text style={styles.datePickerModalDone}>Done</Text>
+                  </Pressable>
+                </View>
+                <DateTimePicker
+                  value={
+                    bgInfo.birthday
+                      ? moment(bgInfo.birthday * 1000).toDate()
+                      : moment().subtract(18, 'years').toDate()
+                  }
+                  mode="date"
+                  display="spinner"
+                  onChange={(event, date) => {
+                    if (event.type === 'set' && date) {
+                      setBgInfo({...bgInfo, birthday: date.getTime() / 1000});
+                      setOpenBirthdayPicker(false);
+                    } else if (event.type === 'dismissed') {
+                      setOpenBirthdayPicker(false);
+                    } else if (date) {
+                      // For spinner mode, update date as user scrolls
+                      setBgInfo({...bgInfo, birthday: date.getTime() / 1000});
+                    }
+                  }}
+                  maximumDate={new Date()}
+                  minimumDate={moment().subtract(120, 'years').toDate()}
+                  style={styles.datePickerPicker}
+                />
+              </View>
+            </Pressable>
+          </Modal>
+        ) : (
+          openBirthdayPicker && (
+            <DateTimePicker
+              mode="date"
+              value={
+                bgInfo.birthday
+                  ? moment(bgInfo.birthday * 1000).toDate()
+                  : moment().subtract(18, 'years').toDate()
               }
-            }}
-            maximumDate={new Date()}
-            minimumDate={moment().subtract(120, 'years').toDate()}
-          />
+              onChange={(event, date) => {
+                setOpenBirthdayPicker(false);
+                if (event.type === 'set' && date) {
+                  setBgInfo({...bgInfo, birthday: date.getTime() / 1000});
+                }
+              }}
+              maximumDate={new Date()}
+              minimumDate={moment().subtract(120, 'years').toDate()}
+            />
+          )
         )}
       </Container>
     </SafeAreaView>

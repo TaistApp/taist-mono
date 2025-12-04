@@ -1,6 +1,6 @@
 import { Text, TextInput } from '@react-native-material/core';
-import React, { useState } from 'react';
-import { Image, Pressable, ScrollView, View } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 
 import { goBack } from '@/app/utils/navigation';
 import { useAppDispatch } from '../../../hooks/useRedux';
@@ -18,6 +18,11 @@ const Forgot = () => {
   const [code, onChangeCode] = useState('');
   const [password, onChangePassword] = useState('');
   const [confirmPassword, onChangeConfirmPassword] = useState('');
+  
+  // Refs for input fields to enable keyboard navigation
+  const codeInputRef = useRef<any>(null);
+  const passwordInputRef = useRef<any>(null);
+  const confirmPasswordInputRef = useRef<any>(null);
 
   const handleLogin = () => {
     // Navigate to login screen
@@ -76,86 +81,115 @@ const Forgot = () => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.center}>
-        <Image
-          style={styles.logo}
-          source={require('../../../assets/images/logo-2.png')}
-        />
-      </View>
-      <View style={styles.vcenter}>
-        <View>
-          <Text style={styles.heading}>Forgot Password</Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    >
+      <ScrollView 
+        style={styles.container}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.center}>
+          <Image
+            style={styles.logo}
+            source={require('../../../assets/images/logo-2.png')}
+          />
         </View>
-        {serverCode == '' ? (
+        <View style={styles.vcenter}>
           <View>
-            <TextInput
-              style={styles.formFields}
-              inputStyle={styles.formInputFields}
-              placeholder="Email "
-              placeholderTextColor={'#999999'}
-              variant="standard"
-              onChangeText={txt => onChangeEmail(txt.toLowerCase())}
-              value={email}
-              keyboardType="email-address"
-              color="#1a1a1a"
-              autoCapitalize={'none'}
-            />
+            <Text style={styles.heading}>Forgot Password</Text>
           </View>
-        ) : (
-          <View>
-            <TextInput
-              style={styles.formFields}
-              inputStyle={styles.formInputFields}
-              placeholder="Code "
-              placeholderTextColor={'#999999'}
-              variant="standard"
-              onChangeText={txt => onChangeCode(txt.toLowerCase())}
-              value={code}
-              keyboardType="default"
-              color="#1a1a1a"
-              autoCapitalize={'none'}
-            />
-            <TextInput
-              style={styles.formFields}
-              inputStyle={styles.formInputFields}
-              placeholder="Password "
-              placeholderTextColor={'#999999'}
-              variant="standard"
-              onChangeText={onChangePassword}
-              value={password}
-              textContentType="password"
-              secureTextEntry
-              color="#1a1a1a"
-            />
-            <TextInput
-              style={styles.formFields}
-              inputStyle={styles.formInputFields}
-              placeholder="Confirmation Password "
-              placeholderTextColor={'#999999'}
-              variant="standard"
-              onChangeText={onChangeConfirmPassword}
-              value={confirmPassword}
-              textContentType="password"
-              secureTextEntry
-              color="#1a1a1a"
-            />
-          </View>
-        )}
-      </View>
-      <View style={styles.vcenter}>
-        <Pressable
-          style={styles.button}
-          onPress={serverCode == '' ? handleRequest : handleReset}>
-          <Text style={styles.buttonText}>
-            {serverCode == '' ? 'Request ' : 'Reset '}
-          </Text>
-        </Pressable>
-        <Pressable style={styles.button2} onPress={handleLogin}>
-          <Text style={styles.buttonText2}>Login </Text>
-        </Pressable>
-      </View>
-    </ScrollView>
+          {serverCode == '' ? (
+            <View>
+              <TextInput
+                style={styles.formFields}
+                inputStyle={styles.formInputFields}
+                placeholder="Email "
+                placeholderTextColor={'#999999'}
+                variant="standard"
+                onChangeText={txt => onChangeEmail(txt.toLowerCase())}
+                value={email}
+                keyboardType="email-address"
+                color="#1a1a1a"
+                autoCapitalize={'none'}
+                returnKeyType="done"
+                onSubmitEditing={handleRequest}
+                blurOnSubmit={true}
+              />
+            </View>
+          ) : (
+            <View>
+              <TextInput
+                ref={codeInputRef}
+                style={styles.formFields}
+                inputStyle={styles.formInputFields}
+                placeholder="Code "
+                placeholderTextColor={'#999999'}
+                variant="standard"
+                onChangeText={txt => onChangeCode(txt.toLowerCase())}
+                value={code}
+                keyboardType="default"
+                color="#1a1a1a"
+                autoCapitalize={'none'}
+                returnKeyType="next"
+                onSubmitEditing={() => {
+                  passwordInputRef.current?.focus();
+                }}
+                blurOnSubmit={false}
+              />
+              <TextInput
+                ref={passwordInputRef}
+                style={styles.formFields}
+                inputStyle={styles.formInputFields}
+                placeholder="Password "
+                placeholderTextColor={'#999999'}
+                variant="standard"
+                onChangeText={onChangePassword}
+                value={password}
+                textContentType="password"
+                secureTextEntry
+                color="#1a1a1a"
+                returnKeyType="next"
+                onSubmitEditing={() => {
+                  confirmPasswordInputRef.current?.focus();
+                }}
+                blurOnSubmit={false}
+              />
+              <TextInput
+                ref={confirmPasswordInputRef}
+                style={styles.formFields}
+                inputStyle={styles.formInputFields}
+                placeholder="Confirmation Password "
+                placeholderTextColor={'#999999'}
+                variant="standard"
+                onChangeText={onChangeConfirmPassword}
+                value={confirmPassword}
+                textContentType="password"
+                secureTextEntry
+                color="#1a1a1a"
+                returnKeyType="done"
+                onSubmitEditing={handleReset}
+                blurOnSubmit={true}
+              />
+            </View>
+          )}
+        </View>
+        <View style={styles.vcenter}>
+          <Pressable
+            style={styles.button}
+            onPress={serverCode == '' ? handleRequest : handleReset}>
+            <Text style={styles.buttonText}>
+              {serverCode == '' ? 'Request ' : 'Reset '}
+            </Text>
+          </Pressable>
+          <Pressable style={styles.button2} onPress={handleLogin}>
+            <Text style={styles.buttonText2}>Login </Text>
+          </Pressable>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 

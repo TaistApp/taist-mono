@@ -3,6 +3,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Image,
+  Pressable,
   RefreshControl,
   SafeAreaView,
   ScrollView,
@@ -276,12 +277,15 @@ const Home = () => {
           {isInArea && (
             <View style={{ width: '100%', gap: Spacing.sm }}>
               {/* Current Location Display - TMA-013 */}
-              <View style={styles.locationDisplay}>
+              <Pressable 
+                style={styles.locationDisplay}
+                onPress={() => navigate.toCustomer.account({ scrollToAddress: true })}
+              >
                 <FontAwesomeIcon icon={faLocationDot} size={16} color={AppColors.primary} />
                 <Text style={styles.locationText}>
                   {self.city ? `${self.city}, ${self.state || self.zip}` : `ZIP ${self.zip}`}
                 </Text>
-              </View>
+              </Pressable>
               
               {/* Hidden per TMA-000 */}
               {/* <TextInput

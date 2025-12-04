@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform, Modal } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
 import { SignupStepContainer } from '../components/SignupStepContainer';
@@ -57,17 +57,25 @@ export const StepChefBirthday: React.FC<StepChefBirthdayProps> = ({
     // On Android, the picker closes automatically
     if (Platform.OS === 'android') {
       setOpenBirthdayPicker(false);
+      if (event.type === 'set' && selectedDate) {
+        onUpdateUserInfo({ birthday: selectedDate.getTime() / 1000 });
+      }
+      return;
     }
     
-    if (event.type === 'set') {
-      // User confirmed the date
-      onUpdateUserInfo({ birthday: currentDate.getTime() / 1000 });
-      if (Platform.OS === 'ios') {
+    // On iOS, handle spinner mode events
+    if (Platform.OS === 'ios') {
+      if (event.type === 'set') {
+        // User confirmed the date
+        onUpdateUserInfo({ birthday: currentDate.getTime() / 1000 });
         setOpenBirthdayPicker(false);
+      } else if (event.type === 'dismissed') {
+        // User cancelled
+        setOpenBirthdayPicker(false);
+      } else if (selectedDate) {
+        // For spinner mode, update date as user scrolls
+        onUpdateUserInfo({ birthday: selectedDate.getTime() / 1000 });
       }
-    } else if (event.type === 'dismissed') {
-      // User cancelled
-      setOpenBirthdayPicker(false);
     }
   };
 
@@ -104,19 +112,62 @@ export const StepChefBirthday: React.FC<StepChefBirthdayProps> = ({
       </View>
 
       {/* DateTimePicker */}
-      {openBirthdayPicker && (
-        <DateTimePicker
-          value={
-            userInfo.birthday
-              ? moment(userInfo.birthday * 1000).toDate()
-              : moment().subtract(18, 'years').toDate()
-          }
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={onDateChange}
-          maximumDate={new Date()}
-          minimumDate={moment().subtract(120, 'years').toDate()}
-        />
+      {Platform.OS === 'ios' ? (
+        <Modal
+          visible={openBirthdayPicker}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setOpenBirthdayPicker(false)}
+        >
+          <Pressable 
+            style={styles.modalOverlay}
+            onPress={() => setOpenBirthdayPicker(false)}
+          >
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Pressable onPress={() => setOpenBirthdayPicker(false)}>
+                  <Text style={styles.modalCancel}>Cancel</Text>
+                </Pressable>
+                <Text style={styles.modalTitle}>Select Birthday</Text>
+                <Pressable 
+                  onPress={() => {
+                    setOpenBirthdayPicker(false);
+                  }}
+                >
+                  <Text style={styles.modalDone}>Done</Text>
+                </Pressable>
+              </View>
+              <DateTimePicker
+                value={
+                  userInfo.birthday
+                    ? moment(userInfo.birthday * 1000).toDate()
+                    : moment().subtract(18, 'years').toDate()
+                }
+                mode="date"
+                display="spinner"
+                onChange={onDateChange}
+                maximumDate={new Date()}
+                minimumDate={moment().subtract(120, 'years').toDate()}
+                style={styles.picker}
+              />
+            </View>
+          </Pressable>
+        </Modal>
+      ) : (
+        openBirthdayPicker && (
+          <DateTimePicker
+            value={
+              userInfo.birthday
+                ? moment(userInfo.birthday * 1000).toDate()
+                : moment().subtract(18, 'years').toDate()
+            }
+            mode="date"
+            display="default"
+            onChange={onDateChange}
+            maximumDate={new Date()}
+            minimumDate={moment().subtract(120, 'years').toDate()}
+          />
+        )
       )}
     </SignupStepContainer>
   );
@@ -146,6 +197,45 @@ const styles = StyleSheet.create({
     color: AppColors.textSecondary,
     fontSize: 14,
     lineHeight: 20,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 34, // Safe area for home indicator
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
+  },
+  modalCancel: {
+    fontSize: 16,
+    color: AppColors.textSecondary,
+    fontWeight: '600',
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: AppColors.text,
+  },
+  modalDone: {
+    fontSize: 16,
+    color: AppColors.primary,
+    fontWeight: '600',
+  },
+  picker: {
+    width: '100%',
+    height: 200,
   },
 });
 

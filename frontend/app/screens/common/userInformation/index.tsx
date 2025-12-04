@@ -12,7 +12,9 @@ import moment from 'moment';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AppState,
+  Modal,
   Platform,
+  Pressable,
   SafeAreaView,
   ScrollView,
   View
@@ -110,17 +112,25 @@ const UserInformation = ({navigation, route}: any) => {
     // On Android, the picker closes automatically
     if (Platform.OS === 'android') {
       setOpenBirthdayPicker(false);
+      if (event.type === 'set' && selectedDate) {
+        setUserInfo({...userInfo, birthday: selectedDate.getTime() / 1000});
+      }
+      return;
     }
     
-    if (event.type === 'set') {
-      // User confirmed the date
-      setUserInfo({...userInfo, birthday: currentDate.getTime() / 1000});
-      if (Platform.OS === 'ios') {
+    // On iOS, handle spinner mode events
+    if (Platform.OS === 'ios') {
+      if (event.type === 'set') {
+        // User confirmed the date
+        setUserInfo({...userInfo, birthday: currentDate.getTime() / 1000});
         setOpenBirthdayPicker(false);
+      } else if (event.type === 'dismissed') {
+        // User cancelled
+        setOpenBirthdayPicker(false);
+      } else if (selectedDate) {
+        // For spinner mode, update date as user scrolls
+        setUserInfo({...userInfo, birthday: selectedDate.getTime() / 1000});
       }
-    } else if (event.type === 'dismissed') {
-      // User cancelled
-      setOpenBirthdayPicker(false);
     }
   };
   useEffect(() => {
@@ -349,19 +359,62 @@ const UserInformation = ({navigation, route}: any) => {
           </View>
         </ScrollView>
        {/* Replace DatePicker with DateTimePicker */}
-        {openBirthdayPicker && (
-          <DateTimePicker
-            value={
-              userInfo.birthday
-                ? moment(userInfo.birthday * 1000).toDate()
-                : moment().subtract(18, 'years').toDate()
-            }
-            mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={onDateChange}
-            maximumDate={new Date()}
-            minimumDate={moment().subtract(120, 'years').toDate()}
-          />
+        {Platform.OS === 'ios' ? (
+          <Modal
+            visible={openBirthdayPicker}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setOpenBirthdayPicker(false)}
+          >
+            <Pressable 
+              style={styles.datePickerModalOverlay}
+              onPress={() => setOpenBirthdayPicker(false)}
+            >
+              <View style={styles.datePickerModalContent}>
+                <View style={styles.datePickerModalHeader}>
+                  <Pressable onPress={() => setOpenBirthdayPicker(false)}>
+                    <Text style={styles.datePickerModalCancel}>Cancel</Text>
+                  </Pressable>
+                  <Text style={styles.datePickerModalTitle}>Select Birthday</Text>
+                  <Pressable 
+                    onPress={() => {
+                      setOpenBirthdayPicker(false);
+                    }}
+                  >
+                    <Text style={styles.datePickerModalDone}>Done</Text>
+                  </Pressable>
+                </View>
+                <DateTimePicker
+                  value={
+                    userInfo.birthday
+                      ? moment(userInfo.birthday * 1000).toDate()
+                      : moment().subtract(18, 'years').toDate()
+                  }
+                  mode="date"
+                  display="spinner"
+                  onChange={onDateChange}
+                  maximumDate={new Date()}
+                  minimumDate={moment().subtract(120, 'years').toDate()}
+                  style={styles.datePickerPicker}
+                />
+              </View>
+            </Pressable>
+          </Modal>
+        ) : (
+          openBirthdayPicker && (
+            <DateTimePicker
+              value={
+                userInfo.birthday
+                  ? moment(userInfo.birthday * 1000).toDate()
+                  : moment().subtract(18, 'years').toDate()
+              }
+              mode="date"
+              display="default"
+              onChange={onDateChange}
+              maximumDate={new Date()}
+              minimumDate={moment().subtract(120, 'years').toDate()}
+            />
+          )
         )}
       </Container>
     </SafeAreaView>

@@ -96,7 +96,10 @@ export const navigate = {
     home: () => router.navigate('/screens/customer/(tabs)/(home)' as any),
     tabs: () => router.replace('/screens/customer/(tabs)' as any),
     orders: () => router.navigate('/screens/customer/(tabs)/orders' as any),
-    account: () => router.navigate('/screens/customer/(tabs)/account' as any),
+    account: (params?: { scrollToAddress?: boolean }) => router.navigate({
+      pathname: '/screens/customer/(tabs)/account',
+      params: params ? { scrollToAddress: params.scrollToAddress?.toString() } : {}
+    } as any),
     chefDetail: (params: {
       chefInfo: any;
       reviews: any[];

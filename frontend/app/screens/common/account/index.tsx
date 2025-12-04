@@ -68,6 +68,9 @@ const Account = () => {
   const selfInfo = useAppSelector(x => x.user.user);
   const dispatch = useAppDispatch();
   const appState = useRef(AppState.currentState);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const addressSectionRef = useRef<View>(null);
+  const [addressSectionY, setAddressSectionY] = useState<number | null>(null);
 
   const params = useLocalSearchParams();
 
@@ -75,8 +78,12 @@ const Account = () => {
     ? params.from[0] ?? ''
     : params?.from ?? '';
 const user: IUser = typeof params?.user === 'string'
-  ? JSON.parse(params.user)
-  : (params?.user as IUser) || {};
+    ? JSON.parse(params.user)
+    : (params?.user as IUser) || {};
+  
+  const scrollToAddress: boolean = Array.isArray(params?.scrollToAddress)
+    ? params.scrollToAddress[0] === 'true'
+    : params?.scrollToAddress === 'true';
   
   const [errors, setErrors] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -152,6 +159,18 @@ const user: IUser = typeof params?.user === 'string'
       setUserInfo(selfInfo);
     }
   }, []);
+
+  // Scroll to address section when navigating from home screen location click
+  useFocusEffect(
+    useCallback(() => {
+      if (scrollToAddress && addressSectionY !== null && scrollViewRef.current) {
+        // Small delay to ensure layout is complete
+        setTimeout(() => {
+          scrollViewRef.current?.scrollTo({ y: addressSectionY - 20, animated: true });
+        }, 300);
+      }
+    }, [scrollToAddress, addressSectionY])
+  );
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', nextAppState => {
@@ -464,17 +483,25 @@ const user: IUser = typeof params?.user === 'string'
     // On Android, the picker closes automatically
     if (Platform.OS === 'android') {
       setOpenBirthdayPicker(false);
+      if (event.type === 'set' && selectedDate) {
+        setUserInfo({...userInfo, birthday: selectedDate.getTime() / 1000});
+      }
+      return;
     }
     
-    if (event.type === 'set') {
-      // User confirmed the date
-      setUserInfo({...userInfo, birthday: currentDate.getTime() / 1000});
-      if (Platform.OS === 'ios') {
+    // On iOS, handle spinner mode events
+    if (Platform.OS === 'ios') {
+      if (event.type === 'set') {
+        // User confirmed the date
+        setUserInfo({...userInfo, birthday: currentDate.getTime() / 1000});
         setOpenBirthdayPicker(false);
+      } else if (event.type === 'dismissed') {
+        // User cancelled
+        setOpenBirthdayPicker(false);
+      } else if (selectedDate) {
+        // For spinner mode, update date as user scrolls
+        setUserInfo({...userInfo, birthday: selectedDate.getTime() / 1000});
       }
-    } else if (event.type === 'dismissed') {
-      // User cancelled
-      setOpenBirthdayPicker(false);
     }
   };
 
@@ -485,7 +512,10 @@ const user: IUser = typeof params?.user === 'string'
           from == 'Signup' ? true : userInfo.user_type === 1 ? false : true
         }
         title={from == 'Signup' ? 'Sign Up' : 'ACCOUNT'}>
-        <ScrollView contentContainerStyle={styles.pageView}>
+        <ScrollView 
+          ref={scrollViewRef}
+          contentContainerStyle={styles.pageView}
+        >
           <View style={styles.profileImageSection}>
             <StyledPhotoPicker
               content={
@@ -545,7 +575,14 @@ const user: IUser = typeof params?.user === 'string'
             onChangeText={val => setUserInfo({...userInfo, phone: val})}
             value={userInfo.phone ?? ''}
           />
-          <View style={styles.addressTextWrapper}>
+          <View 
+            ref={addressSectionRef}
+            onLayout={(event) => {
+              const { y } = event.nativeEvent.layout;
+              setAddressSectionY(y);
+            }}
+            style={styles.addressTextWrapper}
+          >
             <Text style={styles.addressText}>
               {userInfo.user_type === 1 ? "ADDRESS (Optional for now)" : "ADDRESS"}
             </Text>
@@ -637,19 +674,62 @@ const user: IUser = typeof params?.user === 'string'
         </ScrollView>
         
         {/* Replace DatePicker with DateTimePicker */}
-        {openBirthdayPicker && (
-          <DateTimePicker
-            value={
-              userInfo.birthday
-                ? moment(userInfo.birthday * 1000).toDate()
-                : moment().subtract(18, 'years').toDate()
-            }
-            mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={onDateChange}
-            maximumDate={new Date()}
-            minimumDate={moment().subtract(120, 'years').toDate()}
-          />
+        {Platform.OS === 'ios' ? (
+          <Modal
+            visible={openBirthdayPicker}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setOpenBirthdayPicker(false)}
+          >
+            <Pressable 
+              style={styles.datePickerModalOverlay}
+              onPress={() => setOpenBirthdayPicker(false)}
+            >
+              <View style={styles.datePickerModalContent}>
+                <View style={styles.datePickerModalHeader}>
+                  <Pressable onPress={() => setOpenBirthdayPicker(false)}>
+                    <Text style={styles.datePickerModalCancel}>Cancel</Text>
+                  </Pressable>
+                  <Text style={styles.datePickerModalTitle}>Select Birthday</Text>
+                  <Pressable 
+                    onPress={() => {
+                      setOpenBirthdayPicker(false);
+                    }}
+                  >
+                    <Text style={styles.datePickerModalDone}>Done</Text>
+                  </Pressable>
+                </View>
+                <DateTimePicker
+                  value={
+                    userInfo.birthday
+                      ? moment(userInfo.birthday * 1000).toDate()
+                      : moment().subtract(18, 'years').toDate()
+                  }
+                  mode="date"
+                  display="spinner"
+                  onChange={onDateChange}
+                  maximumDate={new Date()}
+                  minimumDate={moment().subtract(120, 'years').toDate()}
+                  style={styles.datePickerPicker}
+                />
+              </View>
+            </Pressable>
+          </Modal>
+        ) : (
+          openBirthdayPicker && (
+            <DateTimePicker
+              value={
+                userInfo.birthday
+                  ? moment(userInfo.birthday * 1000).toDate()
+                  : moment().subtract(18, 'years').toDate()
+              }
+              mode="date"
+              display="default"
+              onChange={onDateChange}
+              maximumDate={new Date()}
+              minimumDate={moment().subtract(120, 'years').toDate()}
+            />
+          )
         )}
       </Container>
       <Modal transparent visible={visibleVerifyCode}>
