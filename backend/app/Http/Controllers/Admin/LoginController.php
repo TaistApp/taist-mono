@@ -37,6 +37,12 @@ class LoginController extends Controller
         $credentials = $request->only('email', 'password');        
         $user = app(Admins::class)->where('email', $request->email)->first();
         
+        if (!$user) {
+            return back()->withErrors([
+                'message' => 'The email or password is incorrect, please try again.'
+            ]);
+        }
+        
         if ($this->guard()->attempt($credentials)) {
             if ($user->active != 1) {
                 $this->guard()->logout();
@@ -45,7 +51,6 @@ class LoginController extends Controller
                 ]);
             }
             $this->setToken();
-            $this->guard()->attempt($credentials);
             return redirect()->intended('/admin/chefs');
         } else {
             return back()->withErrors([
