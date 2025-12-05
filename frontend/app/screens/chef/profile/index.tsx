@@ -3,10 +3,17 @@ import { useEffect, useState } from 'react';
 import {
   ScrollView,
   Text,
-  View
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  Platform,
+  Modal,
+  Pressable,
+  KeyboardAvoidingView,
 } from 'react-native';
-
-// NPM
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
+import { faCheck, faClock } from '@fortawesome/free-solid-svg-icons';
 
 // Types & Services
 import { IChefProfile } from '../../../types/index';
@@ -20,70 +27,44 @@ import { useAppDispatch, useAppSelector } from '../../../hooks/useRedux';
 import StyledButton from '../../../components/styledButton';
 import StyledTextInput from '../../../components/styledTextInput';
 import Container from '../../../layout/Container';
-import { DayRowComponent } from './component/dayRowComponent';
-import { styles } from './styles';
 
 import { navigate } from '@/app/utils/navigation';
 import {
   CreateAvailabiltyAPI,
   UpdateAvailabiltyAPI
 } from '../../../services/api';
-import { convertStringToNumber } from '../../../utils/functions';
 import { ShowErrorToast } from '../../../utils/toast';
- 
+import { AppColors, Spacing, Shadows } from '../../../../constants/theme';
+
 type HoursAvailableType = {
   id: string;
   day: string;
+  fullDay: string;
   checked: boolean;
   start?: Date;
   end?: Date;
 };
 
 const Profile = () => {
-  const self = useAppSelector(x => x.user.user);
   const chefProfile: IChefProfile = useAppSelector(x => x.chef.profile);
   const dispatch = useAppDispatch();
 
   const [bio, onChangeBio] = useState('');
-  const [amount, onChangeAmount] = useState('');
-  const [distance, onChangeDistance] = useState('');
   const [days, onChangeDays] = useState<Array<HoursAvailableType>>([
-    {
-      id: '0',
-      day: 'Sun ',
-      checked: false,
-    },
-    {
-      id: '1',
-      day: 'Mon ',
-      checked: false,
-    },
-    {
-      id: '2',
-      day: 'Tue ',
-      checked: false,
-    },
-    {
-      id: '3',
-      day: 'Wed ',
-      checked: false,
-    },
-    {
-      id: '4',
-      day: 'Thu ',
-      checked: false,
-    },
-    {
-      id: '5',
-      day: 'Fri ',
-      checked: false,
-    },
-    {
-      id: '6',
-      day: 'Sat ',
-      checked: false,
-    },
+    { id: '0', day: 'Sun', fullDay: 'Sunday', checked: false },
+    { id: '1', day: 'Mon', fullDay: 'Monday', checked: false },
+    { id: '2', day: 'Tue', fullDay: 'Tuesday', checked: false },
+    { id: '3', day: 'Wed', fullDay: 'Wednesday', checked: false },
+    { id: '4', day: 'Thu', fullDay: 'Thursday', checked: false },
+    { id: '5', day: 'Fri', fullDay: 'Friday', checked: false },
+    { id: '6', day: 'Sat', fullDay: 'Saturday', checked: false },
   ]);
+
+  // Time picker state
+  const [activePickerDay, setActivePickerDay] = useState<string | null>(null);
+  const [activePickerType, setActivePickerType] = useState<'start' | 'end'>('start');
+  const [tempTime, setTempTime] = useState<Date>(new Date());
+  const [showPicker, setShowPicker] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -92,11 +73,6 @@ const Profile = () => {
   const loadData = async () => {
     if (chefProfile) {
       onChangeBio(chefProfile.bio ?? '');
-      onChangeAmount(
-        chefProfile.minimum_order_amount
-          ? chefProfile.minimum_order_amount.toFixed(2)
-          : '',
-      );
       var tempArr: Array<HoursAvailableType> = [...days];
       if (
         chefProfile.sunday_start &&
@@ -172,20 +148,76 @@ const Profile = () => {
     }
   };
 
-  const handleDayChanged = (newDay: any) => {
-    var tempArr = [...days];
-    var index = tempArr.findIndex(x => x.id == newDay.id);
+  const handleDayToggle = (dayId: string) => {
+    const tempArr = [...days];
+    const index = tempArr.findIndex(x => x.id === dayId);
     if (index >= 0) {
-      tempArr[index] = newDay;
+      tempArr[index].checked = !tempArr[index].checked;
+      // Set default times if checking the day
+      if (tempArr[index].checked && !tempArr[index].start) {
+        const defaultStart = moment().startOf('day').add(9, 'hours').toDate();
+        const defaultEnd = moment().startOf('day').add(17, 'hours').toDate();
+        tempArr[index].start = defaultStart;
+        tempArr[index].end = defaultEnd;
+      }
       onChangeDays(tempArr);
     }
+  };
+
+  const openTimePicker = (dayId: string, type: 'start' | 'end') => {
+    const day = days.find(d => d.id === dayId);
+    if (day) {
+      const currentTime = type === 'start' ? day.start : day.end;
+      setTempTime(currentTime || moment().startOf('day').add(9, 'hours').toDate());
+      setActivePickerDay(dayId);
+      setActivePickerType(type);
+      setShowPicker(true);
+    }
+  };
+
+  const handleTimeChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowPicker(false);
+      if (event.type === 'set' && selectedDate && activePickerDay) {
+        updateDayTime(activePickerDay, activePickerType, selectedDate);
+      }
+      return;
+    }
+
+    // iOS - update temp time
+    if (selectedDate) {
+      setTempTime(selectedDate);
+    }
+  };
+
+  const confirmTimePicker = () => {
+    if (activePickerDay) {
+      updateDayTime(activePickerDay, activePickerType, tempTime);
+    }
+    setShowPicker(false);
+  };
+
+  const updateDayTime = (dayId: string, type: 'start' | 'end', time: Date) => {
+    const tempArr = [...days];
+    const index = tempArr.findIndex(x => x.id === dayId);
+    if (index >= 0) {
+      if (type === 'start') {
+        tempArr[index].start = time;
+      } else {
+        tempArr[index].end = time;
+      }
+      onChangeDays(tempArr);
+    }
+  };
+
+  const formatTime = (date?: Date) => {
+    if (!date) return '--:--';
+    return moment(date).format('h:mm A');
   };
 
   const handleSubmit = async () => {
     var params: IChefProfile = {
       bio,
-      minimum_order_amount: convertStringToNumber(amount),
-      max_order_distance: convertStringToNumber(distance),
       sunday_start: days[0].checked ? getTimestampVal(days[0].start) : 0,
       sunday_end: days[0].checked ? getTimestampVal(days[0].end) : 0,
       monday_start: days[1].checked ? getTimestampVal(days[1].start) : 0,
@@ -208,9 +240,9 @@ const Profile = () => {
     dispatch(showLoading());
     if (chefProfile && chefProfile.id) {
       params = {...chefProfile, ...params};
-      const resp = await UpdateAvailabiltyAPI(params, dispatch);
+      await UpdateAvailabiltyAPI(params, dispatch);
     } else {
-      const resp = await CreateAvailabiltyAPI(params, dispatch);
+      await CreateAvailabiltyAPI(params, dispatch);
     }
     dispatch(hideLoading());
     navigate.toChef.home();
@@ -223,130 +255,321 @@ const Profile = () => {
     return 0;
   };
 
-  const checkEmptyFieldInProfile = (params: IChefProfile) => {
-    var profile = {...params};
-    if (profile.bio == undefined || profile.bio.length == 0) {
-      return 'Please enter your bio';
-    }
-    const isAvailableSunday =
-      (profile.sunday_start ?? 0) > 0 && (profile.sunday_end ?? 0) > 0;
-    const isAvailableMonday =
-      (profile.monday_start ?? 0) > 0 && (profile.monday_end ?? 0) > 0;
-    const isAvailableTuesday =
-      (profile.tuesday_start ?? 0) > 0 && (profile.tuesday_end ?? 0) > 0;
-    const isAvailableWednesday =
-      (profile.wednesday_start ?? 0) > 0 && (profile.wednesday_end ?? 0) > 0;
-    const isAvailableThursday =
-      (profile.thursday_start ?? 0) > 0 && (profile.thursday_end ?? 0) > 0;
-    const isAvailableFriday =
-      (profile.friday_start ?? 0) > 0 && (profile.friday_end ?? 0) > 0;
-    const isAvailableSaturday =
-      (profile.saterday_start ?? 0) > 0 && (profile.saterday_end ?? 0) > 0;
-    
-    // Only validate that if a day is checked, it must have start and end times
-    // Allow saving with no availability if user hasn't checked any days
-    if (
-      (days[0].checked === true && !isAvailableSunday) ||
-      (days[1].checked === true && !isAvailableMonday) ||
-      (days[2].checked === true && !isAvailableTuesday) ||
-      (days[3].checked === true && !isAvailableWednesday) ||
-      (days[4].checked === true && !isAvailableThursday) ||
-      (days[5].checked === true && !isAvailableFriday) ||
-      (days[6].checked === true && !isAvailableSaturday)
-    ) {
-      return 'Please select "Start" and "End" for the chosen day';
-    }
+  const checkEmptyFieldInProfile = (_params: IChefProfile) => {
+    // Bio and hours are optional - allow saving without them
+    // so users can proceed to payment info setup
     return '';
   };
 
   return (
-    <Container>
-      <ScrollView contentContainerStyle={styles.pageView}>
-          <View style={{gap: 10}}>
-            <Text style={styles.title}>Bio </Text>
-            <Text style={styles.text}>Introduce yourself to customers. </Text>
-            <StyledTextInput
-              label="My Bio"
-              placeholder="My Bio"
-              onChangeText={onChangeBio}
-              value={bio}
-              multiline
-            />
-          </View>
+    <Container backMode title="Profile">
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+        {/* Bio Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Bio</Text>
+          <Text style={styles.sectionSubtitle}>Introduce yourself to customers.</Text>
+          <StyledTextInput
+            label="My Bio"
+            placeholder="Tell customers about your cooking style, experience, and specialties..."
+            onChangeText={onChangeBio}
+            value={bio}
+            multiline
+          />
+        </View>
 
-          <View style={{gap: 10}}>
-            <Text style={styles.title}>Hours Available </Text>
-            <Text style={styles.text}>
-              Choose when you are available to take orders. This can be changed
-              whenever you want.{' '}
-            </Text>
-            <View style={{gap: 5}}>
-              <View style={styles.row}>
-                <View style={styles.col_days}>
-                  <Text style={styles.text}>Days </Text>
-                </View>
-                <View style={styles.col_start}>
-                  <Text style={styles.text}>Start </Text>
-                </View>
-                <View style={styles.col_end}>
-                  <Text style={styles.text}>End </Text>
+        {/* Hours Available Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <FontAwesomeIcon icon={faClock} size={20} color={AppColors.primary} />
+            <Text style={styles.sectionTitle}>Hours Available</Text>
+          </View>
+          <Text style={styles.sectionSubtitle}>
+            Choose when you're available to take orders. You can change this anytime.
+          </Text>
+
+          <View style={styles.daysContainer}>
+            {days.map((day) => (
+              <View key={day.id} style={styles.dayRow}>
+                {/* Day checkbox and name */}
+                <TouchableOpacity
+                  style={styles.dayToggle}
+                  onPress={() => handleDayToggle(day.id)}
+                  activeOpacity={0.7}
+                >
+                  <View style={[
+                    styles.checkbox,
+                    day.checked && styles.checkboxChecked
+                  ]}>
+                    {day.checked && (
+                      <FontAwesomeIcon icon={faCheck} size={12} color="#fff" />
+                    )}
+                  </View>
+                  <Text style={[
+                    styles.dayName,
+                    day.checked && styles.dayNameActive
+                  ]}>
+                    {day.fullDay}
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Time inputs */}
+                <View style={styles.timeInputs}>
+                  <TouchableOpacity
+                    style={[
+                      styles.timeButton,
+                      !day.checked && styles.timeButtonDisabled
+                    ]}
+                    onPress={() => day.checked && openTimePicker(day.id, 'start')}
+                    disabled={!day.checked}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[
+                      styles.timeText,
+                      !day.checked && styles.timeTextDisabled
+                    ]}>
+                      {day.checked ? formatTime(day.start) : '--:--'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <Text style={styles.timeSeparator}>to</Text>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.timeButton,
+                      !day.checked && styles.timeButtonDisabled
+                    ]}
+                    onPress={() => day.checked && openTimePicker(day.id, 'end')}
+                    disabled={!day.checked}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[
+                      styles.timeText,
+                      !day.checked && styles.timeTextDisabled
+                    ]}>
+                      {day.checked ? formatTime(day.end) : '--:--'}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               </View>
-
-              {days.map((day, idx) => {
-                return (
-                  <DayRowComponent
-                    key={`drc_${idx}`}
-                    day={day}
-                    onDayChanged={newDay => {
-                      handleDayChanged(newDay);
-                    }}
-                  />
-                );
-              })}
-            </View>
+            ))}
           </View>
+        </View>
 
-          {/* <View style={{gap: 10}}>
-            <Text style={styles.title}>Minimium Order Amount ($) </Text>
-            <Text style={styles.text}>
-              Customers won’t be able to place the order with you if it doesn’t
-              meet this amount.{' '}
-            </Text>
-            <StyledTextInput
-              label="Minimium Order Amount ($)"
-              placeholder="Minimium Order Amount ($)"
-              onChangeText={onChangeAmount}
-              onEndEditing={() =>
-                onChangeAmount(convertStringToNumber(amount).toFixed(2))
-              }
-              value={amount}
-              keyboardType={'decimal-pad'}
-            />
-          </View>
-
-          <View style={{gap: 10}}>
-            <Text style={styles.title}>Maximum Order Distance (miles) </Text>
-            <Text style={styles.text}>
-              Customers won’t be able to see you if they are not within this
-              distance.{' '}
-            </Text>
-            <StyledTextInput
-              label="Maximum Order Distance (miles)"
-              placeholder="Maximum Order Distance (miles)"
-              onChangeText={onChangeDistance}
-              onEndEditing={() =>
-                onChangeDistance(convertStringToNumber(distance).toFixed(2))
-              }
-              value={distance}
-              keyboardType={'decimal-pad'}
-            />
-          </View> */}
-
-          <StyledButton title={'SAVE '} onPress={handleSubmit} />
         </ScrollView>
-      </Container>
+
+        {/* Fixed Save Button */}
+        <View style={styles.fixedButtonContainer}>
+          <StyledButton title="Save Changes" onPress={handleSubmit} />
+        </View>
+      </KeyboardAvoidingView>
+
+      {/* Time Picker Modal for iOS */}
+      {Platform.OS === 'ios' && (
+        <Modal
+          visible={showPicker}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowPicker(false)}
+        >
+          <Pressable
+            style={styles.modalOverlay}
+            onPress={() => setShowPicker(false)}
+          >
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Pressable onPress={() => setShowPicker(false)}>
+                  <Text style={styles.modalCancel}>Cancel</Text>
+                </Pressable>
+                <Text style={styles.modalTitle}>
+                  Select {activePickerType === 'start' ? 'Start' : 'End'} Time
+                </Text>
+                <Pressable onPress={confirmTimePicker}>
+                  <Text style={styles.modalDone}>Done</Text>
+                </Pressable>
+              </View>
+              <DateTimePicker
+                mode="time"
+                display="spinner"
+                value={tempTime}
+                onChange={handleTimeChange}
+                style={styles.picker}
+              />
+            </View>
+          </Pressable>
+        </Modal>
+      )}
+
+      {/* Android Time Picker */}
+      {Platform.OS === 'android' && showPicker && (
+        <DateTimePicker
+          mode="time"
+          display="default"
+          value={tempTime}
+          onChange={handleTimeChange}
+        />
+      )}
+    </Container>
   );
 };
+
+const styles = StyleSheet.create({
+  scrollContent: {
+    padding: Spacing.lg,
+    paddingBottom: 20,
+  },
+  section: {
+    marginBottom: 28,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: AppColors.text,
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    color: AppColors.textSecondary,
+    marginTop: 4,
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  daysContainer: {
+    backgroundColor: AppColors.surface,
+    borderRadius: 16,
+    padding: 4,
+    ...Shadows.sm,
+  },
+  dayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: AppColors.divider,
+  },
+  dayToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: AppColors.border,
+    backgroundColor: AppColors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  checkboxChecked: {
+    backgroundColor: AppColors.primary,
+    borderColor: AppColors.primary,
+  },
+  dayName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: AppColors.textSecondary,
+  },
+  dayNameActive: {
+    color: AppColors.text,
+    fontWeight: '600',
+  },
+  timeInputs: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  timeButton: {
+    backgroundColor: AppColors.background,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: AppColors.border,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  timeButtonDisabled: {
+    backgroundColor: AppColors.disabled,
+    borderColor: AppColors.divider,
+  },
+  timeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: AppColors.text,
+  },
+  timeTextDisabled: {
+    color: AppColors.disabledText,
+  },
+  timeSeparator: {
+    fontSize: 14,
+    color: AppColors.textSecondary,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  fixedButtonContainer: {
+    padding: Spacing.lg,
+    paddingBottom: 20,
+    backgroundColor: AppColors.background,
+    borderTopWidth: 1,
+    borderTopColor: AppColors.divider,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: AppColors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 34,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: AppColors.divider,
+  },
+  modalCancel: {
+    fontSize: 16,
+    color: AppColors.textSecondary,
+    fontWeight: '600',
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: AppColors.text,
+  },
+  modalDone: {
+    fontSize: 16,
+    color: AppColors.primary,
+    fontWeight: '600',
+  },
+  picker: {
+    width: '100%',
+    height: 200,
+  },
+});
 
 export default Profile;

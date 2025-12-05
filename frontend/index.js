@@ -1,46 +1,20 @@
-import messaging from '@react-native-firebase/messaging';
-import crashlytics from '@react-native-firebase/crashlytics';
-import { ErrorUtils } from 'react-native';
+// Guard Firebase imports for Expo Go compatibility
+// These modules only exist in development/production builds, not Expo Go
+let messaging;
 
-// Register background handler
-messaging().setBackgroundMessageHandler(async remoteMessage => {
-  console.log('Message handled in the background!', remoteMessage);
-});
-
-// Set up global error handlers for Crashlytics
-const originalHandler = ErrorUtils.getGlobalHandler();
-
-ErrorUtils.setGlobalHandler((error, isFatal) => {
-  // Log to Crashlytics
-  try {
-    crashlytics().recordError(error);
-  } catch (crashlyticsError) {
-    console.error('Failed to record error to Crashlytics:', crashlyticsError);
-  }
-  
-  // Call original handler
-  if (originalHandler) {
-    originalHandler(error, isFatal);
-  }
-});
-
-// Handle unhandled promise rejections
-if (typeof global !== 'undefined') {
-  const originalUnhandledRejection = global.onunhandledrejection;
-  global.onunhandledRejection = function(event) {
-    if (event && event.reason instanceof Error) {
-      try {
-        crashlytics().recordError(event.reason);
-      } catch (crashlyticsError) {
-        console.error('Failed to record promise rejection to Crashlytics:', crashlyticsError);
-      }
-    }
-    if (originalUnhandledRejection) {
-      originalUnhandledRejection.call(this, event);
-    }
-  };
+try {
+  messaging = require('@react-native-firebase/messaging').default;
+} catch (e) {
+  // Firebase modules not available (running in Expo Go)
+  console.log('Firebase modules not available - running in Expo Go');
 }
 
-// Import expo-router entry point after setting up error handlers
-// This ensures all crashes are caught and reported to Crashlytics
+// Register background handler (only if messaging is available)
+if (messaging) {
+  messaging().setBackgroundMessageHandler(async remoteMessage => {
+    console.log('Message handled in the background!', remoteMessage);
+  });
+}
+
+// Import expo-router entry point
 import 'expo-router/entry';

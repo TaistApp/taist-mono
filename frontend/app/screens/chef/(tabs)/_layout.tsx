@@ -1,4 +1,4 @@
-import { faAddressCard, faBookBookmark, faCreditCard, faDollarSign, faHouse } from '@fortawesome/free-solid-svg-icons';
+import { faAddressCard, faBookBookmark, faCreditCard, faSackDollar, faHouse } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { Tabs } from 'expo-router';
 import { Text } from 'react-native';
@@ -157,7 +157,7 @@ export default function TabLayout() {
                 focused={focused}
                 icon={
                   <FontAwesomeIcon
-                    icon={faDollarSign}
+                    icon={faSackDollar}
                     color={focused ? AppColors.primary : AppColors.textSecondary}
                     size={20}
                   />

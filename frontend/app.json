@@ -68,6 +68,14 @@
       "favicon": "./assets/images/icon.png"
     },
     "plugins": [
+      [
+        "react-native-edge-to-edge",
+        {
+          "android": {
+            "parentTheme": "Default"
+          }
+        }
+      ],
       "expo-router",
       "expo-dev-client",
       "expo-font",
@@ -75,10 +83,16 @@
       [
         "expo-splash-screen",
         {
-          "image": "./app/assets/images/splashLogo.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#fa4616"
+          "backgroundColor": "#fa4616",
+          "ios": {
+            "image": "./app/assets/images/splashLogo.png",
+            "resizeMode": "contain"
+          },
+          "android": {
+            "image": "./app/assets/images/splashLogo.png",
+            "imageWidth": 120,
+            "resizeMode": "contain"
+          }
         }
       ],
       [
