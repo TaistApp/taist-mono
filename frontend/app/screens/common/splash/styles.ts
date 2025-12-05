@@ -43,8 +43,7 @@ export const styles = StyleSheet.create({
 	},
 	buttonsWrapper: {
 		width: '100%',
-		maxWidth: 400,
-		alignItems: 'center',
+		paddingHorizontal: Spacing.xxl,
 		gap: Spacing.md,
 	},
 	button: {
