@@ -7,20 +7,26 @@ const viewHeight = Dimensions.get('window').height - 130;
 export const styles = StyleSheet.create({
   main: {
     width: screenWidth,
-    height: viewHeight,
+    flex: 1,
     alignItems: 'center',
   },
   scrollView: {
-    width: screenWidth,
+    flex: 1,
+  },
+  scrollViewContent: {
+    flexGrow: 1,
   },
   pageView: {
     width: screenWidth,
     alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
   },
   pageImg: {
-    width: screenWidth,
+    width: screenWidth * 0.87,
     height: screenWidth * 0.87,
     marginBottom: 20,
+    borderRadius: 12,
   },
   pageTitle: {
     fontSize: 20,
@@ -33,7 +39,7 @@ export const styles = StyleSheet.create({
     color: AppColors.text,
   },
   subPageView: {
-    width: '100%',
+    width: screenWidth * 0.87,
     padding: 10,
     rowGap: 10,
   },

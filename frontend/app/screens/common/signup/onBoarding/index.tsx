@@ -73,7 +73,8 @@ const Onboarding = ({onStart}: Props) => {
         nestedScrollEnabled
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={handleScrollIndexChange}
-        // snapToInterval={screenWidth}
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContent}
       >
         {pages.map((page, idx) => {
           return (
