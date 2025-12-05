@@ -113,7 +113,7 @@ export const CHEF_SAFETY_QUIZ: QuizQuestion[] = [
   {
     id: 5,
     category: 'Cleaning & Equipment Reset Before Leaving',
-    question: 'After finishing the meal, what should you do with the pots and pans you brought from home?',
+    question: 'After finishing the meal, what should you do with the pots, pans, and other supplies you brought from home?',
     answers: [
       {
         id: 'A',
