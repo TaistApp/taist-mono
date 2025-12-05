@@ -1524,7 +1524,7 @@ class MapiController extends Controller
             'title' => $request->title,
             'description' => $request->description,
             'price' => $request->price,
-            'serving_size' => $request->serving_size,
+            'serving_size' => $request->serving_size && $request->serving_size > 0 ? $request->serving_size : 1,
             'meals' => $request->meals,
             'category_ids' => $request->category_ids,
             'allergens' => isset($request->allergens) ? $request->allergens : '',
@@ -1574,7 +1574,9 @@ class MapiController extends Controller
         if ($request->title) $ary['title'] = $request->title;
         if ($request->description) $ary['description'] = $request->description;
         if ($request->price) $ary['price'] = $request->price;
-        if ($request->serving_size) $ary['serving_size'] = $request->serving_size;
+        if (isset($request->serving_size)) {
+            $ary['serving_size'] = $request->serving_size && $request->serving_size > 0 ? $request->serving_size : 1;
+        }
         if ($request->meals) $ary['meals'] = $request->meals;
         if ($request->category_ids) $ary['category_ids'] = $request->category_ids;
         if ($request->allergens) $ary['allergens'] = $request->allergens;

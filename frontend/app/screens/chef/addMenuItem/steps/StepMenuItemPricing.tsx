@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { MenuItemStepContainer } from '../components/MenuItemStepContainer';
@@ -22,6 +22,13 @@ export const StepMenuItemPricing: React.FC<StepMenuItemPricingProps> = ({
   onNext,
   onBack,
 }) => {
+  // Initialize serving_size to 1 if not set
+  useEffect(() => {
+    if (!menuItemData.serving_size || menuItemData.serving_size <= 0) {
+      onUpdateMenuItemData({ serving_size: 1 });
+    }
+  }, []);
+
   const servingSize = menuItemData.serving_size ?? 1;
   const price = menuItemData.price_string ?? '';
 

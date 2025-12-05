@@ -196,7 +196,7 @@ const AddMenuItem = () => {
         title: menuItemData.title,
         description: menuItemData.description,
         price: menuItemData.price_string ?? menuItemData.price,
-        serving_size: menuItemData.serving_size,
+        serving_size: menuItemData.serving_size && menuItemData.serving_size > 0 ? menuItemData.serving_size : 1,
         meals: 'breakfast',
         category_ids: category_id_list.join(','),
         allergens: allergyIds.join(','),
