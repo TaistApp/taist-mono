@@ -261,6 +261,16 @@ const Home = () => {
       >
           {!isInArea && (
             <View style={{ width: '100%', alignItems: 'center' }}>
+              {/* Current Location Display - TMA-013 */}
+              <Pressable 
+                style={styles.locationDisplay}
+                onPress={() => navigate.toCustomer.account({ scrollToAddress: true })}
+              >
+                <FontAwesomeIcon icon={faLocationDot} size={16} color={AppColors.primary} />
+                <Text style={styles.locationText}>
+                  {self.city ? `${self.city}, ${self.state || self.zip}` : `ZIP ${self.zip}`}
+                </Text>
+              </Pressable>
               <Text style={styles.missingHeading}>
                 We're sorry. {'\n'}Taist has not arrived in your area yet.
               </Text>
