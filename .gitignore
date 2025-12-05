@@ -17,21 +17,8 @@ frontend/.env
 *~
 .history/
 
-# Temp assets (empty image files from clipboard)
-assets/
-# Exception: Appliance images needed for app
-!backend/public/assets/uploads/images/sink.png
-!backend/public/assets/uploads/images/stove.png
-!backend/public/assets/uploads/images/oven.png
-!backend/public/assets/uploads/images/microwave.png
-!backend/public/assets/uploads/images/toaster.png
-!backend/public/assets/uploads/images/grill.png
-!frontend/app/assets/images/sink.png
-!frontend/app/assets/images/stove.png
-!frontend/app/assets/images/oven.png
-!frontend/app/assets/images/microwave.png
-!frontend/app/assets/images/toaster.png
-!frontend/app/assets/images/grill.png
+# Temp assets at repo root only (empty image files from clipboard)
+/assets/
 
 # OS
 .DS_Store
