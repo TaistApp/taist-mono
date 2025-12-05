@@ -242,18 +242,9 @@ const Profile = () => {
       (profile.friday_start ?? 0) > 0 && (profile.friday_end ?? 0) > 0;
     const isAvailableSaturday =
       (profile.saterday_start ?? 0) > 0 && (profile.saterday_end ?? 0) > 0;
-    if (
-      !isAvailableSunday &&
-      !isAvailableMonday &&
-      !isAvailableTuesday &&
-      !isAvailableWednesday &&
-      !isAvailableThursday &&
-      !isAvailableFriday &&
-      !isAvailableSaturday
-    ) {
-      return 'Please enter your availability';
-    }
-
+    
+    // Only validate that if a day is checked, it must have start and end times
+    // Allow saving with no availability if user hasn't checked any days
     if (
       (days[0].checked === true && !isAvailableSunday) ||
       (days[1].checked === true && !isAvailableMonday) ||
