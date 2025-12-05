@@ -83,7 +83,7 @@ export const StepMenuItemPricing: React.FC<StepMenuItemPricingProps> = ({
       <View>
         <Text style={styles.sectionTitle}>Serving Size: {servingSize}</Text>
         <Text style={styles.sectionSubtitle}>
-          How many people does this menu item serve? *Customers will be able to order any quantity of the menu item.
+          How many people does this menu item serve?
         </Text>
         <View style={styles.sliderContainer}>
           <Text style={styles.sliderLabel}>1</Text>
@@ -108,8 +108,7 @@ export const StepMenuItemPricing: React.FC<StepMenuItemPricingProps> = ({
       <View>
         <Text style={styles.sectionTitle}>Price</Text>
         <Text style={styles.sectionSubtitle}>
-          Choose the price you want to charge for the item.{'\n'}
-          *Customers will be charged a multiple of this price, depending on the quantity of this menu item they order.
+          Choose the price you want to charge for the item.
         </Text>
         <StyledTextInput
           label="Price Per Item"
