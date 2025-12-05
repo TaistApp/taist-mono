@@ -14,14 +14,14 @@ export const styles = StyleSheet.create({
   topHeader: {
     width: screenWidth,
     height: 50,
-     
+    marginTop: 10,
     backgroundColor: '#ffffff',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     // gap: 20,
     padding: 10
-   
+
   },
   topHeaderLeft: {
     // flexDirection: 'row',
