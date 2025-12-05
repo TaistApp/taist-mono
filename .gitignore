@@ -15,6 +15,10 @@ frontend/.env
 *.swp
 *.swo
 *~
+.history/
+
+# Temp assets (empty image files from clipboard)
+assets/
 
 # OS
 .DS_Store
