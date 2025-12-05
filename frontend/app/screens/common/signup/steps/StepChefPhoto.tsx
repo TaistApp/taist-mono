@@ -35,7 +35,7 @@ export const StepChefPhoto: React.FC<StepChefPhotoProps> = ({
   return (
     <SignupStepContainer
       title="Add your profile photo"
-      subtitle="Required - This helps customers recognize you and builds trust"
+      subtitle="This helps customers recognize you and builds trust"
     >
       <View style={styles.photoContainer}>
         <StyledPhotoPicker
