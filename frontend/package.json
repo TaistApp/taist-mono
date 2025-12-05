@@ -3,7 +3,7 @@
   "main": "index.js",
   "version": "1.0.0",
   "scripts": {
-    "start": "APP_ENV=staging expo start",
+    "start": "adb reverse tcp:8081 tcp:8081 2>/dev/null; APP_ENV=staging expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "APP_ENV=staging expo run:android",
     "ios": "APP_ENV=staging expo run:ios",
