@@ -12,3 +12,11 @@
 -keep class com.facebook.react.turbomodule.** { *; }
 
 # Add any project specific keep options here:
+
+# @generated begin expo-build-properties - expo prebuild (DO NOT MODIFY)
+-keep class com.swmansion.reanimated.** { *; }
+-keep class com.facebook.react.turbomodule.** { *; }
+-dontwarn com.stripe.android.pushProvisioning.**
+-keep class com.stripe.android.** { *; }
+-keep class com.reactnativestripesdk.** { *; }
+# @generated end expo-build-properties
