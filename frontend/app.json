@@ -131,30 +131,13 @@
           },
           "android": {
             "enableProguardInReleaseBuilds": true,
-            "proguardFiles": [
-              "proguard-rules.pro"
-            ],
+            "enableShrinkResourcesInReleaseBuilds": true,
             "packagingOptions": {
               "pickFirst": [
                 "**/libc++_shared.so"
               ]
             },
-            "minifyEnabled": true,
-            "proguardRules": [
-              "# react-native-reanimated",
-              "-keep class com.swmansion.reanimated.** { *; }",
-              "-keep class com.facebook.react.turbomodule.** { *; }",
-              "# Stripe Android SDK - Generated missing rules",
-              "-dontwarn com.stripe.android.pushProvisioning.PushProvisioningActivity$g",
-              "-dontwarn com.stripe.android.pushProvisioning.PushProvisioningActivityStarter$Args",
-              "-dontwarn com.stripe.android.pushProvisioning.PushProvisioningActivityStarter$Error",
-              "-dontwarn com.stripe.android.pushProvisioning.PushProvisioningActivityStarter",
-              "-dontwarn com.stripe.android.pushProvisioning.PushProvisioningEphemeralKeyProvider",
-              "-dontwarn com.stripe.android.pushProvisioning.EphemeralKeyUpdateListener",
-              "# Keep Stripe classes",
-              "-keep class com.stripe.android.** { *; }",
-              "-keep class com.reactnativestripesdk.** { *; }"
-            ]
+            "extraProguardRules": "-keep class com.swmansion.reanimated.** { *; }\n-keep class com.facebook.react.turbomodule.** { *; }\n-dontwarn com.stripe.android.pushProvisioning.**\n-keep class com.stripe.android.** { *; }\n-keep class com.reactnativestripesdk.** { *; }"
           }
         }
       ],
