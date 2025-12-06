@@ -73,95 +73,60 @@ const Profile = () => {
   const loadData = async () => {
     if (chefProfile) {
       onChangeBio(chefProfile.bio ?? '');
-      var tempArr: Array<HoursAvailableType> = [...days];
-      if (
-        chefProfile.sunday_start &&
-        chefProfile.sunday_end &&
-        chefProfile.sunday_start > 0 &&
-        chefProfile.sunday_end > 0
-      ) {
-        tempArr[0].checked = true;
-        tempArr[0].start = moment(chefProfile.sunday_start * 1000).toDate();
-        tempArr[0].end = moment(chefProfile.sunday_end * 1000).toDate();
-      }
-      if (
-        chefProfile.monday_start &&
-        chefProfile.monday_end &&
-        chefProfile.monday_start > 0 &&
-        chefProfile.monday_end > 0
-      ) {
-        tempArr[1].checked = true;
-        tempArr[1].start = moment(chefProfile.monday_start * 1000).toDate();
-        tempArr[1].end = moment(chefProfile.monday_end * 1000).toDate();
-      }
-      if (
-        chefProfile.tuesday_start &&
-        chefProfile.tuesday_end &&
-        chefProfile.tuesday_start > 0 &&
-        chefProfile.tuesday_end > 0
-      ) {
-        tempArr[2].checked = true;
-        tempArr[2].start = moment(chefProfile.tuesday_start * 1000).toDate();
-        tempArr[2].end = moment(chefProfile.tuesday_end * 1000).toDate();
-      }
-      if (
-        chefProfile.wednesday_start &&
-        chefProfile.wednesday_end &&
-        chefProfile.wednesday_start > 0 &&
-        chefProfile.wednesday_end > 0
-      ) {
-        tempArr[3].checked = true;
-        tempArr[3].start = moment(chefProfile.wednesday_start * 1000).toDate();
-        tempArr[3].end = moment(chefProfile.wednesday_end * 1000).toDate();
-      }
-      if (
-        chefProfile.thursday_start &&
-        chefProfile.thursday_end &&
-        chefProfile.thursday_start > 0 &&
-        chefProfile.thursday_end > 0
-      ) {
-        tempArr[4].checked = true;
-        tempArr[4].start = moment(chefProfile.thursday_start * 1000).toDate();
-        tempArr[4].end = moment(chefProfile.thursday_end * 1000).toDate();
-      }
-      if (
-        chefProfile.friday_start &&
-        chefProfile.friday_end &&
-        chefProfile.friday_start > 0 &&
-        chefProfile.friday_end > 0
-      ) {
-        tempArr[5].checked = true;
-        tempArr[5].start = moment(chefProfile.friday_start * 1000).toDate();
-        tempArr[5].end = moment(chefProfile.friday_end * 1000).toDate();
-      }
-      if (
-        chefProfile.saterday_start &&
-        chefProfile.saterday_end &&
-        chefProfile.saterday_start > 0 &&
-        chefProfile.saterday_end > 0
-      ) {
-        tempArr[6].checked = true;
-        tempArr[6].start = moment(chefProfile.saterday_start * 1000).toDate();
-        tempArr[6].end = moment(chefProfile.saterday_end * 1000).toDate();
-      }
-      onChangeDays(tempArr);
+
+      // Map of day index to profile field names
+      const dayFieldMap: Array<{ start: keyof IChefProfile; end: keyof IChefProfile }> = [
+        { start: 'sunday_start', end: 'sunday_end' },
+        { start: 'monday_start', end: 'monday_end' },
+        { start: 'tuesday_start', end: 'tuesday_end' },
+        { start: 'wednesday_start', end: 'wednesday_end' },
+        { start: 'thursday_start', end: 'thursday_end' },
+        { start: 'friday_start', end: 'friday_end' },
+        { start: 'saterday_start', end: 'saterday_end' },
+      ];
+
+      // Create new array with new object references for each day
+      const newDays = days.map((day, index) => {
+        const fields = dayFieldMap[index];
+        const startVal = chefProfile[fields.start] as number | undefined;
+        const endVal = chefProfile[fields.end] as number | undefined;
+
+        if (startVal && endVal && startVal > 0 && endVal > 0) {
+          return {
+            ...day,
+            checked: true,
+            start: moment(startVal * 1000).toDate(),
+            end: moment(endVal * 1000).toDate(),
+          };
+        }
+        return { ...day }; // Return new object even if unchanged
+      });
+
+      onChangeDays(newDays);
     }
   };
 
   const handleDayToggle = (dayId: string) => {
-    const tempArr = [...days];
-    const index = tempArr.findIndex(x => x.id === dayId);
-    if (index >= 0) {
-      tempArr[index].checked = !tempArr[index].checked;
-      // Set default times if checking the day
-      if (tempArr[index].checked && !tempArr[index].start) {
-        const defaultStart = moment().startOf('day').add(9, 'hours').toDate();
-        const defaultEnd = moment().startOf('day').add(17, 'hours').toDate();
-        tempArr[index].start = defaultStart;
-        tempArr[index].end = defaultEnd;
-      }
-      onChangeDays(tempArr);
-    }
+    onChangeDays(prevDays =>
+      prevDays.map(day => {
+        if (day.id !== dayId) return day;
+
+        const newChecked = !day.checked;
+        // Set default times if checking the day and no times set yet
+        if (newChecked && !day.start) {
+          return {
+            ...day,
+            checked: newChecked,
+            start: moment().startOf('day').add(9, 'hours').toDate(),
+            end: moment().startOf('day').add(17, 'hours').toDate(),
+          };
+        }
+        return {
+          ...day,
+          checked: newChecked,
+        };
+      })
+    );
   };
 
   const openTimePicker = (dayId: string, type: 'start' | 'end') => {
@@ -198,21 +163,41 @@ const Profile = () => {
   };
 
   const updateDayTime = (dayId: string, type: 'start' | 'end', time: Date) => {
-    const tempArr = [...days];
-    const index = tempArr.findIndex(x => x.id === dayId);
-    if (index >= 0) {
-      if (type === 'start') {
-        tempArr[index].start = time;
-      } else {
-        tempArr[index].end = time;
-      }
-      onChangeDays(tempArr);
-    }
+    onChangeDays(prevDays =>
+      prevDays.map(day => {
+        if (day.id !== dayId) return day;
+        // Create new object with updated time
+        return {
+          ...day,
+          [type]: time,
+        };
+      })
+    );
   };
 
   const formatTime = (date?: Date) => {
     if (!date) return '--:--';
     return moment(date).format('h:mm A');
+  };
+
+  // Get min/max time constraints for the picker based on active day and type
+  const getTimeConstraints = (): { minimumDate?: Date; maximumDate?: Date } => {
+    if (!activePickerDay) return {};
+
+    const day = days.find(d => d.id === activePickerDay);
+    if (!day) return {};
+
+    if (activePickerType === 'start' && day.end) {
+      // Start time must be before end time (at least 1 hour gap)
+      return { maximumDate: moment(day.end).subtract(1, 'hour').toDate() };
+    }
+
+    if (activePickerType === 'end' && day.start) {
+      // End time must be after start time (at least 1 hour gap)
+      return { minimumDate: moment(day.start).add(1, 'hour').toDate() };
+    }
+
+    return {};
   };
 
   const handleSubmit = async () => {
@@ -402,6 +387,7 @@ const Profile = () => {
                 themeVariant="light"
                 textColor="#000000"
                 style={styles.picker}
+                {...getTimeConstraints()}
               />
             </View>
           </Pressable>
@@ -415,6 +401,7 @@ const Profile = () => {
           display="default"
           value={tempTime}
           onChange={handleTimeChange}
+          {...getTimeConstraints()}
         />
       )}
     </Container>
