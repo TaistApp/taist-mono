@@ -36,7 +36,7 @@ const ChefWelcome = () => {
               resizeMode="contain"
             />
             <Text style={styles.welcomeTitle}>Welcome to Taist!</Text>
-            <Text style={styles.subtitle}>Let's get you started as a chef</Text>
+            <Text style={styles.subtitle}>Let's get you started as a chef!</Text>
           </View>
 
           {/* Hero Image */}
@@ -201,6 +201,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     textAlign: 'center',
     opacity: 0.95,
+    paddingHorizontal: 10,
   },
   heroContainer: {
     paddingHorizontal: 24,
@@ -208,7 +209,7 @@ const styles = StyleSheet.create({
   },
   heroImage: {
     width: '100%',
-    height: 220,
+    height: 280,
     borderRadius: 20,
     borderWidth: 3,
     borderColor: 'rgba(255, 255, 255, 0.3)',
@@ -241,7 +242,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   cardTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700',
     color: AppColors.text,
     marginBottom: 8,

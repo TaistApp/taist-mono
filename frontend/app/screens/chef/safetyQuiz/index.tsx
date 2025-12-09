@@ -5,6 +5,7 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAppDispatch, useAppSelector } from '../../../hooks/useRedux';
@@ -106,7 +107,11 @@ const SafetyQuiz = () => {
   return (
     <SafeAreaView style={styles.main}>
       <Container>
-        <View style={styles.pageView}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Safety Quiz</Text>
@@ -203,7 +208,7 @@ const SafetyQuiz = () => {
               </LinearGradient>
             </TouchableOpacity>
           )}
-        </View>
+        </ScrollView>
       </Container>
     </SafeAreaView>
   );
@@ -214,9 +219,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8F9FA',
   },
-  pageView: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
     padding: 20,
+    paddingBottom: 40,
   },
   header: {
     marginBottom: 16,
