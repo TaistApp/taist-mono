@@ -80,7 +80,7 @@ export const StepChefPhone: React.FC<StepChefPhoneProps> = ({
   return (
     <SignupStepContainer
       title="What's your phone number?"
-      subtitle="We'll use this to contact you about orders and important updates"
+      subtitle="We'll use this to contact you about orders and important updates."
     >
       <StyledTextInput
         label="Phone Number"

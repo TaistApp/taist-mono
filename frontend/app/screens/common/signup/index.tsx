@@ -31,7 +31,8 @@ const Signup = () => {
   const [email, onChangeEmail] = React.useState('');
   const [password, onChangePassword] = React.useState('');
   const [userInfo, setUserInfo] = React.useState<IUser>({});
-  
+  const [showPassword, setShowPassword] = React.useState(false);
+
   // Refs for input fields to enable keyboard navigation
   const passwordInputRef = useRef<any>(null);
 
@@ -292,11 +293,16 @@ const Signup = () => {
                   onChangeText={onChangePassword}
                   value={password}
                   textContentType="password"
-                  secureTextEntry={true}
+                  secureTextEntry={!showPassword}
                   style={styles.input}
                   returnKeyType="done"
                   onSubmitEditing={handleEmailPasswordSubmit}
-                  blurOnSubmit={true}
+                  right={
+                    <TextInput.Icon
+                      icon={showPassword ? 'eye-off' : 'eye'}
+                      onPress={() => setShowPassword(!showPassword)}
+                    />
+                  }
                 />
               </View>
             </View>

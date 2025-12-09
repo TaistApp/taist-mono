@@ -330,12 +330,14 @@ const styles = StyleSheet.create({
   selectInput: {
     fontSize: 16,
     color: AppColors.text,
+    flex: 1,
   },
   dropdown: {
     borderWidth: 1,
     borderColor: AppColors.border,
     borderRadius: 8,
     marginTop: Spacing.xs,
+    maxHeight: 250,
   },
   dropdownText: {
     fontSize: 16,

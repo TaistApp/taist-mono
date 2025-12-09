@@ -67,10 +67,12 @@ export const styles = StyleSheet.create({
     color: AppColors.text,
     fontSize: 16,
     paddingLeft: 5,
+    flex: 1,
   },
   dropdown: {
     borderColor: AppColors.border,
     borderRadius: 4,
+    maxHeight: 250,
   },
   dropdownText: {
     color: AppColors.text,

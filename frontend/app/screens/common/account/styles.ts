@@ -118,12 +118,14 @@ export const styles = StyleSheet.create({
     color: AppColors.text,
     fontSize: 16,
     paddingLeft: 0,
+    flex: 1,
   },
   dropdown: {
     borderColor: AppColors.border,
     borderRadius: 12,
     backgroundColor: AppColors.background,
     marginTop: Spacing.xs,
+    maxHeight: 250,
   },
   dropdownText: {
     color: AppColors.text,

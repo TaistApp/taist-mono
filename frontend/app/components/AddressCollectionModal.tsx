@@ -342,6 +342,7 @@ const styles = StyleSheet.create({
   dropdownInput: {
     fontSize: 15,
     color: AppColors.text,
+    flex: 1,
   },
   dropdown: {
     backgroundColor: AppColors.surface,
@@ -349,6 +350,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: AppColors.textSecondary + '40',
     marginTop: 4,
+    maxHeight: 250,
   },
   dropdownText: {
     fontSize: 15,

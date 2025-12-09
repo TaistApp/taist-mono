@@ -52,7 +52,7 @@ export const StepChefBirthday: React.FC<StepChefBirthdayProps> = ({
   };
 
   const onDateChange = (event: any, selectedDate?: Date) => {
-    const currentDate = selectedDate || (userInfo.birthday ? moment(userInfo.birthday * 1000).toDate() : moment().subtract(18, 'years').toDate());
+    const currentDate = selectedDate || (userInfo.birthday ? moment(userInfo.birthday * 1000).toDate() : new Date());
     
     // On Android, the picker closes automatically
     if (Platform.OS === 'android') {
@@ -82,7 +82,7 @@ export const StepChefBirthday: React.FC<StepChefBirthdayProps> = ({
   return (
     <SignupStepContainer
       title="When's your birthday?"
-      subtitle="We need to verify you're at least 18 years old"
+      subtitle="We need to verify you're at least 18 years old."
     >
       <StyledTextInput
         label="Birthday"
@@ -141,7 +141,7 @@ export const StepChefBirthday: React.FC<StepChefBirthdayProps> = ({
                 value={
                   userInfo.birthday
                     ? moment(userInfo.birthday * 1000).toDate()
-                    : moment().subtract(18, 'years').toDate()
+                    : new Date()
                 }
                 mode="date"
                 display="spinner"
