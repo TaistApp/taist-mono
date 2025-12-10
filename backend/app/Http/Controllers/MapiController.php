@@ -191,14 +191,23 @@ class MapiController extends Controller
     private function _sendEmail($email, $subject, $body)
     {
         try {
-            Mail::send([], [], function ($message) use ($email, $subject, $body) {
-                $message->to($email)
-                    ->subject($subject)
-                    ->setBody($body, 'text/html');
-            });
+            $client = new \GuzzleHttp\Client();
+            $response = $client->post('https://api.resend.com/emails', [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . env('RESEND_API_KEY'),
+                    'Content-Type' => 'application/json',
+                ],
+                'json' => [
+                    'from' => 'Taist <contact@taist.app>',
+                    'to' => [$email],
+                    'subject' => $subject,
+                    'html' => $body,
+                ],
+            ]);
 
-            return true;
+            return $response->getStatusCode() === 200;
         } catch (\Exception $e) {
+            Log::error('Resend email error: ' . $e->getMessage());
             return $e->getMessage();
         }
     }
