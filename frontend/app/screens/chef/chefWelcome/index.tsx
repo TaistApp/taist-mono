@@ -35,7 +35,6 @@ const ChefWelcome = () => {
               style={styles.logo}
               resizeMode="contain"
             />
-            <Text style={styles.welcomeTitle}>Welcome to Taist!</Text>
             <Text style={styles.subtitle}>Let's get you started as a chef!</Text>
           </View>
 
@@ -204,7 +203,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   heroContainer: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 28,
     marginBottom: 24,
   },
   heroImage: {
