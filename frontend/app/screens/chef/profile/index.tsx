@@ -1,5 +1,5 @@
 import moment from 'moment';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   ScrollView,
   Text,
@@ -10,6 +10,7 @@ import {
   Modal,
   Pressable,
   KeyboardAvoidingView,
+  Keyboard,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
@@ -65,6 +66,10 @@ const Profile = () => {
   const [activePickerType, setActivePickerType] = useState<'start' | 'end'>('start');
   const [tempTime, setTempTime] = useState<Date>(new Date());
   const [showPicker, setShowPicker] = useState(false);
+
+  // Refs for scrolling
+  const scrollViewRef = useRef<ScrollView>(null);
+  const hoursLayoutY = useRef<number>(0);
 
   useEffect(() => {
     loadData();
@@ -226,6 +231,23 @@ const Profile = () => {
   };
 
   const handleSubmit = async () => {
+    // Check if at least one day has hours configured
+    const hasHoursConfigured = days.some(day => day.checked);
+
+    if (!hasHoursConfigured) {
+      // Dismiss keyboard so user can see the Hours section
+      Keyboard.dismiss();
+
+      // Show error and scroll to hours section
+      ShowErrorToast('Please set your available hours for at least one day');
+
+      // Small delay to let keyboard dismiss, then scroll to hours
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({ y: hoursLayoutY.current, animated: true });
+      }, 100);
+      return;
+    }
+
     var params: IChefProfile = {
       bio,
       sunday_start: days[0].checked ? getTimestampVal(days[0].start) : 0,
@@ -278,8 +300,10 @@ const Profile = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
+          ref={scrollViewRef}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
         {/* Bio Section */}
         <View style={styles.section}>
@@ -295,7 +319,10 @@ const Profile = () => {
         </View>
 
         {/* Hours Available Section */}
-        <View style={styles.section}>
+        <View
+          style={styles.section}
+          onLayout={(e) => { hoursLayoutY.current = e.nativeEvent.layout.y; }}
+        >
           <View style={styles.sectionHeader}>
             <FontAwesomeIcon icon={faClock} size={20} color={AppColors.primary} />
             <Text style={styles.sectionTitle}>Hours Available</Text>
