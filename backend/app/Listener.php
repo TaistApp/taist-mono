@@ -56,6 +56,16 @@ class Listener extends Authenticatable
     }
 
     /**
+     * Route notifications for the Firebase channel.
+     *
+     * @return string|null
+     */
+    public function routeNotificationForFirebase()
+    {
+        return $this->fcm_token;
+    }
+
+    /**
      * Get chef's availability overrides
      * TMA-011 REVISED
      */
