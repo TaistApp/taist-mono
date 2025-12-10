@@ -55,8 +55,8 @@ export const StepMenuItemCustomizations: React.FC<StepMenuItemCustomizationsProp
 
   return (
     <MenuItemStepContainer
-      title="Customizations"
-      subtitle="Charge for any customizations customers can add to this item. This step is optional."
+      title="Add-ons"
+      subtitle="Charge for any add-ons customers can add to this item. This step is optional."
       currentStep={7}
       totalSteps={8}
     >
@@ -64,7 +64,7 @@ export const StepMenuItemCustomizations: React.FC<StepMenuItemCustomizationsProp
         {customizations.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateText}>
-              No customizations added yet.
+              No add-ons included yet.
             </Text>
             <Text style={styles.emptyStateSubtext}>
               Add optional extras like extra cheese, bacon, or special sauces that customers can add for an additional charge.
@@ -103,7 +103,7 @@ export const StepMenuItemCustomizations: React.FC<StepMenuItemCustomizationsProp
         )}
 
         <StyledButton
-          title="+ ADD CUSTOMIZATION"
+          title="+ ADD ADD-ON"
           onPress={handleAddCustomization}
           style={styles.addButton}
           titleStyle={styles.addButtonText}
@@ -117,7 +117,7 @@ export const StepMenuItemCustomizations: React.FC<StepMenuItemCustomizationsProp
         />
         {customizations.length > 0 && (
           <Pressable onPress={handleSkipStep} style={styles.skipButton}>
-            <Text style={styles.skipButtonText}>Skip & Clear Customizations</Text>
+            <Text style={styles.skipButtonText}>Skip & Clear Add-ons</Text>
           </Pressable>
         )}
         <Pressable onPress={onBack} style={styles.backButton}>
