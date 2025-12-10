@@ -3854,52 +3854,63 @@ Write only the review text:";
             require_once('../stripe-php/init.php');
             $stripe = new \Stripe\StripeClient(env('STRIPE_SECRET'));
 
-            $account = $stripe->accounts->create([
-                'email' => $email,
-                'country' => 'US',
-                'business_type' => 'individual',
-                'controller' => [
-                    'fees' => ['payer' => 'application'],
-                    'losses' => ['payments' => 'application'],
-                    'stripe_dashboard' => ['type' => 'express'],
-                ],
-                'capabilities' => [
-                    'card_payments' => ['requested' => true],
-                    'transfers' => ['requested' => true],
-                ],
-                // Pre-fill user data so Stripe doesn't ask for it again
-                'individual' => [
-                    'first_name' => $user->first_name,
-                    'last_name' => $user->last_name,
-                    'email' => $email,
-                    'phone' => \App\Helpers\AppHelper::formatPhoneE164($user->phone),
-                    'dob' => $user->birthday ? [
-                        'day' => (int) date('j', $user->birthday),
-                        'month' => (int) date('n', $user->birthday),
-                        'year' => (int) date('Y', $user->birthday),
-                    ] : null,
-                    'address' => [
-                        'line1' => $user->address,
-                        'city' => $user->city,
-                        'state' => \App\Helpers\AppHelper::getStateAbbreviation($user->state),
-                        'postal_code' => $user->zip,
-                        'country' => 'US',
-                    ],
-                ],
-                // Pre-fill business profile to skip "website URL" question
-                'business_profile' => [
-                    'product_description' => 'Home chef selling homemade food through Taist',
-                    'mcc' => '5812', // Restaurants/eating places
-                ],
-                // Pre-fill statement descriptor to skip that page entirely
-                'settings' => [
-                    'payments' => [
-                        'statement_descriptor' => 'TAIST',
-                    ],
-                ],
-            ]);
+            // Check if user already has a Stripe account
+            $existingPayment = app(PaymentMethodListener::class)
+                ->where(['user_id' => $user->id, 'active' => 1])
+                ->first();
 
-            $accountId = $account['id'];
+            if ($existingPayment && !empty($existingPayment->stripe_account_id)) {
+                // Use existing Stripe account - just create a new account link
+                $accountId = $existingPayment->stripe_account_id;
+            } else {
+                // Create new Stripe account
+                $account = $stripe->accounts->create([
+                    'email' => $email,
+                    'country' => 'US',
+                    'business_type' => 'individual',
+                    'controller' => [
+                        'fees' => ['payer' => 'application'],
+                        'losses' => ['payments' => 'application'],
+                        'stripe_dashboard' => ['type' => 'express'],
+                    ],
+                    'capabilities' => [
+                        'card_payments' => ['requested' => true],
+                        'transfers' => ['requested' => true],
+                    ],
+                    // Pre-fill user data so Stripe doesn't ask for it again
+                    'individual' => [
+                        'first_name' => $user->first_name,
+                        'last_name' => $user->last_name,
+                        'email' => $email,
+                        'phone' => \App\Helpers\AppHelper::formatPhoneE164($user->phone),
+                        'dob' => $user->birthday ? [
+                            'day' => (int) date('j', $user->birthday),
+                            'month' => (int) date('n', $user->birthday),
+                            'year' => (int) date('Y', $user->birthday),
+                        ] : null,
+                        'address' => [
+                            'line1' => $user->address,
+                            'city' => $user->city,
+                            'state' => \App\Helpers\AppHelper::getStateAbbreviation($user->state),
+                            'postal_code' => $user->zip,
+                            'country' => 'US',
+                        ],
+                    ],
+                    // Pre-fill business profile to skip "website URL" question
+                    'business_profile' => [
+                        'product_description' => 'Home chef selling homemade food through Taist',
+                        'mcc' => '5812', // Restaurants/eating places
+                    ],
+                    // Pre-fill statement descriptor to skip that page entirely
+                    'settings' => [
+                        'payments' => [
+                            'statement_descriptor' => 'TAIST',
+                        ],
+                    ],
+                ]);
+
+                $accountId = $account['id'];
+            }
 
             $account_link = $stripe->accountLinks->create([
                 'account' => $accountId,
@@ -3913,19 +3924,22 @@ Write only the review text:";
             ]);
 
             if ($account_link) {
-                // Save the Stripe account ID to the database
-                if (app(PaymentMethodListener::class)->where(['user_id' => $user->id, 'active' => 1])->first()) {
-                    app(PaymentMethodListener::class)->where(['user_id' => $user->id, 'active' => 1])->update([
-                        'stripe_account_id' => $accountId,
-                        'updated_at' => now()
-                    ]);
-                } else {
-                    app(PaymentMethodListener::class)->insert([
-                        'user_id' => $user->id,
-                        'stripe_account_id' => $accountId,
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ]);
+                // Only save the Stripe account ID if we created a new account
+                if (!$existingPayment || empty($existingPayment->stripe_account_id)) {
+                    if (app(PaymentMethodListener::class)->where(['user_id' => $user->id, 'active' => 1])->first()) {
+                        app(PaymentMethodListener::class)->where(['user_id' => $user->id, 'active' => 1])->update([
+                            'stripe_account_id' => $accountId,
+                            'updated_at' => now()
+                        ]);
+                    } else {
+                        app(PaymentMethodListener::class)->insert([
+                            'user_id' => $user->id,
+                            'stripe_account_id' => $accountId,
+                            'active' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ]);
+                    }
                 }
 
                 // Return the onboarding URL directly instead of emailing it
