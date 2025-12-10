@@ -268,7 +268,7 @@ const Home = () => {
               >
                 <FontAwesomeIcon icon={faLocationDot} size={16} color={AppColors.primary} />
                 <Text style={styles.locationText}>
-                  {self.city ? `${self.city}, ${self.state || self.zip}` : `ZIP ${self.zip}`}
+                  {self.zip ? `ZIP ${self.zip}` : 'No ZIP code'}
                 </Text>
               </Pressable>
               <Text style={styles.missingHeading}>
@@ -293,7 +293,7 @@ const Home = () => {
               >
                 <FontAwesomeIcon icon={faLocationDot} size={16} color={AppColors.primary} />
                 <Text style={styles.locationText}>
-                  {self.city ? `${self.city}, ${self.state || self.zip}` : `ZIP ${self.zip}`}
+                  {self.zip ? `ZIP ${self.zip}` : 'No ZIP code'}
                 </Text>
               </Pressable>
               
