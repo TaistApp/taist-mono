@@ -45,7 +45,8 @@ export const styles = StyleSheet.create({
 		alignItems:'flex-start',
 		justifyContent:'center',
 		height:30,
-		flex:1
+		flex:1,
+		paddingRight: 4,
 	},
 	col_start:{
 		alignItems:'center',

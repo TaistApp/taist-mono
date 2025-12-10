@@ -209,6 +209,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: AppColors.text,
     lineHeight: 22,
+    flexWrap: 'wrap',
   },
   reviewValueSecondary: {
     fontSize: 14,

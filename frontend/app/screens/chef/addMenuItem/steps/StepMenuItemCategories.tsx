@@ -159,13 +159,13 @@ const styles = StyleSheet.create({
   },
   tab: {
     backgroundColor: AppColors.primary,
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.lg + 4,
     paddingVertical: Spacing.md,
     borderRadius: 24,
   },
   tabDisabled: {
     backgroundColor: AppColors.backgroundSecondary,
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.lg + 4,
     paddingVertical: Spacing.md,
     borderRadius: 24,
     borderWidth: 1,
