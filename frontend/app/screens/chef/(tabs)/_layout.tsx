@@ -4,10 +4,8 @@ import { Tabs } from 'expo-router';
 import { Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomNavigationItem } from '../../../features/navigation';
-import { useAppSelector } from '../../../hooks/useRedux';
 import { AppColors } from '../../../../constants/theme';
 export default function TabLayout() {
-  const user = useAppSelector((x: any) => x.user.user);
   const insets = useSafeAreaInsets();
 
   return (
@@ -148,35 +146,33 @@ export default function TabLayout() {
         }}
       />
 
-      {user.is_pending == 0 && (
-        <Tabs.Screen
-          name="earnings"
-          options={{
-            tabBarIcon: ({ focused }) => (
-              <BottomNavigationItem
-                focused={focused}
-                icon={
-                  <FontAwesomeIcon
-                    icon={faSackDollar}
-                    color={focused ? AppColors.primary : AppColors.textSecondary}
-                    size={20}
-                  />
-                }
-              />
-            ),
-            tabBarLabel: ({ focused }: any) => (
-              <Text
-                style={{
-                  color: focused ? AppColors.primary : AppColors.textSecondary,
-                  fontSize: 11,
-                  fontWeight: '700',
-                }}>
-                EARNINGS
-              </Text>
-            ),
-          }}
-        />
-      )}
+      <Tabs.Screen
+        name="earnings"
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <BottomNavigationItem
+              focused={focused}
+              icon={
+                <FontAwesomeIcon
+                  icon={faSackDollar}
+                  color={focused ? AppColors.primary : AppColors.textSecondary}
+                  size={20}
+                />
+              }
+            />
+          ),
+          tabBarLabel: ({ focused }: any) => (
+            <Text
+              style={{
+                color: focused ? AppColors.primary : AppColors.textSecondary,
+                fontSize: 11,
+                fontWeight: '700',
+              }}>
+              EARNINGS
+            </Text>
+          ),
+        }}
+      />
     </Tabs>
   );
 }
