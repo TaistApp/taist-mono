@@ -3926,17 +3926,39 @@ Write only the review text:";
             $account = $stripe->accounts->create([
                 'email' => $email,
                 'country' => 'US',
-                //'type' => 'express',
                 'business_type' => 'individual',
                 'controller' => [
                     'fees' => ['payer' => 'application'],
                     'losses' => ['payments' => 'application'],
                     'stripe_dashboard' => ['type' => 'express'],
-                    //'requirement_collection' => 'application',
                 ],
                 'capabilities' => [
                     'card_payments' => ['requested' => true],
                     'transfers' => ['requested' => true],
+                ],
+                // Pre-fill user data so Stripe doesn't ask for it again
+                'individual' => [
+                    'first_name' => $user->first_name,
+                    'last_name' => $user->last_name,
+                    'email' => $email,
+                    'phone' => $user->phone,
+                    'dob' => $user->birthday ? [
+                        'day' => (int) date('j', strtotime($user->birthday)),
+                        'month' => (int) date('n', strtotime($user->birthday)),
+                        'year' => (int) date('Y', strtotime($user->birthday)),
+                    ] : null,
+                    'address' => [
+                        'line1' => $user->address,
+                        'city' => $user->city,
+                        'state' => $user->state,
+                        'postal_code' => $user->zip,
+                        'country' => 'US',
+                    ],
+                ],
+                // Pre-fill business profile to skip "website URL" question
+                'business_profile' => [
+                    'product_description' => 'Home chef selling homemade food through Taist',
+                    'mcc' => '5812', // Restaurants/eating places
                 ],
             ]);
 
