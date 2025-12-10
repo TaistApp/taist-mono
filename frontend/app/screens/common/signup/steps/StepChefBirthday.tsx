@@ -148,6 +148,8 @@ export const StepChefBirthday: React.FC<StepChefBirthdayProps> = ({
                 onChange={onDateChange}
                 maximumDate={new Date()}
                 minimumDate={moment().subtract(120, 'years').toDate()}
+                themeVariant="light"
+                textColor="#000000"
                 style={styles.picker}
               />
             </View>
@@ -208,6 +210,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingBottom: 34, // Safe area for home indicator
+    overflow: 'hidden',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -235,7 +238,8 @@ const styles = StyleSheet.create({
   },
   picker: {
     width: '100%',
-    height: 200,
+    height: 216, // iOS standard picker height
+    backgroundColor: 'white',
   },
 });
 
