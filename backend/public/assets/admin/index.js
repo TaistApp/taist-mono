@@ -6,6 +6,25 @@ var to_prev = '';
 var tab_selected = '';
 $(function() {
 
+	// Menu toggle functionality
+	$('#menu_toggle').click(function(e) {
+		e.preventDefault();
+		$('#menu').toggleClass('expanded');
+		$('.admin_wrapper').toggleClass('menu_expanded');
+		// Save state to localStorage
+		if ($('#menu').hasClass('expanded')) {
+			localStorage.setItem('adminMenuExpanded', 'true');
+		} else {
+			localStorage.removeItem('adminMenuExpanded');
+		}
+	});
+
+	// Restore menu state from localStorage
+	if (localStorage.getItem('adminMenuExpanded') === 'true') {
+		$('#menu').addClass('expanded');
+		$('.admin_wrapper').addClass('menu_expanded');
+	}
+
 	$('.d_input_date .f_input').daterangepicker();
 
 	var time = moment().toDate();

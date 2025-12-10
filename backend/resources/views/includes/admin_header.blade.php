@@ -73,9 +73,14 @@
     <div class="toast"><div></div></div>
     
     <div class="left_menu" id="menu">
-        <a href="/admin" id="menu_bar" class="flex flex_acenter m10 mb24">
-            <img class="logo" src="/assets/images/logo-2.png">
-        </a>
+        <div class="flex flex_jspace flex_acenter m10 mb24">
+            <a href="/admin" id="menu_bar" class="flex flex_acenter">
+                <img class="logo" src="/assets/images/logo-2.png">
+            </a>
+            <button id="menu_toggle" class="menu_toggle_btn" title="Toggle menu">
+                <i class="fa fa-bars"></i>
+            </button>
+        </div>
         <div class="left_menu_items">
             <a href="#" id="btn-chefs" class="left_menu_item menu_item flex flex_jspace">
                 <div><i class="fa fa-user-o l_menu_icon"></i> <span>Chefs</span></div>
