@@ -430,7 +430,7 @@ const Profile = () => {
             style={styles.modalOverlay}
             onPress={() => setShowPicker(false)}
           >
-            <View style={styles.modalContent}>
+            <Pressable style={styles.modalContent} onPress={() => {}}>
               <View style={styles.modalHeader}>
                 <Pressable onPress={() => setShowPicker(false)}>
                   <Text style={styles.modalCancel}>Cancel</Text>
@@ -451,7 +451,7 @@ const Profile = () => {
                 textColor="#000000"
                 style={styles.picker}
               />
-            </View>
+            </Pressable>
           </Pressable>
         </Modal>
       )}
