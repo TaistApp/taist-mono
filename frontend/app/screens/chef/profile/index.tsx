@@ -210,25 +210,8 @@ const Profile = () => {
     return moment(date).format('h:mm A');
   };
 
-  // Get min/max time constraints for the picker based on active day and type
-  const getTimeConstraints = (): { minimumDate?: Date; maximumDate?: Date } => {
-    if (!activePickerDay) return {};
-
-    const day = days.find(d => d.id === activePickerDay);
-    if (!day) return {};
-
-    if (activePickerType === 'start' && day.end) {
-      // Start time must be before end time (at least 1 hour gap)
-      return { maximumDate: moment(day.end).subtract(1, 'hour').toDate() };
-    }
-
-    if (activePickerType === 'end' && day.start) {
-      // End time must be after start time (at least 1 hour gap)
-      return { minimumDate: moment(day.start).add(1, 'hour').toDate() };
-    }
-
-    return {};
-  };
+  // No time constraints needed - we auto-adjust times in updateDayTime()
+  // to maintain valid start < end relationship
 
   const handleSubmit = async () => {
     // Check if at least one day has hours configured
@@ -439,7 +422,6 @@ const Profile = () => {
                 themeVariant="light"
                 textColor="#000000"
                 style={styles.picker}
-                {...getTimeConstraints()}
               />
             </View>
           </Pressable>
@@ -453,7 +435,6 @@ const Profile = () => {
           display="default"
           value={tempTime}
           onChange={handleTimeChange}
-          {...getTimeConstraints()}
         />
       )}
     </Container>
