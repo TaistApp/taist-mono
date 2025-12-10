@@ -45,7 +45,7 @@ export const CHEF_SAFETY_QUIZ: QuizQuestion[] = [
     answers: [
       {
         id: 'A',
-        text: 'Wash your hands, then wipe down any surfaces or appliances you\'ll be using if they\'re dirty',
+        text: 'Set your cooler and supplies (pots, pans, etc.) on the kitchen floor, then wash your hands',
         isCorrect: true
       },
       {
@@ -55,12 +55,12 @@ export const CHEF_SAFETY_QUIZ: QuizQuestion[] = [
       },
       {
         id: 'C',
-        text: 'Give the kitchen a quick look, and only wipe surfaces if something seems seriously dirty',
+        text: 'Set your cooler and supplies (pots, pans, etc.) on the customer\'s counter or table, then wash your hands',
         isCorrect: false
       }
     ],
     correctAnswerId: 'A',
-    explanation: 'Chefs must wash their hands immediately on arrival, and any surface or appliance they\'ll use must be cleaned before cooking begins.'
+    explanation: 'Setting your equipment on the floor assures the customer\'s surfaces are kept clean throughout the order. Washing hands (before and after) is a must!'
   },
   {
     id: 3,
