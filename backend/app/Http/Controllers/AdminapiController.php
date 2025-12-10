@@ -91,19 +91,21 @@ class AdminapiController extends Controller
                             $approved_user = app(Listener::class)->where('id',$uid)->first();
                             if ($approved_user->fcm_token) {
                                 $notification = app(NotificationTemplates::class)->where(['id'=>1])->first();
-                                try {
-                                    $this->notification($approved_user->fcm_token, $notification->subject, $notification->push, $role = 'chef');
-                                    Notification::create([
-                                        'title' => $notification->template_name,
-                                        'body' => $notification->push,
-                                        'image' => $approved_user->photo ?? 'N/A',
-                                        'fcm_token' => $approved_user->fcm_token,
-                                        'user_id' => $approved_user->id,
-                                        'navigation_id' => $approved_user->id,
-                                        'role' => $role,
-                                    ]);
-                                }  catch(FirebaseException $e) {
-                                    $errorMsg = $e->getMessage();
+                                if ($notification) {
+                                    try {
+                                        $this->notification($approved_user->fcm_token, $notification->subject, $notification->push, $role = 'chef');
+                                        Notification::create([
+                                            'title' => $notification->template_name,
+                                            'body' => $notification->push,
+                                            'image' => $approved_user->photo ?? 'N/A',
+                                            'fcm_token' => $approved_user->fcm_token,
+                                            'user_id' => $approved_user->id,
+                                            'navigation_id' => $approved_user->id,
+                                            'role' => $role,
+                                        ]);
+                                    }  catch(FirebaseException $e) {
+                                        $errorMsg = $e->getMessage();
+                                    }
                                 }
                             }
                         }
