@@ -52,8 +52,6 @@ export const StepChefBirthday: React.FC<StepChefBirthdayProps> = ({
   };
 
   const onDateChange = (event: any, selectedDate?: Date) => {
-    const currentDate = selectedDate || (userInfo.birthday ? moment(userInfo.birthday * 1000).toDate() : new Date());
-    
     // On Android, the picker closes automatically
     if (Platform.OS === 'android') {
       setOpenBirthdayPicker(false);
@@ -62,20 +60,11 @@ export const StepChefBirthday: React.FC<StepChefBirthdayProps> = ({
       }
       return;
     }
-    
-    // On iOS, handle spinner mode events
-    if (Platform.OS === 'ios') {
-      if (event.type === 'set') {
-        // User confirmed the date
-        onUpdateUserInfo({ birthday: currentDate.getTime() / 1000 });
-        setOpenBirthdayPicker(false);
-      } else if (event.type === 'dismissed') {
-        // User cancelled
-        setOpenBirthdayPicker(false);
-      } else if (selectedDate) {
-        // For spinner mode, update date as user scrolls
-        onUpdateUserInfo({ birthday: selectedDate.getTime() / 1000 });
-      }
+
+    // On iOS with spinner mode, just update the date as user scrolls
+    // The modal Done/Cancel buttons handle closing
+    if (selectedDate) {
+      onUpdateUserInfo({ birthday: selectedDate.getTime() / 1000 });
     }
   };
 
