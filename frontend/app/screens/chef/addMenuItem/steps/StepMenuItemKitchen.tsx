@@ -201,8 +201,9 @@ const styles = StyleSheet.create({
   applianceContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.md,
     justifyContent: 'flex-start',
+    marginRight: -Spacing.md,
+    marginTop: -Spacing.md,
   },
   applianceItem: {
     height: 110,
@@ -213,6 +214,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: AppColors.border,
     backgroundColor: AppColors.white,
+    marginRight: Spacing.md,
+    marginTop: Spacing.md,
   },
   applianceSelected: {
     borderColor: AppColors.primary,
@@ -242,8 +245,9 @@ const styles = StyleSheet.create({
   completionTimeContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.sm,
     justifyContent: 'flex-start',
+    marginRight: -Spacing.sm,
+    marginTop: -Spacing.sm,
   },
   tab: {
     backgroundColor: AppColors.primary,
@@ -252,9 +256,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     minWidth: 60,
     alignItems: 'center',
+    marginRight: Spacing.sm,
+    marginTop: Spacing.sm,
   },
   tabDisabled: {
-    backgroundColor: AppColors.backgroundSecondary,
+    backgroundColor: AppColors.surface,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: 20,
@@ -262,6 +268,8 @@ const styles = StyleSheet.create({
     borderColor: AppColors.border,
     minWidth: 60,
     alignItems: 'center',
+    marginRight: Spacing.sm,
+    marginTop: Spacing.sm,
   },
   tabText: {
     color: AppColors.white,
