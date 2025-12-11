@@ -143,6 +143,16 @@ const SafetyQuiz = () => {
 
             <Text style={styles.questionText}>{currentQuestion.question}</Text>
 
+            {/* Incorrect Feedback - Shown above answers so it's always visible */}
+            {answerFeedback === 'incorrect' && (
+              <View style={styles.incorrectFeedback}>
+                <Text style={styles.incorrectIcon}>✗</Text>
+                <Text style={styles.incorrectText}>
+                  Not quite. Try again!
+                </Text>
+              </View>
+            )}
+
             {/* Answer Options - Hidden when correct answer is shown */}
             {!showExplanation && (
               <View style={styles.answersContainer}>
@@ -174,16 +184,6 @@ const SafetyQuiz = () => {
                 </View>
                 <Text style={styles.explanationText}>
                   {currentQuestion.explanation}
-                </Text>
-              </View>
-            )}
-
-            {/* Incorrect Feedback */}
-            {answerFeedback === 'incorrect' && (
-              <View style={styles.incorrectFeedback}>
-                <Text style={styles.incorrectIcon}>✗</Text>
-                <Text style={styles.incorrectText}>
-                  Not quite. Try again!
                 </Text>
               </View>
             )}
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   incorrectFeedback: {
-    marginTop: 16,
+    marginBottom: 16,
     padding: 16,
     backgroundColor: '#FEF2F2',
     borderRadius: 12,
