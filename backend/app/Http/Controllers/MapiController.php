@@ -2911,8 +2911,9 @@ Write only the review text:";
         }
         
         // If user doesn't have lat/long, try to geocode their ZIP code
-        if (empty($user->latitude) || empty($user->longitude)) {
-            if (!empty($user->zip)) {
+        // Also check for string "null" which can be stored when frontend sends null as string
+        if (empty($user->latitude) || empty($user->longitude) || $user->latitude === 'null' || $user->longitude === 'null') {
+            if (!empty($user->zip) && $user->zip !== 'null') {
                 $coords = $this->_geocodeZipCode($user->zip);
                 $user->latitude = $coords['lat'];
                 $user->longitude = $coords['lng'];
@@ -3123,7 +3124,9 @@ Write only the review text:";
             }
 
             // Filter out unavailable chefs
-            $data = array_values(array_filter($data, function($chef) use ($dateString, $checkTime) {
+            // Convert Collection to array if needed
+            $dataArray = $data instanceof \Illuminate\Support\Collection ? $data->all() : $data;
+            $data = array_values(array_filter($dataArray, function($chef) use ($dateString, $checkTime) {
                 $chefModel = app(Listener::class)->find($chef->id);
                 if (!$chefModel) {
                     return false;
