@@ -130,19 +130,33 @@ class AdminController extends Controller
         $data['title'] = "Taist - Admin Panel";
         $user = $this->guard()->user();
         $data['user'] = $user;
+
+        // Simplified query - removed unnecessary GROUP BY
         $data['menus'] = DB::table('tbl_menus as m')
             ->leftJoin('tbl_users as u', 'm.user_id', '=', 'u.id')
-            //->leftJoin('tbl_categories as c', 'm.category_id', '=', 'c.id')
             ->select(['m.*', 'u.email as user_email', 'u.first_name as user_first_name', 'u.last_name as user_last_name', 'u.photo as user_photo'])
-            ->groupBy('m.id', 'm.allergens', 'm.appliances')->get();
+            ->get();
+
+        // Get all lookups in single queries instead of N+1
+        $categories = app(Categories::class)->pluck('name', 'id')->toArray();
+        $allergens = app(Allergens::class)->pluck('name', 'id')->toArray();
+        $appliances = app(Appliances::class)->pluck('name', 'id')->toArray();
 
         foreach ($data['menus'] as &$a) {
-            $a->category_list = app(Categories::class)->whereRaw('FIND_IN_SET(id, "'.$a->category_ids.'") > 0')->selectRaw('GROUP_CONCAT(name) as title')->first();
-            $a->allergen_list = app(Allergens::class)->whereRaw('FIND_IN_SET(id, "'.$a->allergens.'") > 0')->selectRaw('GROUP_CONCAT(name) as title')->first();
-            $a->appliance_list = app(Appliances::class)->whereRaw('FIND_IN_SET(id, "'.$a->appliances.'") > 0')->selectRaw('GROUP_CONCAT(name) as title')->first();
+            // Parse comma-separated IDs and map to names
+            $a->category_list = (object)['title' => $this->mapIdsToNames($a->category_ids ?? '', $categories)];
+            $a->allergen_list = (object)['title' => $this->mapIdsToNames($a->allergens ?? '', $allergens)];
+            $a->appliance_list = (object)['title' => $this->mapIdsToNames($a->appliances ?? '', $appliances)];
         }
 
         return view("admin.menus", $data);
+    }
+
+    private function mapIdsToNames($idString, $lookup) {
+        if (empty($idString)) return '';
+        $ids = array_filter(explode(',', $idString));
+        $names = array_map(fn($id) => $lookup[(int)$id] ?? '', $ids);
+        return implode(',', array_filter($names));
     }
 
     public function editMenu(Request $request, $id) {
