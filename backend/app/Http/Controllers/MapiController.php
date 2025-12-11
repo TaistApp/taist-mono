@@ -2887,20 +2887,30 @@ Write only the review text:";
 
     private function _geocodeZipCode($zipCode)
     {
-        // Simple US ZIP code to approximate lat/long mapping
-        // This is a fallback - ideally use a proper geocoding API
-        $zipMappings = [
-            '60657' => ['lat' => 41.9342, 'lng' => -87.6561], // Chicago - Lakeview
-            '60614' => ['lat' => 41.9220, 'lng' => -87.6531], // Chicago - Lincoln Park
-            '60610' => ['lat' => 41.9029, 'lng' => -87.6324], // Chicago - Near North
-            // Add more as needed
-        ];
-        
-        if (isset($zipMappings[$zipCode])) {
-            return $zipMappings[$zipCode];
+        $apiKey = env('GOOGLE_MAPS_API_KEY');
+
+        if ($apiKey) {
+            try {
+                $url = 'https://maps.googleapis.com/maps/api/geocode/json?' . http_build_query([
+                    'address' => $zipCode . ', USA',
+                    'key' => $apiKey
+                ]);
+
+                $response = file_get_contents($url);
+                $data = json_decode($response, true);
+
+                if ($data['status'] === 'OK' && !empty($data['results'])) {
+                    $location = $data['results'][0]['geometry']['location'];
+                    return ['lat' => $location['lat'], 'lng' => $location['lng']];
+                }
+
+                Log::warning('Google Maps geocoding failed', ['zipCode' => $zipCode, 'status' => $data['status']]);
+            } catch (\Exception $e) {
+                Log::error('Google Maps geocoding error', ['zipCode' => $zipCode, 'error' => $e->getMessage()]);
+            }
         }
-        
-        // Default to Chicago downtown if ZIP not found
+
+        // Fallback to Chicago downtown if geocoding fails or no API key
         return ['lat' => 41.8781, 'lng' => -87.6298];
     }
 
