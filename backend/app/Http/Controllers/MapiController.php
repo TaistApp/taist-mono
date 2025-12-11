@@ -294,9 +294,15 @@ class MapiController extends Controller
         $user = $this->_authUser();
         $ary = [
             'fcm_token' => $request->fcm_token,
-	    'latitude'  => $request->latitude,
-	    'longitude' => $request->longitude
         ];
+
+        // Only update lat/lng if they are valid numeric values (not null, "null", or empty)
+        if (isset($request->latitude) && is_numeric($request->latitude)) {
+            $ary['latitude'] = $request->latitude;
+        }
+        if (isset($request->longitude) && is_numeric($request->longitude)) {
+            $ary['longitude'] = $request->longitude;
+        }
 
         app(Listener::class)->where('id', $user->id)->update($ary);
 
@@ -2848,8 +2854,8 @@ Write only the review text:";
         if (isset($request->token_date)) $ary['token_date'] = $request->token_date;
         if (isset($request->code)) $ary['code'] = $request->code;
         if (isset($request->fcm_token)) $ary['fcm_token'] = $request->fcm_token;
-        if (isset($request->latitude)) $ary['latitude'] = $request->latitude;
-        if (isset($request->longitude)) $ary['longitude'] = $request->longitude;
+        if (isset($request->latitude) && is_numeric($request->latitude)) $ary['latitude'] = $request->latitude;
+        if (isset($request->longitude) && is_numeric($request->longitude)) $ary['longitude'] = $request->longitude;
 
         app(Listener::class)->where('id', $id)->update($ary);
 
