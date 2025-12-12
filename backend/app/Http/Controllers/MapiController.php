@@ -286,8 +286,6 @@ class MapiController extends Controller
     /** Push Notification */
     public function updateFCMToken(Request $request)
     {
-
-	Log::info('this lat and long'. json_encode($request->all()));
         if ($this->_checktaistApiKey($request->header('apiKey')) === false)
             return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
 
@@ -296,13 +294,10 @@ class MapiController extends Controller
             'fcm_token' => $request->fcm_token,
         ];
 
-        // Only update lat/lng if they are valid numeric values (not null, "null", or empty)
-        if (isset($request->latitude) && is_numeric($request->latitude)) {
-            $ary['latitude'] = $request->latitude;
-        }
-        if (isset($request->longitude) && is_numeric($request->longitude)) {
-            $ary['longitude'] = $request->longitude;
-        }
+        // Note: We don't update lat/lng from GPS here anymore.
+        // Location is always based on the user's address/zip code, which is
+        // geocoded when they update their profile. GPS is only used in the app
+        // to help fill in address fields, not for actual location storage.
 
         app(Listener::class)->where('id', $user->id)->update($ary);
 
@@ -2824,17 +2819,24 @@ Write only the review text:";
             $oldUser = app(Listener::class)->find($id);
             $oldZip = $oldUser ? $oldUser->zip : null;
             $newZip = $request->zip;
-            
+
             $ary['zip'] = $newZip;
-            
+
+            // Geocode zip to get lat/lng (location always based on address, not GPS)
+            if ($newZip && $newZip !== 'null') {
+                $coords = $this->_geocodeZipCode($newZip);
+                $ary['latitude'] = $coords['lat'];
+                $ary['longitude'] = $coords['lng'];
+            }
+
             if ($oldZip !== $newZip) {
                 $zipcodes = app(Zipcodes::class)->first();
                 if ($zipcodes) {
                     $availableZips = array_map('trim', explode(',', $zipcodes->zipcodes));
-                    
+
                     $wasInArea = $oldZip ? in_array($oldZip, $availableZips) : false;
                     $nowInArea = in_array($newZip, $availableZips);
-                    
+
                     $zipChangeInfo = [
                         'zip_changed' => true,
                         'was_in_area' => $wasInArea,
@@ -2854,8 +2856,7 @@ Write only the review text:";
         if (isset($request->token_date)) $ary['token_date'] = $request->token_date;
         if (isset($request->code)) $ary['code'] = $request->code;
         if (isset($request->fcm_token)) $ary['fcm_token'] = $request->fcm_token;
-        if (isset($request->latitude) && is_numeric($request->latitude)) $ary['latitude'] = $request->latitude;
-        if (isset($request->longitude) && is_numeric($request->longitude)) $ary['longitude'] = $request->longitude;
+        // Note: lat/lng is set from zip code geocoding above, not from GPS
 
         app(Listener::class)->where('id', $id)->update($ary);
 
