@@ -1,6 +1,7 @@
 import moment from 'moment';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 interface CustomCalendarProps {
   selectedDate: moment.Moment;
@@ -94,6 +95,17 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
   const isTodaySelected = today.isSame(selectedDate, 'day');
   const showTodayButton = !isViewingTodayWeek || !isTodaySelected;
 
+  // Swipe gesture to navigate between weeks
+  const swipeGesture = Gesture.Pan()
+    .activeOffsetX([-20, 20])
+    .onEnd((e) => {
+      if (e.translationX < -50) {
+        navigateWeek('next');
+      } else if (e.translationX > 50) {
+        navigateWeek('prev');
+      }
+    });
+
   return (
     <View style={styles.container}>
       {/* Month/Year Header */}
@@ -125,47 +137,45 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
         </TouchableOpacity>
       </View>
 
-      {/* Week Strip */}
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.weekContainer}
-      >
-        {weekDates.map((date, index) => {
-          const isSelected = isDateSelected(date);
-          const isSelectable = isDateSelectable(date);
-          const dayName = date.format('ddd').toUpperCase();
-          const dayNumber = date.format('D');
+      {/* Week Strip - Swipeable */}
+      <GestureDetector gesture={swipeGesture}>
+        <View style={styles.weekContainer}>
+          {weekDates.map((date, index) => {
+            const isSelected = isDateSelected(date);
+            const isSelectable = isDateSelectable(date);
+            const dayName = date.format('ddd').toUpperCase();
+            const dayNumber = date.format('D');
 
-          return (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.dayContainer,
-                isSelected && styles.selectedDayContainer,
-                !isSelectable && styles.disabledDayContainer,
-              ]}
-              onPress={() => handleDayPress(date)}
-              disabled={!isSelectable}
-            >
-              <Text style={[
-                styles.dayName,
-                isSelected && styles.selectedDayName,
-                !isSelectable && styles.disabledText,
-              ]}>
-                {dayName}
-              </Text>
-              <Text style={[
-                styles.dayNumber,
-                isSelected && styles.selectedDayNumber,
-                !isSelectable && styles.disabledText,
-              ]}>
-                {dayNumber}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+            return (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.dayContainer,
+                  isSelected && styles.selectedDayContainer,
+                  !isSelectable && styles.disabledDayContainer,
+                ]}
+                onPress={() => handleDayPress(date)}
+                disabled={!isSelectable}
+              >
+                <Text style={[
+                  styles.dayName,
+                  isSelected && styles.selectedDayName,
+                  !isSelectable && styles.disabledText,
+                ]}>
+                  {dayName}
+                </Text>
+                <Text style={[
+                  styles.dayNumber,
+                  isSelected && styles.selectedDayNumber,
+                  !isSelectable && styles.disabledText,
+                ]}>
+                  {dayNumber}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </GestureDetector>
     </View>
   );
 };
