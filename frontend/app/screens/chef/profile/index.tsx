@@ -210,6 +210,16 @@ const Profile = () => {
     if (day) {
       const currentTime = type === 'start' ? day.start : day.end;
       const normalizedTime = currentTime ? normalizeTimeDate(currentTime) : createTimeDate(9, 0);
+
+      console.log('=== TIME PICKER DEBUG ===');
+      console.log('currentTime:', currentTime);
+      console.log('normalizedTime:', normalizedTime);
+      console.log('normalizedTime.toString():', normalizedTime.toString());
+      console.log('normalizedTime.toISOString():', normalizedTime.toISOString());
+      console.log('normalizedTime.getTime():', normalizedTime.getTime());
+      console.log('Current timezone offset:', new Date().getTimezoneOffset());
+      console.log('=========================');
+
       setTempTime(normalizedTime);
       setActivePickerDay(dayId);
       setActivePickerType(type);
@@ -497,7 +507,6 @@ const Profile = () => {
                 display="spinner"
                 value={tempTime}
                 onChange={handleTimeChange}
-                themeVariant="light"
                 style={styles.picker}
               />
             </Pressable>
