@@ -14,6 +14,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import DatePicker from 'react-native-date-picker';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faCheck, faClock } from '@fortawesome/free-solid-svg-icons';
 
@@ -208,16 +209,6 @@ const Profile = () => {
     if (day) {
       const currentTime = type === 'start' ? day.start : day.end;
       const normalizedTime = currentTime ? normalizeTimeDate(currentTime) : createTimeDate(9, 0);
-
-      console.log('=== TIME PICKER DEBUG ===');
-      console.log('currentTime:', currentTime);
-      console.log('normalizedTime:', normalizedTime);
-      console.log('normalizedTime.toString():', normalizedTime.toString());
-      console.log('normalizedTime.toISOString():', normalizedTime.toISOString());
-      console.log('normalizedTime.getTime():', normalizedTime.getTime());
-      console.log('Current timezone offset:', new Date().getTimezoneOffset());
-      console.log('=========================');
-
       setTempTime(normalizedTime);
       setActivePickerDay(dayId);
       setActivePickerType(type);
@@ -476,7 +467,7 @@ const Profile = () => {
         </View>
       </KeyboardAvoidingView>
 
-      {/* Time Picker Modal for iOS */}
+      {/* Time Picker Modal for iOS - using react-native-date-picker */}
       {Platform.OS === 'ios' && showPicker && (
         <Modal
           visible={true}
@@ -500,13 +491,11 @@ const Profile = () => {
                   <Text style={styles.modalDone}>Done</Text>
                 </Pressable>
               </View>
-              <DateTimePicker
-                key={`picker-${activePickerDay}-${activePickerType}`}
+              <DatePicker
+                date={tempTime}
+                onDateChange={(date) => setTempTime(date)}
                 mode="time"
-                display="spinner"
-                value={tempTime}
-                onChange={handleTimeChange}
-                themeVariant="light"
+                theme="light"
                 style={styles.picker}
               />
             </Pressable>
