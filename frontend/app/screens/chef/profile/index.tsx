@@ -51,8 +51,12 @@ type HoursAvailableType = {
 // iOS UIDatePicker in time mode still respects date - using tomorrow
 // ensures no times are ever "in the past" relative to current time
 const getPickerBaseDate = () => {
-  // Use current date/time - iOS UIDatePicker can have issues with future dates
-  return new Date();
+  // Use a fixed date far in the future to avoid any "past time" issues
+  // iOS UIDatePicker in time mode can disable times it considers "in the past"
+  const date = new Date();
+  date.setFullYear(2030, 0, 15); // Jan 15, 2030 - a Wednesday, far in future
+  date.setHours(12, 0, 0, 0);
+  return date;
 };
 
 // Convert a time value (string "HH:MM" or legacy timestamp) to a Date for the time picker
