@@ -141,6 +141,7 @@ class Listener extends Authenticatable
         $availability = \App\Models\Availabilities::where('user_id', $this->id)->first();
 
         if (!$availability) {
+            \Log::debug("[TIMESLOTS] No availability record found for chef {$this->id}");
             return false;
         }
 
@@ -150,17 +151,27 @@ class Listener extends Authenticatable
         $scheduledStart = $availability->$startField;
         $scheduledEnd = $availability->$endField;
 
+        \Log::debug("[TIMESLOTS] Chef {$this->id} {$dayOfWeek}: start={$scheduledStart}, end={$scheduledEnd}");
+
         // Check if both start and end times are set for this day
-        if (empty($scheduledStart) || empty($scheduledEnd)) {
+        // Values are stored as Unix timestamps, 0 means not available
+        if (empty($scheduledStart) || empty($scheduledEnd) || $scheduledStart == 0 || $scheduledEnd == 0) {
+            \Log::debug("[TIMESLOTS] Day not available (empty or 0)");
             return false;
         }
 
-        // Check if the requested time falls within the scheduled hours
-        $checkTime = strtotime($time);
-        $startTime = strtotime($scheduledStart);
-        $endTime = strtotime($scheduledEnd);
+        // Convert Unix timestamps to time-of-day for comparison
+        // The timestamps are stored as time-only values (based on 2000-01-01)
+        $scheduledStartTime = date('H:i', (int)$scheduledStart);
+        $scheduledEndTime = date('H:i', (int)$scheduledEnd);
 
-        return $checkTime >= $startTime && $checkTime <= $endTime;
+        \Log::debug("[TIMESLOTS] Converted times: start={$scheduledStartTime}, end={$scheduledEndTime}, checking time={$time}");
+
+        // Compare time strings (HH:MM format)
+        $isAvailable = $time >= $scheduledStartTime && $time <= $scheduledEndTime;
+        \Log::debug("[TIMESLOTS] Time {$time} available: " . ($isAvailable ? 'yes' : 'no'));
+
+        return $isAvailable;
     }
 
     /**
