@@ -18,6 +18,8 @@ import { getImageURL } from '../../../utils/functions';
 import { ShowInfoToast } from '../../../utils/toast';
 import { styles } from './styles';
 import EmptyListView from '../../../components/emptyListView/emptyListView';
+import { GetChefProfileAPI } from '../../../services/api';
+import { showLoading, hideLoading } from '../../../reducers/loadingSlice';
 
 const Cart = () => {
   const router = useRouter();
@@ -44,24 +46,49 @@ const Cart = () => {
     ShowInfoToast('Items removed from cart');
   };
 
-  const handleCheckout = (chefId: number) => {
+  const handleCheckout = async (chefId: number) => {
     const chefOrders = orders.filter(o => o.chef_user_id === chefId);
     const chefInfo = users.find(u => u.id === chefId);
-    
+
     if (!chefInfo) {
       ShowInfoToast('Chef information not found');
       return;
     }
 
-    router.push({
-      pathname: '/screens/customer/(tabs)/(home)/checkout',
-      params: {
-        chefInfo: JSON.stringify(chefInfo),
-        orders: JSON.stringify(chefOrders),
-        weekDay: new Date().getDay().toString(),
-        chefProfile: JSON.stringify({}),
-      }
-    });
+    // Fetch the chef's profile to get their working days/times
+    dispatch(showLoading());
+    try {
+      console.log('[CART] Fetching chef profile for chefId:', chefId);
+      const profileResp = await GetChefProfileAPI({ user_id: chefId });
+      console.log('[CART] Chef profile response:', JSON.stringify(profileResp));
+      const chefProfile = profileResp.success === 1 ? profileResp.data : {};
+      console.log('[CART] Passing chefProfile to checkout:', JSON.stringify(chefProfile));
+
+      dispatch(hideLoading());
+
+      router.push({
+        pathname: '/screens/customer/(tabs)/(home)/checkout',
+        params: {
+          chefInfo: JSON.stringify(chefInfo),
+          orders: JSON.stringify(chefOrders),
+          weekDay: new Date().getDay().toString(),
+          chefProfile: JSON.stringify(chefProfile),
+        }
+      });
+    } catch (error) {
+      dispatch(hideLoading());
+      console.error('[CART] Error fetching chef profile:', error);
+      // Still navigate, just with empty profile (will use weekDay fallback)
+      router.push({
+        pathname: '/screens/customer/(tabs)/(home)/checkout',
+        params: {
+          chefInfo: JSON.stringify(chefInfo),
+          orders: JSON.stringify(chefOrders),
+          weekDay: new Date().getDay().toString(),
+          chefProfile: JSON.stringify({}),
+        }
+      });
+    }
   };
 
   const getTotalPrice = (chefOrders: typeof orders) => {

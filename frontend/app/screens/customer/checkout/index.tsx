@@ -71,7 +71,7 @@ const Checkout = () => {
   const [appliance, onChangeAppliance] = useState(false);
   const [paymentMethod, onChangePaymentMethod] = useState<IPayment>({});
   const [showAddressModal, setShowAddressModal] = useState(false);
-  
+
   // Discount code state
   const [discountCode, setDiscountCode] = useState<string>('');
   const [appliedDiscount, setAppliedDiscount] = useState<{
@@ -82,21 +82,32 @@ const Checkout = () => {
   const [discountError, setDiscountError] = useState<string>('');
   const [isValidatingCode, setIsValidatingCode] = useState(false);
 
-  const startDate = moment();
-  if (startDate.weekday() < weekDay) {
-    startDate.add(weekDay - startDate.weekday(), 'days');
-  } else if (startDate.weekday() > weekDay) {
-    startDate.add(weekDay - startDate.weekday() + 7, 'days');
-  }
-  startDate.startOf('date');
+  // Determine which days the chef works based on their profile
+  // A day is "working" if the _start value is > 0 (not "0" or 0 or null/undefined)
+  const getChefWorkingDays = (): number[] => {
+    const workingDays: number[] = [];
+    // moment.js weekdays: 0=Sunday, 1=Monday, ..., 6=Saturday
+    // Values can be strings or numbers, so convert to number and check > 0
+    if (Number(chefProfile.sunday_start) > 0) workingDays.push(0);
+    if (Number(chefProfile.monday_start) > 0) workingDays.push(1);
+    if (Number(chefProfile.tuesday_start) > 0) workingDays.push(2);
+    if (Number(chefProfile.wednesday_start) > 0) workingDays.push(3);
+    if (Number(chefProfile.thursday_start) > 0) workingDays.push(4);
+    if (Number(chefProfile.friday_start) > 0) workingDays.push(5);
+    if (Number(chefProfile.saterday_start) > 0) workingDays.push(6);
 
-  const endDate = moment().add(1, 'months');
-  if (startDate.weekday() < endDate.weekday()) {
-    endDate.add(startDate.weekday() - endDate.weekday(), 'days');
-  } else if (startDate.weekday() > endDate.weekday()) {
-    endDate.add(startDate.weekday() - endDate.weekday() - 7, 'days');
-  }
-  endDate.endOf('date');
+    console.log('[CHECKOUT] chefProfile:', JSON.stringify(chefProfile));
+    console.log('[CHECKOUT] Working days calculated:', workingDays, 'fallback weekDay:', weekDay);
+
+    return workingDays.length > 0 ? workingDays : [weekDay]; // Fallback to passed weekDay
+  };
+
+  const chefWorkingDays = getChefWorkingDays();
+  console.log('[CHECKOUT] Final chefWorkingDays:', chefWorkingDays);
+
+  // Simple date range: today to 1 month from now
+  const startDate = moment().startOf('day');
+  const endDate = moment().add(1, 'months').endOf('day');
 
   var price_total = 0;
   orders.map((o, idx) => {
@@ -114,13 +125,30 @@ const Checkout = () => {
   useEffect(() => {
     addTimes();
     getPaymentMethod();
-    onChangeDay(startDate);
-    
+
+    // Find the first available working day starting from today
+    const findFirstWorkingDay = () => {
+      const today = moment().startOf('day');
+      for (let i = 0; i < 30; i++) {
+        const checkDate = today.clone().add(i, 'days');
+        if (chefWorkingDays.includes(checkDate.weekday())) {
+          return checkDate;
+        }
+      }
+      return today; // Fallback
+    };
+    onChangeDay(findFirstWorkingDay());
+
     // Check if user has address, if not show modal
     if (!self.address || !self.city || !self.state || !self.zip) {
       setShowAddressModal(true);
     }
   }, []);
+
+  // Refetch time slots when the selected date changes
+  useEffect(() => {
+    addTimes();
+  }, [DAY]);
 
   const handleSaveAddress = async (addressInfo: Partial<IUser>) => {
     dispatch(showLoading());
@@ -160,6 +188,7 @@ const Checkout = () => {
     try {
       // Call backend endpoint - it returns pre-filtered time slots
       const resp = await GetAvailableTimeslotsAPI(chefInfo.id, selectedDate);
+      console.log('[DEBUG] addTimes response:', JSON.stringify(resp), 'for date:', selectedDate, 'chefId:', chefInfo.id);
 
       if (resp.success === 1 && resp.data) {
         // Convert backend time strings (HH:MM) to frontend time objects
@@ -460,21 +489,20 @@ const Checkout = () => {
             <Text style={styles.checkoutText}>
               Completion times may vary depending on your appliances.
             </Text>
-            <View style={styles.calendarWrapper}>
-              <CustomCalendar
-                selectedDate={DAY}
-                onDateSelect={handleDayPress}
-                minDate={startDate}
-                maxDate={endDate}
-                datesWhitelist={(date: moment.Moment) => {
-                  return (
-                    date.weekday() === weekDay &&
-                    date >= startDate &&
-                    date <= endDate
-                  );
-                }}
-              />
-            </View>
+            <CustomCalendar
+              selectedDate={DAY}
+              onDateSelect={handleDayPress}
+              minDate={startDate}
+              maxDate={endDate}
+              datesWhitelist={(date: moment.Moment) => {
+                // Allow any day the chef works within the date range
+                return (
+                  chefWorkingDays.includes(date.weekday()) &&
+                  date.isSameOrAfter(startDate, 'day') &&
+                  date.isSameOrBefore(endDate, 'day')
+                );
+              }}
+            />
             <Text style={styles.timeLabel}>Select a time:</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={styles.timeContainer}>

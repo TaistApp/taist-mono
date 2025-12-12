@@ -182,14 +182,14 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
   );
 };
 
+// Exact same styles as home screen calendar
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f5f5f5',
     paddingVertical: 16,
     paddingHorizontal: 12,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    marginBottom: 8,
   },
   header: {
     flexDirection: 'row',
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     paddingHorizontal: 8,
-    minWidth: 42,
+    minWidth: 48,
     borderRadius: 10,
     backgroundColor: 'transparent',
   },
