@@ -497,6 +497,8 @@ const Profile = () => {
                 display="spinner"
                 value={tempTime}
                 onChange={handleTimeChange}
+                themeVariant="light"
+                style={styles.picker}
               />
             </Pressable>
           </Pressable>
