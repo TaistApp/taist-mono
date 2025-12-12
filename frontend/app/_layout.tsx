@@ -4,7 +4,7 @@ import { SplashScreen, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
 import { Platform } from 'react-native';
-import 'react-native-gesture-handler';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import KeyboardManager from 'react-native-keyboard-manager';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -46,30 +46,32 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <ErrorBoundary>
-      <Provider store={store}>
-        <PersistGate loading={null} persistor={persistor}>
-          <PaperProvider theme={AppTheme}>
-            <ProgressProvider>
-              <StripeProvider publishableKey={StripPublishableKey}>
-                <SafeAreaProvider>
-                  <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                    <Stack screenOptions={{ headerShown: false }}>
-                      <Stack.Screen name="index" options={{ headerShown: false }} />
-                      <Stack.Screen name="screens" options={{ headerShown: false }} />
-                      <Stack.Screen name="stripe-complete" options={{ headerShown: false }} />
-                      <Stack.Screen name="stripe-refresh" options={{ headerShown: false }} />
-                      <Stack.Screen name="(not-found)" options={{ title: 'Not Found' }} />
-                    </Stack>
-                    <StatusBar style="auto" />
-                  </ThemeProvider>
-                </SafeAreaProvider>
-              </StripeProvider>
-              <Toast config={toastConfig} />
-            </ProgressProvider>
-          </PaperProvider>
-        </PersistGate>
-      </Provider>
-    </ErrorBoundary>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ErrorBoundary>
+        <Provider store={store}>
+          <PersistGate loading={null} persistor={persistor}>
+            <PaperProvider theme={AppTheme}>
+              <ProgressProvider>
+                <StripeProvider publishableKey={StripPublishableKey}>
+                  <SafeAreaProvider>
+                    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                      <Stack screenOptions={{ headerShown: false }}>
+                        <Stack.Screen name="index" options={{ headerShown: false }} />
+                        <Stack.Screen name="screens" options={{ headerShown: false }} />
+                        <Stack.Screen name="stripe-complete" options={{ headerShown: false }} />
+                        <Stack.Screen name="stripe-refresh" options={{ headerShown: false }} />
+                        <Stack.Screen name="(not-found)" options={{ title: 'Not Found' }} />
+                      </Stack>
+                      <StatusBar style="auto" />
+                    </ThemeProvider>
+                  </SafeAreaProvider>
+                </StripeProvider>
+                <Toast config={toastConfig} />
+              </ProgressProvider>
+            </PaperProvider>
+          </PersistGate>
+        </Provider>
+      </ErrorBoundary>
+    </GestureHandlerRootView>
   );
 }
