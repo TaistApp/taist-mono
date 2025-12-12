@@ -66,9 +66,9 @@
                            ];
                            $parts = [];
                            foreach ($days as $day => $times) {
-                              if (!empty($times[0]) && !empty($times[1])) {
-                                 $start = date('g:ia', strtotime($times[0]));
-                                 $end = date('g:ia', strtotime($times[1]));
+                              if (!empty($times[0]) && !empty($times[1]) && $times[0] != 0 && $times[1] != 0) {
+                                 $start = date('g:ia', (int)$times[0]);
+                                 $end = date('g:ia', (int)$times[1]);
                                  $parts[] = "<b>{$day}</b>: {$start}-{$end}";
                               }
                            }

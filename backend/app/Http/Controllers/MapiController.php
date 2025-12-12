@@ -930,11 +930,14 @@ class MapiController extends Controller
                 $scheduledStart = $availability->$startField;
                 $scheduledEnd = $availability->$endField;
 
+                Log::debug("[TIMESLOTS] Raw DB values for {$dayOfWeek}: start={$scheduledStart}, end={$scheduledEnd}");
+
                 // Check if day is available (non-zero values)
                 if (!empty($scheduledStart) && !empty($scheduledEnd) && $scheduledStart != 0 && $scheduledEnd != 0) {
                     // Convert Unix timestamps to H:i format
                     $startTime = date('H:i', (int)$scheduledStart);
                     $endTime = date('H:i', (int)$scheduledEnd);
+                    Log::debug("[TIMESLOTS] Converted to: start={$startTime}, end={$endTime}");
                 }
             }
         }
