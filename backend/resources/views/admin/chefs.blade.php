@@ -27,6 +27,7 @@
                   <th>First Name</th>
                   <th>Last Name</th>
                   <th>Status</th>
+                  <th>Weekly Availability</th>
                   <th>Photo</th>
                   <th>Phone</th>
                   <th>Birthday</th>
@@ -49,6 +50,33 @@
                      <td><?php echo $a['last_name'];?></td>
                      <td>
                         <?php echo ($a['verified']==0 || $a['is_pending']==1?'Pending':($a['verified']==2?'Rejected':($a['verified']==3?'Banned':'Active')));?>
+                     </td>
+                     <td style="font-size: 11px; white-space: nowrap;">
+                        <?php
+                        $avail = $a->availability;
+                        if ($avail) {
+                           $days = [
+                              'M' => [$avail->monday_start, $avail->monday_end],
+                              'T' => [$avail->tuesday_start, $avail->tuesday_end],
+                              'W' => [$avail->wednesday_start, $avail->wednesday_end],
+                              'Th' => [$avail->thursday_start, $avail->thursday_end],
+                              'F' => [$avail->friday_start, $avail->friday_end],
+                              'Sa' => [$avail->saterday_start, $avail->saterday_end],
+                              'Su' => [$avail->sunday_start, $avail->sunday_end],
+                           ];
+                           $parts = [];
+                           foreach ($days as $day => $times) {
+                              if (!empty($times[0]) && !empty($times[1])) {
+                                 $start = date('g:ia', strtotime($times[0]));
+                                 $end = date('g:ia', strtotime($times[1]));
+                                 $parts[] = "<b>{$day}</b>: {$start}-{$end}";
+                              }
+                           }
+                           echo count($parts) > 0 ? implode('<br>', $parts) : '<span style="color:#999">Not set</span>';
+                        } else {
+                           echo '<span style="color:#999">Not set</span>';
+                        }
+                        ?>
                      </td>
                      <td><?php echo isset($a['photo']) && $a['photo'] != '' ? '<img src="/assets/uploads/images/'.$a['photo'].'" width="80">' : '';?></td>
                      <td><?php echo $a['phone'];?></td>
@@ -86,6 +114,7 @@
                   <th>First Name</th>
                   <th>Last Name</th>
                   <th>Status</th>
+                  <th>Weekly Availability</th>
                   <th>Photo</th>
                   <th>Phone</th>
                   <th>Birthday</th>

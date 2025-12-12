@@ -122,6 +122,7 @@ const Home = () => {
 
   const loadDatax = async () => {
     const week_day = DAY.weekday();
+    const selected_date = DAY.format('YYYY-MM-DD'); // Send actual date
     const category_id = categoryId;
     const time_slot = timeSlotId;
     const timezone_gap = moment().utcOffset() / 60;
@@ -129,7 +130,7 @@ const Home = () => {
     console.log('🔄 REFRESH: Loading chefs...');
     // No loading indicator for refresh
     const searchChefs = await GetSearchChefAPI(
-      { week_day, category_id, time_slot, timezone_gap, user_id: self?.id || -1 },
+      { week_day, selected_date, category_id, time_slot, timezone_gap, user_id: self?.id || -1 },
       dispatch,
     );
 
@@ -146,13 +147,14 @@ const Home = () => {
 
   const loadData = async () => {
     const week_day = DAY.weekday();
+    const selected_date = DAY.format('YYYY-MM-DD'); // Send actual date
     const category_id = categoryId;
     const time_slot = timeSlotId;
     const timezone_gap = moment().utcOffset() / 60;
 
     dispatch(showLoading());
     const searchChefs = await GetSearchChefAPI(
-      { week_day, category_id, time_slot, timezone_gap, user_id: self?.id || -1 },
+      { week_day, selected_date, category_id, time_slot, timezone_gap, user_id: self?.id || -1 },
       dispatch,
     );
 
@@ -188,10 +190,10 @@ const Home = () => {
     loadData();
   }, [categoryId, timeSlotId, DAY]);
 
-  const handleDayPress = async (day: moment.Moment) => {
+  const handleDayPress = (day: moment.Moment) => {
     onChangeDAY(day);
-    await Delay(10);
-    loadData();
+    // useEffect on line 187-189 will trigger loadData() automatically
+    // Removed duplicate loadData() call that was causing race condition
   };
 
   const handleTimeSlotChange = (id: number) => {

@@ -309,6 +309,7 @@ export const GetCustomerOrdersAPI = async (
 export const GetSearchChefAPI = async (
   params: {
     week_day?: number;
+    selected_date?: string; // YYYY-MM-DD format - actual date user selected
     category_id?: number;
     time_slot?: number;
     timezone_gap?: number;

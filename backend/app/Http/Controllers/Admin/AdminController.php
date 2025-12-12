@@ -97,7 +97,7 @@ class AdminController extends Controller
         $user = $this->guard()->user();
         $data['user'] = $user;
         //$data['chefs'] = app(Listener::class)->where(['user_type'=>2, 'is_pending'=>0])->get();
-        $data['chefs'] = app(Listener::class)->where(['user_type'=>2])->get();
+        $data['chefs'] = app(Listener::class)->where(['user_type'=>2])->with('availability')->get();
 
         return view("admin.chefs", $data);
     }

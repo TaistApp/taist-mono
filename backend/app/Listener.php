@@ -75,6 +75,14 @@ class Listener extends Authenticatable
     }
 
     /**
+     * Get chef's weekly availability schedule
+     */
+    public function availability()
+    {
+        return $this->hasOne(\App\Models\Availabilities::class, 'user_id', 'id');
+    }
+
+    /**
      * Check if chef is currently online
      *
      * @return bool
