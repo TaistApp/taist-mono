@@ -3083,22 +3083,43 @@ Write only the review text:";
             ->orderBy('distance', 'asc')
             ->get();
 
-        foreach ($data as $index => &$item) {
-            $item->reviews = app(Reviews::class)->where(['to_user_id' => $item->id])->get();
+        // Batch load reviews, menus, and customizations to avoid N+1 queries
+        $chefIds = $data->pluck('id')->toArray();
 
+        if (!empty($chefIds)) {
+            // Batch load all reviews for these chefs
+            $allReviews = app(Reviews::class)->whereIn('to_user_id', $chefIds)->get()->groupBy('to_user_id');
+
+            // Batch load all menus for these chefs
+            $menusQuery = app(Menus::class)->whereIn('user_id', $chefIds)->where('is_live', 1);
             if (isset($request->category_id) && $request->category_id != '0') {
-                $item->menus = app(Menus::class)->where(['user_id' => $item->id, 'is_live' => 1])->whereRaw('FIND_IN_SET("' . $request->category_id . '", category_ids) > 0')->get();
-            } else {
-                $item->menus = app(Menus::class)->where(['user_id' => $item->id, 'is_live' => 1])->get();
+                $menusQuery->whereRaw('FIND_IN_SET("' . $request->category_id . '", category_ids) > 0');
             }
+            $allMenus = $menusQuery->get()->groupBy('user_id');
 
-            if (count($item->menus) == 0) {
-                unset($item);
-            } else {
-                foreach ($item->menus as &$menu) {
-                    $menu->customizations = app(Customizations::class)->where(['menu_id' => $menu->id])->get();
+            // Batch load all customizations for these menus
+            $menuIds = $allMenus->flatten()->pluck('id')->toArray();
+            $allCustomizations = !empty($menuIds)
+                ? app(Customizations::class)->whereIn('menu_id', $menuIds)->get()->groupBy('menu_id')
+                : collect();
+
+            // Assign to each chef
+            $data = $data->filter(function($item) use ($allReviews, $allMenus, $allCustomizations) {
+                $item->reviews = $allReviews->get($item->id, collect());
+                $item->menus = $allMenus->get($item->id, collect());
+
+                // Skip chefs with no menus
+                if ($item->menus->isEmpty()) {
+                    return false;
                 }
-            }
+
+                // Assign customizations to menus
+                foreach ($item->menus as $menu) {
+                    $menu->customizations = $allCustomizations->get($menu->id, collect());
+                }
+
+                return true;
+            })->values();
         }
 
         // TMA-011 REVISED: Filter out chefs who are unavailable due to overrides
@@ -3140,16 +3161,24 @@ Write only the review text:";
             }
 
             // Filter out unavailable chefs
-            // Convert Collection to array if needed
+            // Batch load overrides for all chefs on this date to avoid N+1 queries
+            $chefIdsForOverride = $data instanceof \Illuminate\Support\Collection ? $data->pluck('id')->toArray() : array_column($data, 'id');
+            $overrides = \App\Models\AvailabilityOverride::whereIn('chef_id', $chefIdsForOverride)
+                ->where('override_date', $dateString)
+                ->get()
+                ->keyBy('chef_id');
+
             $dataArray = $data instanceof \Illuminate\Support\Collection ? $data->all() : $data;
-            $data = array_values(array_filter($dataArray, function($chef) use ($dateString, $checkTime) {
-                $chefModel = app(Listener::class)->find($chef->id);
-                if (!$chefModel) {
-                    return false;
+            $data = array_values(array_filter($dataArray, function($chef) use ($dateString, $checkTime, $overrides) {
+                $override = $overrides->get($chef->id);
+
+                if ($override) {
+                    // Override exists - check if available at this time
+                    return $override->isAvailableAt($checkTime);
                 }
 
-                $orderDateTime = $dateString . ' ' . $checkTime;
-                return $chefModel->isAvailableForOrder($orderDateTime);
+                // No override - chef is available based on weekly schedule (already filtered by main query)
+                return true;
             }));
         }
 
