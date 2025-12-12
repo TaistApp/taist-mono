@@ -5,6 +5,11 @@
     },
     "ios": {
       "bundleIdentifier": "com.bgroble.taistmono"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "bd20bb73-7d19-4049-a57d-a2b7f43220b2"
+      }
     }
   }
 }

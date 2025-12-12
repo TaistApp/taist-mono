@@ -47,29 +47,34 @@ type HoursAvailableType = {
   end?: Date;
 };
 
-// Use a fixed date far in the past to avoid any iOS date constraints
-// iOS UIDatePicker in time mode still respects date - using a fixed date
+// Use tomorrow's date to avoid any iOS date constraints
+// iOS UIDatePicker in time mode still respects date - using tomorrow
 // ensures no times are ever "in the past" relative to current time
-const FIXED_TIME_DATE = new Date(2000, 0, 1); // Jan 1, 2000
+const getTomorrowDate = () => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+  return tomorrow;
+};
 
-// Convert a timestamp (seconds) to a Date with fixed date, preserving only hours/minutes
+// Convert a timestamp (seconds) to a Date with tomorrow's date, preserving only hours/minutes
 const timestampToTimeDate = (timestamp: number): Date => {
   const date = new Date(timestamp * 1000);
-  const result = new Date(FIXED_TIME_DATE);
+  const result = getTomorrowDate();
   result.setHours(date.getHours(), date.getMinutes(), 0, 0);
   return result;
 };
 
-// Create a time Date with fixed date from hours and minutes
+// Create a time Date with tomorrow's date from hours and minutes
 const createTimeDate = (hours: number, minutes: number = 0): Date => {
-  const result = new Date(FIXED_TIME_DATE);
+  const result = getTomorrowDate();
   result.setHours(hours, minutes, 0, 0);
   return result;
 };
 
-// Normalize any Date to use the fixed date (preserving hours/minutes)
+// Normalize any Date to use tomorrow's date (preserving hours/minutes)
 const normalizeTimeDate = (date: Date): Date => {
-  const result = new Date(FIXED_TIME_DATE);
+  const result = getTomorrowDate();
   result.setHours(date.getHours(), date.getMinutes(), 0, 0);
   return result;
 };
@@ -154,8 +159,8 @@ const Profile = () => {
           return {
             ...day,
             checked: newChecked,
-            start: createTimeDate(9, 0),   // 9:00 AM
-            end: createTimeDate(17, 0),    // 5:00 PM
+            start: createTimeDate(9, 0),
+            end: createTimeDate(17, 0),
           };
         }
         return {
@@ -170,8 +175,8 @@ const Profile = () => {
     const day = days.find(d => d.id === dayId);
     if (day) {
       const currentTime = type === 'start' ? day.start : day.end;
-      // Normalize to fixed date to avoid iOS disabling "past" times
-      setTempTime(currentTime ? normalizeTimeDate(currentTime) : createTimeDate(9, 0));
+      const normalizedTime = currentTime ? normalizeTimeDate(currentTime) : createTimeDate(9, 0);
+      setTempTime(normalizedTime);
       setActivePickerDay(dayId);
       setActivePickerType(type);
       setShowPicker(true);
@@ -187,7 +192,7 @@ const Profile = () => {
       return;
     }
 
-    // iOS - update temp time (normalize to fixed date)
+    // iOS - update temp time
     if (selectedDate) {
       setTempTime(normalizeTimeDate(selectedDate));
     }
@@ -455,9 +460,6 @@ const Profile = () => {
                 display="spinner"
                 value={tempTime}
                 onChange={handleTimeChange}
-                themeVariant="light"
-                textColor="#000000"
-                style={styles.picker}
               />
             </Pressable>
           </Pressable>
