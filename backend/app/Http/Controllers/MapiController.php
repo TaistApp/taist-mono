@@ -3963,7 +3963,7 @@ Write only the review text:";
                     ],
                     // Pre-fill business profile to skip "website URL" question
                     'business_profile' => [
-                        'product_description' => 'Home chef selling homemade food through Taist',
+                        'product_description' => 'Independent contractor chef providing services through Taist',
                         'mcc' => '5812', // Restaurants/eating places
                     ],
                     // Pre-fill statement descriptor to skip that page entirely
