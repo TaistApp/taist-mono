@@ -19,14 +19,12 @@ export const styles = StyleSheet.create({
 		gap: 20,
 	},
 	text: {
-		flex: 1,
 		fontSize: 16,
 		fontWeight: '500',
 		color: AppColors.text,
 		width: '100%'
 	},
 	vcenter: {
-		flex: 1,
 		justifyContent: 'center',
         marginTop: 20,
         width: '100%',
