@@ -151,10 +151,10 @@ export const StepMenuItemReview: React.FC<StepMenuItemReviewProps> = ({
           </Text>
         </View>
 
-        {/* Customizations */}
+        {/* Add-ons */}
         {customizations.length > 0 && (
           <View style={styles.reviewSection}>
-            <Text style={styles.reviewLabel}>Customizations</Text>
+            <Text style={styles.reviewLabel}>Add-ons</Text>
             {customizations.map((custom, idx) => (
               <Text key={idx} style={styles.reviewValue}>
                 • {custom.name} (+${(custom.upcharge_price ?? 0).toFixed(2)})

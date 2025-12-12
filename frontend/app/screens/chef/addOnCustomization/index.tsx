@@ -51,7 +51,7 @@ const AddOnCustomization = () => {
     <SafeAreaView style={styles.main}>
       <Container
         backMode
-        title="Customizations"
+        title="Add-ons"
         containerStyle={{marginBottom: 0}}>
         <ScrollView contentContainerStyle={styles.pageView}>
           <StyledTextInput

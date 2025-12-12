@@ -23,7 +23,7 @@ const OrderItem = (props: Props) => {
         <Text style={styles.checkoutSummaryItemTitle}>{props.menu.title}</Text>
         {names_customizations.length > 0 && (
           <Text style={styles.checkoutSummaryItemAddon} numberOfLines={1}>
-            {`Customizations: ${names_customizations.join(' & ')} `}
+            {`Add-ons: ${names_customizations.join(' & ')} `}
           </Text>
         )}
         {props.order.notes && props.order.notes.length > 0 && (

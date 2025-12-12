@@ -35,6 +35,9 @@ const AddToOrder = () => {
   const orderMenu: IMenu = JSON.parse(params.orderMenu as string);
   const chefInfo: IUser = JSON.parse(params.chefInfo as string);
 
+  // Debug: log customizations data
+  console.log('AddToOrder - orderMenu.customizations:', JSON.stringify(orderMenu.customizations));
+
   const [quantity, onChangeQuantity] = useState(1);
   const [orderNotes, onChangeOrderNotes] = useState('');
   const [customizationIds, onChangeCustomizationIds] = useState<Array<number>>(
@@ -136,7 +139,7 @@ const AddToOrder = () => {
           </View>
           {orderMenu.customizations && orderMenu.customizations.length > 0 && (
             <View style={styles.orderAddonsWrapper}>
-              <Text style={styles.orderAddonsLabel}>Customizations </Text>
+              <Text style={styles.orderAddonsLabel}>Add-ons </Text>
               <View style={styles.orderAddonContainer}>
                 {orderMenu.customizations?.map((c, idx) => {
                   const isChecked = customizationIds.includes(c.id ?? 0);

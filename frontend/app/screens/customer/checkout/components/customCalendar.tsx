@@ -184,14 +184,16 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'transparent',
-    paddingVertical: 10,
+    backgroundColor: '#fa4616',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
     marginBottom: 15,
   },
   centerContent: {
@@ -225,22 +227,22 @@ const styles = StyleSheet.create({
   },
   weekContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 10,
+    paddingHorizontal: 4,
     justifyContent: 'space-between',
     width: '100%',
   },
   dayContainer: {
     alignItems: 'center',
     paddingVertical: 8,
-    paddingHorizontal: 12,
-    minWidth: 45,
+    paddingHorizontal: 10,
+    minWidth: 42,
     borderRadius: 8,
   },
   selectedDayContainer: {
     backgroundColor: '#ffffff',
   },
   disabledDayContainer: {
-    opacity: 0.5,
+    opacity: 0.4,
   },
   dayName: {
     color: '#ffffff',

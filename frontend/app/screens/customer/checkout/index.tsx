@@ -475,22 +475,27 @@ const Checkout = () => {
                 }}
               />
             </View>
-            <ScrollView horizontal>
+            <Text style={styles.timeLabel}>Select a time:</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={styles.timeContainer}>
-                {times.map((item, idx) => {
-                  const day = moment(DAY);
-                  day.hour(item?.h);
-                  day.minute(item?.m);
-                  if (day < moment()) return;
-                  return (
-                    <StyledTabButton
-                      title={item.label}
-                      disabled={item.id != timeId}
-                      onPress={() => onChangeTimeId(item.id)}
-                      key={`time_${idx}`}
-                    />
-                  );
-                })}
+                {times.length === 0 ? (
+                  <Text style={styles.noTimesText}>No available times for this date</Text>
+                ) : (
+                  times.map((item, idx) => {
+                    const day = moment(DAY);
+                    day.hour(item?.h);
+                    day.minute(item?.m);
+                    if (day < moment()) return null;
+                    return (
+                      <StyledTabButton
+                        title={item.label}
+                        disabled={item.id != timeId}
+                        onPress={() => onChangeTimeId(item.id)}
+                        key={`time_${idx}`}
+                      />
+                    );
+                  })
+                )}
               </View>
             </ScrollView>
             <Text style={styles.estimated}>

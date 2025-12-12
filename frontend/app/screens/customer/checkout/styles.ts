@@ -58,10 +58,23 @@ export const styles = StyleSheet.create({
   calendarWrapper: {
     marginVertical: Spacing.md,
   },
+  timeLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: AppColors.text,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
   timeContainer: {
     flexDirection: 'row',
     gap: Spacing.sm,
-    marginTop: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  noTimesText: {
+    fontSize: 14,
+    color: AppColors.textSecondary,
+    fontStyle: 'italic',
+    paddingVertical: Spacing.sm,
   },
   estimated: {
     fontSize: 13,
