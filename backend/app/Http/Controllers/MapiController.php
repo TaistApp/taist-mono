@@ -895,6 +895,60 @@ class MapiController extends Controller
         $now = time();
         $minimumOrderTime = $now + (3 * 60 * 60);
 
+        // OPTIMIZATION: Fetch availability data ONCE instead of per-slot
+        $dayOfWeek = strtolower(date('l', $dateTimestamp));
+        $dateOnly = date('Y-m-d', $dateTimestamp);
+
+        // Check for override first (single query)
+        $override = \App\Models\AvailabilityOverride::forChef($chefId)
+            ->forDate($dateOnly)
+            ->first();
+
+        $startTime = null;
+        $endTime = null;
+
+        if ($override) {
+            // Override exists - use it
+            if ($override->is_cancelled) {
+                // Day is cancelled - no slots available
+                return response()->json([
+                    'success' => 1,
+                    'data' => []
+                ]);
+            }
+            // Use override times
+            $startTime = $override->start_time ? date('H:i', strtotime($override->start_time)) : null;
+            $endTime = $override->end_time ? date('H:i', strtotime($override->end_time)) : null;
+        } else {
+            // No override - get weekly schedule (single query)
+            $availability = \App\Models\Availabilities::where('user_id', $chefId)->first();
+
+            if ($availability) {
+                $startField = $dayOfWeek . '_start';
+                $endField = $dayOfWeek . '_end';
+
+                $scheduledStart = $availability->$startField;
+                $scheduledEnd = $availability->$endField;
+
+                // Check if day is available (non-zero values)
+                if (!empty($scheduledStart) && !empty($scheduledEnd) && $scheduledStart != 0 && $scheduledEnd != 0) {
+                    // Convert Unix timestamps to H:i format
+                    $startTime = date('H:i', (int)$scheduledStart);
+                    $endTime = date('H:i', (int)$scheduledEnd);
+                }
+            }
+        }
+
+        // If no availability found, return empty
+        if (!$startTime || !$endTime) {
+            return response()->json([
+                'success' => 1,
+                'data' => []
+            ]);
+        }
+
+        Log::debug("[TIMESLOTS] Chef {$chefId} on {$dayOfWeek}: available {$startTime} - {$endTime}");
+
         // Generate all possible 30-minute time slots for the day (00:00 - 23:30)
         $allSlots = [];
         for ($hour = 0; $hour < 24; $hour++) {
@@ -909,9 +963,8 @@ class MapiController extends Controller
                     continue;
                 }
 
-                // Check if chef is available at this time using existing logic
-                $orderDateTime = $date . ' ' . $timeStr . ':00';
-                if ($chef->isAvailableForOrder($orderDateTime)) {
+                // Check if time is within available range (no DB query needed!)
+                if ($timeStr >= $startTime && $timeStr <= $endTime) {
                     $allSlots[] = $timeStr;
                 }
             }
