@@ -65,10 +65,23 @@
                               'Su' => [$avail->sunday_start, $avail->sunday_end],
                            ];
                            $parts = [];
+                           // Helper to format time value - handles both "HH:MM" strings and legacy timestamps
+                           $formatTime = function($val) {
+                              if (empty($val) || $val === '0' || $val === 0) return null;
+                              // Already "HH:MM" format
+                              if (is_string($val) && preg_match('/^\d{2}:\d{2}$/', $val)) {
+                                 return date('g:ia', strtotime($val));
+                              }
+                              // Legacy timestamp (9+ digits)
+                              if (is_numeric($val) && strlen((string)$val) >= 9) {
+                                 return date('g:ia', (int)$val);
+                              }
+                              return null;
+                           };
                            foreach ($days as $day => $times) {
-                              if (!empty($times[0]) && !empty($times[1]) && $times[0] != 0 && $times[1] != 0) {
-                                 $start = date('g:ia', (int)$times[0]);
-                                 $end = date('g:ia', (int)$times[1]);
+                              $start = $formatTime($times[0]);
+                              $end = $formatTime($times[1]);
+                              if ($start && $end) {
                                  $parts[] = "<b>{$day}</b>: {$start}-{$end}";
                               }
                            }

@@ -160,10 +160,14 @@ class Listener extends Authenticatable
             return false;
         }
 
-        // Convert Unix timestamps to time-of-day for comparison
-        // The timestamps are stored as time-only values (based on 2000-01-01)
-        $scheduledStartTime = date('H:i', (int)$scheduledStart);
-        $scheduledEndTime = date('H:i', (int)$scheduledEnd);
+        // Normalize time values - handles both "HH:MM" strings (new format) and legacy Unix timestamps
+        $scheduledStartTime = $this->normalizeTimeValue($scheduledStart);
+        $scheduledEndTime = $this->normalizeTimeValue($scheduledEnd);
+
+        if (!$scheduledStartTime || !$scheduledEndTime) {
+            \Log::debug("[TIMESLOTS] Invalid time values");
+            return false;
+        }
 
         \Log::debug("[TIMESLOTS] Converted times: start={$scheduledStartTime}, end={$scheduledEndTime}, checking time={$time}");
 
@@ -220,6 +224,32 @@ class Listener extends Authenticatable
 
         // Check if both start and end times are set for this day
         return !empty($availability->$startField) && !empty($availability->$endField);
+    }
+
+    /**
+     * Normalize a time value to "HH:MM" format.
+     * Handles both new "HH:MM" string format and legacy Unix timestamps.
+     *
+     * @param mixed $value Time value (string "HH:MM" or numeric timestamp)
+     * @return string|null "HH:MM" format or null if invalid
+     */
+    private function normalizeTimeValue($value): ?string
+    {
+        if (empty($value) || $value === '0' || $value === 0) {
+            return null;
+        }
+
+        // Already a time string "HH:MM" - return as-is
+        if (is_string($value) && preg_match('/^\d{2}:\d{2}$/', $value)) {
+            return $value;
+        }
+
+        // Legacy Unix timestamp (9+ digits)
+        if (is_numeric($value) && strlen((string)$value) >= 9) {
+            return date('H:i', (int)$value);
+        }
+
+        return null;
     }
 
     // public function setCreatedAtAttribute($date)

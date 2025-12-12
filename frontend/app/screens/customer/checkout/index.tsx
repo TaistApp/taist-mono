@@ -82,19 +82,32 @@ const Checkout = () => {
   const [discountError, setDiscountError] = useState<string>('');
   const [isValidatingCode, setIsValidatingCode] = useState(false);
 
+  // Check if a time value represents valid availability
+  // Handles both "HH:MM" strings (new format) and timestamps (legacy format)
+  const hasValidTime = (value: string | number | undefined): boolean => {
+    if (!value) return false;
+    if (value === '' || value === '0' || value === 0) return false;
+    // String with colon = "HH:MM" format
+    if (typeof value === 'string' && value.includes(':')) return true;
+    // Large number = legacy timestamp
+    if (typeof value === 'number' && value > 86400) return true;
+    // Numeric string that's a timestamp
+    if (typeof value === 'string' && /^\d{9,}$/.test(value)) return true;
+    return false;
+  };
+
   // Determine which days the chef works based on their profile
-  // A day is "working" if the _start value is > 0 (not "0" or 0 or null/undefined)
+  // A day is "working" if the _start value is valid (either "HH:MM" string or legacy timestamp)
   const getChefWorkingDays = (): number[] => {
     const workingDays: number[] = [];
     // moment.js weekdays: 0=Sunday, 1=Monday, ..., 6=Saturday
-    // Values can be strings or numbers, so convert to number and check > 0
-    if (Number(chefProfile.sunday_start) > 0) workingDays.push(0);
-    if (Number(chefProfile.monday_start) > 0) workingDays.push(1);
-    if (Number(chefProfile.tuesday_start) > 0) workingDays.push(2);
-    if (Number(chefProfile.wednesday_start) > 0) workingDays.push(3);
-    if (Number(chefProfile.thursday_start) > 0) workingDays.push(4);
-    if (Number(chefProfile.friday_start) > 0) workingDays.push(5);
-    if (Number(chefProfile.saterday_start) > 0) workingDays.push(6);
+    if (hasValidTime(chefProfile.sunday_start)) workingDays.push(0);
+    if (hasValidTime(chefProfile.monday_start)) workingDays.push(1);
+    if (hasValidTime(chefProfile.tuesday_start)) workingDays.push(2);
+    if (hasValidTime(chefProfile.wednesday_start)) workingDays.push(3);
+    if (hasValidTime(chefProfile.thursday_start)) workingDays.push(4);
+    if (hasValidTime(chefProfile.friday_start)) workingDays.push(5);
+    if (hasValidTime(chefProfile.saterday_start)) workingDays.push(6);
 
     console.log('[CHECKOUT] chefProfile:', JSON.stringify(chefProfile));
     console.log('[CHECKOUT] Working days calculated:', workingDays, 'fallback weekDay:', weekDay);

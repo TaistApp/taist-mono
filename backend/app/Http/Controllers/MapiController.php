@@ -934,9 +934,9 @@ class MapiController extends Controller
 
                 // Check if day is available (non-zero values)
                 if (!empty($scheduledStart) && !empty($scheduledEnd) && $scheduledStart != 0 && $scheduledEnd != 0) {
-                    // Convert Unix timestamps to H:i format
-                    $startTime = date('H:i', (int)$scheduledStart);
-                    $endTime = date('H:i', (int)$scheduledEnd);
+                    // Normalize time values - handles both "HH:MM" strings and legacy Unix timestamps
+                    $startTime = $this->normalizeTimeValue($scheduledStart);
+                    $endTime = $this->normalizeTimeValue($scheduledEnd);
                     Log::debug("[TIMESLOTS] Converted to: start={$startTime}, end={$endTime}");
                 }
             }
@@ -977,6 +977,32 @@ class MapiController extends Controller
             'success' => 1,
             'data' => $allSlots
         ]);
+    }
+
+    /**
+     * Normalize a time value to "HH:MM" format.
+     * Handles both new "HH:MM" string format and legacy Unix timestamps.
+     *
+     * @param mixed $value Time value (string "HH:MM" or numeric timestamp)
+     * @return string|null "HH:MM" format or null if invalid
+     */
+    private function normalizeTimeValue($value): ?string
+    {
+        if (empty($value) || $value === '0' || $value === 0) {
+            return null;
+        }
+
+        // Already a time string "HH:MM" - return as-is
+        if (is_string($value) && preg_match('/^\d{2}:\d{2}$/', $value)) {
+            return $value;
+        }
+
+        // Legacy Unix timestamp (9+ digits)
+        if (is_numeric($value) && strlen((string)$value) >= 9) {
+            return date('H:i', (int)$value);
+        }
+
+        return null;
     }
 
     private function resizeImage($file, $png = FALSE, $crop = FALSE)

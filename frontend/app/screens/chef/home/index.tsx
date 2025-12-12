@@ -204,6 +204,20 @@ useFocusEffect(
     return '';
   };
 
+  // Check if a time value represents valid availability
+  // Handles both "HH:MM" strings (new format) and timestamps (legacy format)
+  const hasValidTime = (value: string | number | undefined): boolean => {
+    if (!value) return false;
+    if (value === '' || value === '0' || value === 0) return false;
+    // String with colon = "HH:MM" format
+    if (typeof value === 'string' && value.includes(':')) return true;
+    // Large number = legacy timestamp
+    if (typeof value === 'number' && value > 86400) return true;
+    // Numeric string that's a timestamp
+    if (typeof value === 'string' && /^\d{9,}$/.test(value)) return true;
+    return false;
+  };
+
   const checkEmptyFieldInProfile = () => {
     if (profile == undefined || profile.id == undefined) {
       return 'Please submit your profile';
@@ -212,19 +226,19 @@ useFocusEffect(
       return 'Please enter your bio';
     }
     const isAvailableSunday =
-      (profile.sunday_start ?? 0) > 0 && (profile.sunday_end ?? 0) > 0;
+      hasValidTime(profile.sunday_start) && hasValidTime(profile.sunday_end);
     const isAvailableMonday =
-      (profile.monday_start ?? 0) > 0 && (profile.monday_end ?? 0) > 0;
+      hasValidTime(profile.monday_start) && hasValidTime(profile.monday_end);
     const isAvailableTuesday =
-      (profile.tuesday_start ?? 0) > 0 && (profile.tuesday_end ?? 0) > 0;
+      hasValidTime(profile.tuesday_start) && hasValidTime(profile.tuesday_end);
     const isAvailableWednesday =
-      (profile.wednesday_start ?? 0) > 0 && (profile.wednesday_end ?? 0) > 0;
+      hasValidTime(profile.wednesday_start) && hasValidTime(profile.wednesday_end);
     const isAvailableThursday =
-      (profile.thursday_start ?? 0) > 0 && (profile.thursday_end ?? 0) > 0;
+      hasValidTime(profile.thursday_start) && hasValidTime(profile.thursday_end);
     const isAvailableFriday =
-      (profile.friday_start ?? 0) > 0 && (profile.friday_end ?? 0) > 0;
+      hasValidTime(profile.friday_start) && hasValidTime(profile.friday_end);
     const isAvailableSaturday =
-      (profile.saterday_start ?? 0) > 0 && (profile.saterday_end ?? 0) > 0;
+      hasValidTime(profile.saterday_start) && hasValidTime(profile.saterday_end);
     if (
       !isAvailableSunday &&
       !isAvailableMonday &&

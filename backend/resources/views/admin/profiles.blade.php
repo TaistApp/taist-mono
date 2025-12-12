@@ -30,47 +30,33 @@
                </tr>
             </thead>
             <tbody>
-               <?php foreach ($profiles as $a) { ?>
+               <?php
+               // Helper to format time value - handles both "HH:MM" strings and legacy timestamps
+               $formatTime = function($val) {
+                  if (empty($val) || $val === '0' || $val === 0) return '';
+                  // Already "HH:MM" format
+                  if (is_string($val) && preg_match('/^\d{2}:\d{2}$/', $val)) {
+                     return $val;
+                  }
+                  // Legacy timestamp (9+ digits)
+                  if (is_numeric($val) && strlen((string)$val) >= 9) {
+                     return date('H:i', (int)$val);
+                  }
+                  return '';
+               };
+               foreach ($profiles as $a) { ?>
                   <tr id="<?php echo $a->id;?>">
                      <td><?php echo 'CHEF'.sprintf('%07d', $a->id);?></td>
                      <td><?php echo $a->email;?></td>
                      <td><?php echo $a->first_name;?> <?php echo $a->last_name;?></td>
                      <td><?php echo $a->bio;?></td>
-                     <td><?php 
-                        $mondayStart = $a->monday_start ? (is_numeric($a->monday_start) ? date('H:i', (int)$a->monday_start) : $a->monday_start) : '';
-                        $mondayEnd = $a->monday_end ? (is_numeric($a->monday_end) ? date('H:i', (int)$a->monday_end) : $a->monday_end) : '';
-                        echo $mondayStart ? $mondayStart . ' - ' . $mondayEnd : '';
-                     ?></td>
-                     <td><?php 
-                        $tuesdayStart = $a->tuesday_start ? (is_numeric($a->tuesday_start) ? date('H:i', (int)$a->tuesday_start) : $a->tuesday_start) : '';
-                        $tuesdayEnd = $a->tuesday_end ? (is_numeric($a->tuesday_end) ? date('H:i', (int)$a->tuesday_end) : $a->tuesday_end) : '';
-                        echo $tuesdayStart ? $tuesdayStart . ' - ' . $tuesdayEnd : '';
-                     ?></td>
-                     <td><?php 
-                        $wednesdayStart = $a->wednesday_start ? (is_numeric($a->wednesday_start) ? date('H:i', (int)$a->wednesday_start) : $a->wednesday_start) : '';
-                        $wednesdayEnd = $a->wednesday_end ? (is_numeric($a->wednesday_end) ? date('H:i', (int)$a->wednesday_end) : $a->wednesday_end) : '';
-                        echo $wednesdayStart ? $wednesdayStart . ' - ' . $wednesdayEnd : '';
-                     ?></td>
-                     <td><?php 
-                        $thursdayStart = $a->thursday_start ? (is_numeric($a->thursday_start) ? date('H:i', (int)$a->thursday_start) : $a->thursday_start) : '';
-                        $thursdayEnd = $a->thursday_end ? (is_numeric($a->thursday_end) ? date('H:i', (int)$a->thursday_end) : $a->thursday_end) : '';
-                        echo $thursdayStart ? $thursdayStart . ' - ' . $thursdayEnd : '';
-                     ?></td>
-                     <td><?php 
-                        $fridayStart = $a->friday_start ? (is_numeric($a->friday_start) ? date('H:i', (int)$a->friday_start) : $a->friday_start) : '';
-                        $fridayEnd = $a->friday_end ? (is_numeric($a->friday_end) ? date('H:i', (int)$a->friday_end) : $a->friday_end) : '';
-                        echo $fridayStart ? $fridayStart . ' - ' . $fridayEnd : '';
-                     ?></td>
-                     <td><?php 
-                        $saturdayStart = $a->saterday_start ? (is_numeric($a->saterday_start) ? date('H:i', (int)$a->saterday_start) : $a->saterday_start) : '';
-                        $saturdayEnd = $a->saterday_end ? (is_numeric($a->saterday_end) ? date('H:i', (int)$a->saterday_end) : $a->saterday_end) : '';
-                        echo $saturdayStart ? $saturdayStart . ' - ' . $saturdayEnd : '';
-                     ?></td>
-                     <td><?php 
-                        $sundayStart = $a->sunday_start ? (is_numeric($a->sunday_start) ? date('H:i', (int)$a->sunday_start) : $a->sunday_start) : '';
-                        $sundayEnd = $a->sunday_end ? (is_numeric($a->sunday_end) ? date('H:i', (int)$a->sunday_end) : $a->sunday_end) : '';
-                        echo $sundayStart ? $sundayStart . ' - ' . $sundayEnd : '';
-                     ?></td>
+                     <td><?php $s=$formatTime($a->monday_start); $e=$formatTime($a->monday_end); echo $s && $e ? "{$s} - {$e}" : '';?></td>
+                     <td><?php $s=$formatTime($a->tuesday_start); $e=$formatTime($a->tuesday_end); echo $s && $e ? "{$s} - {$e}" : '';?></td>
+                     <td><?php $s=$formatTime($a->wednesday_start); $e=$formatTime($a->wednesday_end); echo $s && $e ? "{$s} - {$e}" : '';?></td>
+                     <td><?php $s=$formatTime($a->thursday_start); $e=$formatTime($a->thursday_end); echo $s && $e ? "{$s} - {$e}" : '';?></td>
+                     <td><?php $s=$formatTime($a->friday_start); $e=$formatTime($a->friday_end); echo $s && $e ? "{$s} - {$e}" : '';?></td>
+                     <td><?php $s=$formatTime($a->saterday_start); $e=$formatTime($a->saterday_end); echo $s && $e ? "{$s} - {$e}" : '';?></td>
+                     <td><?php $s=$formatTime($a->sunday_start); $e=$formatTime($a->sunday_end); echo $s && $e ? "{$s} - {$e}" : '';?></td>
                      <td><?php echo $a->minimum_order_amount;?></td>
                      <td><?php echo $a->max_order_distance;?></td>
                      <td><?php echo $a->created_at;?></td>

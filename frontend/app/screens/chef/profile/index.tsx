@@ -57,12 +57,42 @@ const getTomorrowDate = () => {
   return tomorrow;
 };
 
-// Convert a timestamp (seconds) to a Date with tomorrow's date, preserving only hours/minutes
+// Convert a time value (string "HH:MM" or legacy timestamp) to a Date for the time picker
+// Handles both new format ("09:00") and legacy format (Unix timestamp like 946767600)
+const timeValueToDate = (value: string | number | undefined): Date | undefined => {
+  if (!value) return undefined;
+
+  // Handle "HH:MM" string format (new format)
+  if (typeof value === 'string' && value.includes(':')) {
+    const [hours, minutes] = value.split(':').map(Number);
+    if (!isNaN(hours) && !isNaN(minutes)) {
+      const result = getTomorrowDate();
+      result.setHours(hours, minutes, 0, 0);
+      return result;
+    }
+    return undefined;
+  }
+
+  // Handle legacy Unix timestamp (9+ digit number)
+  const numValue = typeof value === 'number' ? value : parseInt(value, 10);
+  if (!isNaN(numValue) && numValue > 0) {
+    // If it's a large number (timestamp), convert it
+    // Timestamps are typically 10 digits (seconds since 1970)
+    if (numValue > 86400) { // More than seconds in a day = likely a timestamp
+      const date = new Date(numValue * 1000);
+      const result = getTomorrowDate();
+      result.setHours(date.getHours(), date.getMinutes(), 0, 0);
+      return result;
+    }
+  }
+
+  return undefined;
+};
+
+// Legacy function name for backwards compatibility during refactor
 const timestampToTimeDate = (timestamp: number): Date => {
-  const date = new Date(timestamp * 1000);
-  const result = getTomorrowDate();
-  result.setHours(date.getHours(), date.getMinutes(), 0, 0);
-  return result;
+  const result = timeValueToDate(timestamp);
+  return result || getTomorrowDate();
 };
 
 // Create a time Date with tomorrow's date from hours and minutes
@@ -130,15 +160,19 @@ const Profile = () => {
       // Create new array with new object references for each day
       const newDays = days.map((day, index) => {
         const fields = dayFieldMap[index];
-        const startVal = chefProfile[fields.start] as number | undefined;
-        const endVal = chefProfile[fields.end] as number | undefined;
+        const startVal = chefProfile[fields.start];
+        const endVal = chefProfile[fields.end];
 
-        if (startVal && endVal && startVal > 0 && endVal > 0) {
+        // Use timeValueToDate which handles both "HH:MM" strings and legacy timestamps
+        const startDate = timeValueToDate(startVal);
+        const endDate = timeValueToDate(endVal);
+
+        if (startDate && endDate) {
           return {
             ...day,
             checked: true,
-            start: timestampToTimeDate(startVal),
-            end: timestampToTimeDate(endVal),
+            start: startDate,
+            end: endDate,
           };
         }
         return { ...day }; // Return new object even if unchanged
@@ -271,20 +305,20 @@ const Profile = () => {
 
     var params: IChefProfile = {
       bio,
-      sunday_start: days[0].checked ? getTimestampVal(days[0].start) : 0,
-      sunday_end: days[0].checked ? getTimestampVal(days[0].end) : 0,
-      monday_start: days[1].checked ? getTimestampVal(days[1].start) : 0,
-      monday_end: days[1].checked ? getTimestampVal(days[1].end) : 0,
-      tuesday_start: days[2].checked ? getTimestampVal(days[2].start) : 0,
-      tuesday_end: days[2].checked ? getTimestampVal(days[2].end) : 0,
-      wednesday_start: days[3].checked ? getTimestampVal(days[3].start) : 0,
-      wednesday_end: days[3].checked ? getTimestampVal(days[3].end) : 0,
-      thursday_start: days[4].checked ? getTimestampVal(days[4].start) : 0,
-      thursday_end: days[4].checked ? getTimestampVal(days[4].end) : 0,
-      friday_start: days[5].checked ? getTimestampVal(days[5].start) : 0,
-      friday_end: days[5].checked ? getTimestampVal(days[5].end) : 0,
-      saterday_start: days[6].checked ? getTimestampVal(days[6].start) : 0,
-      saterday_end: days[6].checked ? getTimestampVal(days[6].end) : 0,
+      sunday_start: days[0].checked ? getTimeString(days[0].start) : '',
+      sunday_end: days[0].checked ? getTimeString(days[0].end) : '',
+      monday_start: days[1].checked ? getTimeString(days[1].start) : '',
+      monday_end: days[1].checked ? getTimeString(days[1].end) : '',
+      tuesday_start: days[2].checked ? getTimeString(days[2].start) : '',
+      tuesday_end: days[2].checked ? getTimeString(days[2].end) : '',
+      wednesday_start: days[3].checked ? getTimeString(days[3].start) : '',
+      wednesday_end: days[3].checked ? getTimeString(days[3].end) : '',
+      thursday_start: days[4].checked ? getTimeString(days[4].start) : '',
+      thursday_end: days[4].checked ? getTimeString(days[4].end) : '',
+      friday_start: days[5].checked ? getTimeString(days[5].start) : '',
+      friday_end: days[5].checked ? getTimeString(days[5].end) : '',
+      saterday_start: days[6].checked ? getTimeString(days[6].start) : '',
+      saterday_end: days[6].checked ? getTimeString(days[6].end) : '',
     };
     if (checkEmptyFieldInProfile(params) !== '') {
       ShowErrorToast(checkEmptyFieldInProfile(params));
@@ -301,11 +335,14 @@ const Profile = () => {
     navigate.toChef.home();
   };
 
-  const getTimestampVal = (date: Date | undefined) => {
+  // Convert Date to "HH:MM" string format for saving
+  const getTimeString = (date: Date | undefined): string => {
     if (date) {
-      return Math.floor(date.getTime() / 1000);
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      return `${hours}:${minutes}`;
     }
-    return 0;
+    return '';
   };
 
   const checkEmptyFieldInProfile = (_params: IChefProfile) => {
