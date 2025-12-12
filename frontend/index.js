@@ -1,3 +1,9 @@
+import { Text } from 'react-native';
+
+// Fix Android text cutoff on certain devices (OnePlus, Oppo, Samsung, etc.)
+Text.defaultProps = Text.defaultProps || {};
+Text.defaultProps.textBreakStrategy = 'simple';
+
 // Guard Firebase imports for Expo Go compatibility
 // These modules only exist in development/production builds, not Expo Go
 let messaging;
