@@ -50,11 +50,9 @@ type HoursAvailableType = {
 // Use tomorrow's date to avoid any iOS date constraints
 // iOS UIDatePicker in time mode still respects date - using tomorrow
 // ensures no times are ever "in the past" relative to current time
-const getTomorrowDate = () => {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(0, 0, 0, 0);
-  return tomorrow;
+const getPickerBaseDate = () => {
+  // Use current date/time - iOS UIDatePicker can have issues with future dates
+  return new Date();
 };
 
 // Convert a time value (string "HH:MM" or legacy timestamp) to a Date for the time picker
@@ -66,7 +64,7 @@ const timeValueToDate = (value: string | number | undefined): Date | undefined =
   if (typeof value === 'string' && value.includes(':')) {
     const [hours, minutes] = value.split(':').map(Number);
     if (!isNaN(hours) && !isNaN(minutes)) {
-      const result = getTomorrowDate();
+      const result = getPickerBaseDate();
       result.setHours(hours, minutes, 0, 0);
       return result;
     }
@@ -80,7 +78,7 @@ const timeValueToDate = (value: string | number | undefined): Date | undefined =
     // Timestamps are typically 10 digits (seconds since 1970)
     if (numValue > 86400) { // More than seconds in a day = likely a timestamp
       const date = new Date(numValue * 1000);
-      const result = getTomorrowDate();
+      const result = getPickerBaseDate();
       result.setHours(date.getHours(), date.getMinutes(), 0, 0);
       return result;
     }
@@ -92,19 +90,19 @@ const timeValueToDate = (value: string | number | undefined): Date | undefined =
 // Legacy function name for backwards compatibility during refactor
 const timestampToTimeDate = (timestamp: number): Date => {
   const result = timeValueToDate(timestamp);
-  return result || getTomorrowDate();
+  return result || getPickerBaseDate();
 };
 
 // Create a time Date with tomorrow's date from hours and minutes
 const createTimeDate = (hours: number, minutes: number = 0): Date => {
-  const result = getTomorrowDate();
+  const result = getPickerBaseDate();
   result.setHours(hours, minutes, 0, 0);
   return result;
 };
 
 // Normalize any Date to use tomorrow's date (preserving hours/minutes)
 const normalizeTimeDate = (date: Date): Date => {
-  const result = getTomorrowDate();
+  const result = getPickerBaseDate();
   result.setHours(date.getHours(), date.getMinutes(), 0, 0);
   return result;
 };
