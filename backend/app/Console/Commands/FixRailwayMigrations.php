@@ -185,15 +185,18 @@ class FixRailwayMigrations extends Command
      * Explicitly maps migrations that have failed before or have non-standard table names
      * that the guessTableName() method might miss.
      *
+     * NOTE: Only mark OLD broken migrations here. The raw_sql migration should run
+     * if the table doesn't exist.
+     *
      * @return array
      */
     private function getKnownProblematicMigrations()
     {
         return [
-            // Old broken migrations - mark as complete so they never run
+            // Old broken migrations that should NEVER run (they have bugs)
             '2025_12_03_000003_create_availability_overrides' => 'tbl_availability_overrides',
             '2025_12_04_000004_fix_availability_overrides_foreign_key' => 'tbl_availability_overrides',
-            '2025_12_04_000001_create_availability_overrides_raw_sql' => 'tbl_availability_overrides',
+            // NOTE: Removed raw_sql migration - it should be allowed to run if table doesn't exist
         ];
     }
 
@@ -203,12 +206,15 @@ class FixRailwayMigrations extends Command
      * Some tables get into a state where Schema::dropIfExists() doesn't work.
      * This nukes them with raw SQL before migrations run.
      *
+     * NOTE: Removed tbl_availability_overrides from this list - it was being
+     * dropped on every deploy which caused the table to disappear.
+     *
      * @return void
      */
     private function forceDropProblematicTables()
     {
         $tablesToDrop = [
-            'tbl_availability_overrides', // Has wrong foreign key type, needs brutal drop
+            // Empty - no tables need force dropping currently
         ];
 
         foreach ($tablesToDrop as $tableName) {
