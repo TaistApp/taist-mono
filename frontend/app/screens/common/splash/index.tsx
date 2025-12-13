@@ -12,8 +12,8 @@ import { useAppDispatch } from '../../../hooks/useRedux';
 
 import { navigate } from '@/app/utils/navigation';
 import { check, openSettings, PERMISSIONS, request, RESULTS } from 'react-native-permissions';
-import { GETVERSIONAPICALL, GetZipCodes } from '../../../services/api';
-import { ReadLoginData } from '../../../utils/storage';
+import { GETVERSIONAPICALL, LoginAPI } from '../../../services/api';
+import { ClearStorage, ReadLoginData } from '../../../utils/storage';
 import { styles } from './styles';
 LogBox.ignoreLogs([
   'RCTBridge required dispatch_sync to load RCTAccessibilityManager',
@@ -107,30 +107,58 @@ const Splash = () => {
   // Get environment to skip version check in local development
   const APP_ENV = Constants.expoConfig?.extra?.APP_ENV || 'production';
 
+  /**
+   * Performs auto-login by validating stored credentials with the server.
+   * If the account no longer exists or credentials are invalid, clears storage
+   * and shows the login screen.
+   *
+   * @returns true if login succeeded, false otherwise
+   */
+  const performAutoLogin = async (loginData: { email: string; password: string; role: number }): Promise<boolean> => {
+    try {
+      // Validate credentials with server - this also fetches fresh user data
+      const response = await LoginAPI(
+        { email: loginData.email, password: loginData.password, remember: true },
+        dispatch
+      );
+
+      if (response.success === 1) {
+        // Login succeeded - navigate based on user type from server response
+        const userType = response.data?.user?.user_type;
+        if (userType === 1) {
+          navigate.toCustomer.home();
+        } else {
+          navigate.toChef.home();
+        }
+        return true;
+      } else {
+        // Login failed - account deleted, password changed, etc.
+        console.log('Auto-login failed: Account no longer valid, clearing stored data');
+        await ClearStorage();
+        setSplash(false);
+        return false;
+      }
+    } catch (error) {
+      // Network error or other issue - don't clear storage, just show login
+      // This prevents users from being logged out due to temporary network issues
+      console.error('Auto-login error (network issue):', error);
+      setSplash(false);
+      return false;
+    }
+  };
+
   const autoLogin = async () => {
     try {
       // Skip version check in local development
       if (APP_ENV === 'local') {
         console.log('Local development mode: Skipping version check');
         const loginData = await ReadLoginData();
-        if (loginData == null) {
+        if (loginData == null || !loginData.email || !loginData.password) {
           setSplash(false);
           return;
-        } else {
-          // Silently refresh zip codes on app launch (TMA-014)
-          try {
-            await GetZipCodes({}, dispatch);
-          } catch (error) {
-            console.log('Failed to refresh zip codes on launch:', error);
-          }
-
-          // Navigate to appropriate home screen based on user role
-          if (loginData?.role == 1) {
-            navigate.toCustomer.home();
-          } else {
-            navigate.toChef.home();
-          }
         }
+        // Validate credentials with server before proceeding
+        await performAutoLogin(loginData);
         return;
       }
 
@@ -167,26 +195,13 @@ const Splash = () => {
       }
 
       const loginData = await ReadLoginData();
-      if (loginData == null) {
+      if (loginData == null || !loginData.email || !loginData.password) {
         setSplash(false);
         return;
-      } else {
-        // Silently refresh zip codes on app launch (TMA-014)
-        // This ensures users see updated service areas without needing to force quit
-        try {
-          await GetZipCodes({}, dispatch);
-        } catch (error) {
-          console.log('Failed to refresh zip codes on launch:', error);
-          // Don't block app launch if this fails
-        }
-
-        // Navigate to appropriate home screen based on user role
-        if (loginData?.role == 1) {
-          navigate.toCustomer.home();
-        } else {
-          navigate.toChef.home();
-        }
       }
+      // Validate credentials with server before proceeding
+      // This handles cases where account was deleted, password changed, etc.
+      await performAutoLogin(loginData);
     } catch (error) {
       console.error('Error during version check or auto-login:', error);
       Alert.alert(
