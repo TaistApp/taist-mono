@@ -129,20 +129,22 @@ class Listener extends Authenticatable
         }
 
         // No override - fall back to weekly recurring schedule
-        return $this->hasScheduleForDateTime($orderDate, $orderTime);
+        return $this->hasScheduleForDateTime($orderTimestamp, $orderTime);
     }
 
     /**
      * Check if chef has availability for a specific date/time in weekly schedule
      * TMA-011 REVISED - Checks both day AND time
      *
-     * @param string $dateTime The date/time to check
+     * @param int|string $dateTime The date/time to check (Unix timestamp or date string)
      * @param string $time Time in H:i format
      * @return bool
      */
     private function hasScheduleForDateTime($dateTime, $time)
     {
-        $dayOfWeek = strtolower(date('l', strtotime($dateTime)));
+        // Handle both Unix timestamp and date string
+        $timestamp = is_numeric($dateTime) ? (int)$dateTime : strtotime($dateTime);
+        $dayOfWeek = strtolower(date('l', $timestamp));
 
         // Get the chef's availability record
         $availability = \App\Models\Availabilities::where('user_id', $this->id)->first();
