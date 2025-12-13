@@ -3174,6 +3174,33 @@ Write only the review text:";
         $minLng = $userLng - $lngDelta;
         $maxLng = $userLng + $lngDelta;
 
+        // Backfill any chefs missing lat/lng by geocoding their zip code
+        $chefsNeedingGeocode = DB::table('tbl_users')
+            ->where('user_type', 2)
+            ->where('is_pending', 0)
+            ->where('verified', 1)
+            ->where(function($query) {
+                $query->whereNull('latitude')
+                    ->orWhereNull('longitude')
+                    ->orWhere('latitude', '')
+                    ->orWhere('longitude', '')
+                    ->orWhere('latitude', 'null')
+                    ->orWhere('longitude', 'null');
+            })
+            ->whereNotNull('zip')
+            ->where('zip', '!=', '')
+            ->where('zip', '!=', 'null')
+            ->select(['id', 'zip'])
+            ->get();
+
+        foreach ($chefsNeedingGeocode as $chef) {
+            $coords = $this->_geocodeZipCode($chef->zip);
+            DB::table('tbl_users')->where('id', $chef->id)->update([
+                'latitude' => $coords['lat'],
+                'longitude' => $coords['lng']
+            ]);
+        }
+
         $data = DB::table('tbl_users as u')
             ->leftJoin('tbl_availabilities as a', 'a.user_id', '=', 'u.id')
             ->where([

@@ -496,7 +496,6 @@ const Profile = () => {
                 onDateChange={(date) => setTempTime(date)}
                 mode="time"
                 theme="light"
-                style={styles.picker}
               />
             </Pressable>
           </Pressable>
