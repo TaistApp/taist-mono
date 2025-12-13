@@ -893,9 +893,14 @@ class MapiController extends Controller
             ]);
         }
 
-        // Calculate 3-hour minimum from now
+        // Calculate 3-hour minimum from now (only applies to today)
         $now = time();
         $minimumOrderTime = $now + (3 * 60 * 60);
+
+        // Check if the requested date is today
+        $todayDateOnly = date('Y-m-d', $now);
+        $requestedDateOnly = date('Y-m-d', $dateTimestamp);
+        $isRequestedDateToday = ($requestedDateOnly === $todayDateOnly);
 
         // OPTIMIZATION: Fetch availability data ONCE instead of per-slot
         $dayOfWeek = strtolower(date('l', $dateTimestamp));
@@ -967,8 +972,8 @@ class MapiController extends Controller
                 // Create timestamp for this slot on the selected date
                 $slotTimestamp = strtotime($date . ' ' . $timeStr . ':00');
 
-                // Skip if less than 3 hours from now
-                if ($slotTimestamp < $minimumOrderTime) {
+                // Skip if less than 3 hours from now (only for today's date)
+                if ($isRequestedDateToday && $slotTimestamp < $minimumOrderTime) {
                     continue;
                 }
 
@@ -2256,17 +2261,46 @@ Write only the review text:";
 
         // ===== TMA-011: Validate 3-hour minimum window =====
         $orderDate = $request->order_date;
-        $orderTimestamp = strtotime($orderDate);
-        $currentTimestamp = time();
-        $minimumOrderTime = $currentTimestamp + (3 * 60 * 60); // 3 hours from now
+        // Handle both Unix timestamp (number) and date string formats
+        $orderTimestamp = is_numeric($orderDate) ? (int)$orderDate : strtotime($orderDate);
 
-        if ($orderTimestamp < $minimumOrderTime) {
-            $hoursNeeded = ceil(($minimumOrderTime - $orderTimestamp) / 3600);
+        // Validate we got a valid timestamp
+        if (!$orderTimestamp || $orderTimestamp <= 0) {
             return response()->json([
                 'success' => 0,
-                'error' => "Orders must be placed at least 3 hours in advance. Please select a delivery time at least {$hoursNeeded} hours from now.",
-                'minimum_order_timestamp' => $minimumOrderTime,
+                'error' => 'Invalid order date format',
+                'received_value' => $orderDate,
+            ]);
+        }
+
+        $currentTimestamp = time();
+
+        // 3-hour rule only applies to same-day orders
+        $orderDateOnly = date('Y-m-d', $orderTimestamp);
+        $todayDateOnly = date('Y-m-d', $currentTimestamp);
+        $isSameDay = ($orderDateOnly === $todayDateOnly);
+
+        if ($isSameDay) {
+            $minimumOrderTime = $currentTimestamp + (3 * 60 * 60); // 3 hours from now
+
+            if ($orderTimestamp < $minimumOrderTime) {
+                $hoursNeeded = ceil(($minimumOrderTime - $orderTimestamp) / 3600);
+                return response()->json([
+                    'success' => 0,
+                    'error' => "Same-day orders must be placed at least 3 hours in advance. Please select a time at least {$hoursNeeded} hours from now, or choose a different day.",
+                    'minimum_order_timestamp' => $minimumOrderTime,
+                    'requested_timestamp' => $orderTimestamp,
+                ]);
+            }
+        }
+
+        // For all orders, ensure the order is not in the past
+        if ($orderTimestamp < $currentTimestamp) {
+            return response()->json([
+                'success' => 0,
+                'error' => 'Cannot place orders for times in the past.',
                 'requested_timestamp' => $orderTimestamp,
+                'current_timestamp' => $currentTimestamp,
             ]);
         }
 

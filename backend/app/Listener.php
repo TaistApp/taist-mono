@@ -107,7 +107,14 @@ class Listener extends Authenticatable
      */
     public function isAvailableForOrder($orderDate)
     {
-        $orderTimestamp = strtotime($orderDate);
+        // Handle both Unix timestamp (number) and date string formats
+        $orderTimestamp = is_numeric($orderDate) ? (int)$orderDate : strtotime($orderDate);
+
+        if (!$orderTimestamp || $orderTimestamp <= 0) {
+            \Log::warning("[AVAILABILITY] Invalid order date received: " . var_export($orderDate, true));
+            return false;
+        }
+
         $orderDateOnly = date('Y-m-d', $orderTimestamp);
         $orderTime = date('H:i', $orderTimestamp);
 
