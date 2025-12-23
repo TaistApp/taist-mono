@@ -59,5 +59,7 @@ export const styles = StyleSheet.create({
 		fontSize: 16,
 		fontWeight: '700',
 		letterSpacing: 0.5,
+		includeFontPadding: false,
+		textAlignVertical: 'center',
 	}
 });

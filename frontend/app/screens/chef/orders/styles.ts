@@ -66,11 +66,15 @@ export const styles = StyleSheet.create({
 	},
 	tabText:{
 		fontSize:10,
-		color: AppColors.primary
+		color: AppColors.primary,
+		includeFontPadding: false,
+		textAlignVertical: 'center',
 	},
 	tabText_disabled:{
 		fontSize:10,
-		color: AppColors.text
+		color: AppColors.text,
+		includeFontPadding: false,
+		textAlignVertical: 'center',
 	},
 	orderCardContainer: {
 		marginTop: 20,

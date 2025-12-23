@@ -44,6 +44,8 @@ const GlobalStyles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     textAlign: 'center',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   btnDisabled: {
     borderRadius: 20,
@@ -57,6 +59,8 @@ const GlobalStyles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     textAlign: 'center',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 });
 

@@ -275,11 +275,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   tabDisabledText: {
     color: AppColors.textSecondary,
     fontSize: 14,
     textAlign: 'center',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   buttonContainer: {
     gap: Spacing.md,

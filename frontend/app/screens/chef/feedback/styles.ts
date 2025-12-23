@@ -90,7 +90,9 @@ export const styles = StyleSheet.create({
 	buttonText: {
 		color: AppColors.primary,
 		fontSize: 16,
-		textAlign: 'center'
+		textAlign: 'center',
+		includeFontPadding: false,
+		textAlignVertical: 'center',
 	},
     buttonDisabled: {
 		borderRadius: 20,

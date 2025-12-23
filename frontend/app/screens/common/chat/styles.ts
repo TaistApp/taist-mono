@@ -72,12 +72,16 @@ export const styles = StyleSheet.create({
 		fontWeight:'500',
 		color: AppColors.text,
 		letterSpacing: 0.5,
+		includeFontPadding: false,
+		textAlignVertical: 'center',
 	},
 	otherBubbleText:{
 		fontSize:14,
 		fontWeight:'500',
 		color: AppColors.textOnPrimary,
 		letterSpacing: 0.5,
+		includeFontPadding: false,
+		textAlignVertical: 'center',
 	},
 	bubbleTimeText:{
 		fontSize:12,

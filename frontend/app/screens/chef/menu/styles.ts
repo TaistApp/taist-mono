@@ -71,5 +71,7 @@ export const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 12,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 });

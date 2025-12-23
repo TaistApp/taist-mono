@@ -78,5 +78,7 @@ export const styles = StyleSheet.create({
     color: AppColors.textOnPrimary,
     fontSize: 18,
     textAlign: 'center',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 });

@@ -18,6 +18,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     fontWeight: '700',
     textAlign: 'center',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   btnDisabled: {
     borderRadius: 20,
@@ -35,6 +37,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     fontWeight: '700',
     textAlign: 'center',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 });
 

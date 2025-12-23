@@ -136,11 +136,15 @@ export const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: AppColors.textOnPrimary,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   tabText_disabled: {
     fontSize: 13,
     fontWeight: '600',
     color: AppColors.textSecondary,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   orderCardContainer: {
     marginTop: Spacing.lg,
