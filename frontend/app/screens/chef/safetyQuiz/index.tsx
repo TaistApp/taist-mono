@@ -71,7 +71,9 @@ const SafetyQuiz = () => {
 
       if (resp.success === 1) {
         // Update user state with quiz_completed: 1
-        dispatch(setUser(resp.data));
+        if (resp.data) {
+          dispatch(setUser(resp.data));
+        }
         ShowSuccessToast('Safety quiz completed!');
         // Navigate to chef home/tabs
         navigate.toChef.tabs();

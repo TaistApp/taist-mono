@@ -9,6 +9,7 @@ import {
   check,
   checkNotifications,
   request,
+  requestNotifications,
   openSettings,
   PERMISSIONS,
   RESULTS,
@@ -69,14 +70,10 @@ export const StepPreferences: React.FC<StepPreferencesProps> = ({
   };
 
   const requestNotificationPermission = async () => {
-    if (Platform.OS === 'ios') {
-      const result = await request(PERMISSIONS.IOS.NOTIFICATIONS);
-      setPushNotifications(result === RESULTS.GRANTED);
-    } else {
-      const result = await request(PERMISSIONS.ANDROID.POST_NOTIFICATIONS);
-      setPushNotifications(result === RESULTS.GRANTED);
-    }
-    
+    // Use requestNotifications for both platforms as it handles the permission correctly
+    const { status } = await requestNotifications(['alert', 'badge', 'sound']);
+    setPushNotifications(status === RESULTS.GRANTED);
+
     if (!pushNotifications) {
       // If denied, open settings
       setTimeout(() => openSettings(), 500);

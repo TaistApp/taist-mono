@@ -97,6 +97,7 @@ const Forgot = () => {
           </View>
           {serverCode == '' ? (
             <View>
+              {/* @ts-ignore - TextInput from @react-native-material/core has different props */}
               <TextInput
                 style={styles.formFields}
                 inputStyle={styles.formInputFields}
@@ -115,8 +116,11 @@ const Forgot = () => {
             </View>
           ) : (
             <View>
+              {/* TextInput from @react-native-material/core has different props than RN TextInput */}
+              {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
+              {/* @ts-ignore */}
               <TextInput
-                ref={codeInputRef}
+                ref={codeInputRef as any}
                 style={styles.formFields}
                 inputStyle={styles.formInputFields}
                 placeholder="Code "
@@ -133,8 +137,10 @@ const Forgot = () => {
                 }}
                 blurOnSubmit={false}
               />
+              {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
+              {/* @ts-ignore */}
               <TextInput
-                ref={passwordInputRef}
+                ref={passwordInputRef as any}
                 style={styles.formFields}
                 inputStyle={styles.formInputFields}
                 placeholder="Password "
@@ -151,8 +157,10 @@ const Forgot = () => {
                 }}
                 blurOnSubmit={false}
               />
+              {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
+              {/* @ts-ignore */}
               <TextInput
-                ref={confirmPasswordInputRef}
+                ref={confirmPasswordInputRef as any}
                 style={styles.formFields}
                 inputStyle={styles.formInputFields}
                 placeholder="Confirmation Password "

@@ -3,7 +3,9 @@ import { Platform } from 'react-native';
 import * as Device from 'expo-device';
 
 // Guard Firebase import for Expo Go compatibility
-let crashlytics: ReturnType<typeof import('@react-native-firebase/crashlytics').default> | null = null;
+// Using 'any' type because the module is dynamically imported and TypeScript
+// has trouble with the callable return type of the crashlytics module
+let crashlytics: any = null;
 
 try {
   crashlytics = require('@react-native-firebase/crashlytics').default;

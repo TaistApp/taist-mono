@@ -167,7 +167,7 @@ export const StepMenuItemReview: React.FC<StepMenuItemReviewProps> = ({
         <View style={styles.reviewSection}>
           <StyledSwitch
             label="Display this item on menu?"
-            value={displayItem}
+            value={!!displayItem}
             onPress={() => {
               onUpdateMenuItemData({ is_live: displayItem ? 0 : 1 });
             }}

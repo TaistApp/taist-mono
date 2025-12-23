@@ -27,6 +27,7 @@ interface Props extends TextInputProps {
   type?: InputType;
   textInputStyle?: StyleProp<TextStyle> | any;
   onPress?: () => void;
+  prefix?: string;
 }
 
 const StyledTextInput = forwardRef(
