@@ -180,10 +180,14 @@ const styles = StyleSheet.create({
     color: AppColors.white,
     fontSize: 15,
     fontWeight: '600',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   tabDisabledText: {
     color: AppColors.textSecondary,
     fontSize: 15,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   newCategorySection: {
     gap: Spacing.md,

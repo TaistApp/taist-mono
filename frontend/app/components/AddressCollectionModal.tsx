@@ -261,6 +261,7 @@ export const AddressCollectionModal: React.FC<AddressCollectionModalProps> = ({
               inputStyles={styles.dropdownInput}
               dropdownStyles={styles.dropdown}
               dropdownTextStyles={styles.dropdownText}
+              dropdownProps={{ nestedScrollEnabled: true }}
               arrowicon={<FontAwesomeIcon icon={faAngleDown} size={20} color="#666666" />}
               searchicon={<FontAwesomeIcon icon={faSearch} size={15} color="#666666" />}
               closeicon={<FontAwesomeIcon icon={faClose} size={15} color="#666666" />}
