@@ -223,7 +223,7 @@ export const StepChefLocation: React.FC<StepChefLocationProps> = ({
         placeholder="City"
         value={userInfo.city ?? ''}
         onChangeText={(val) => onUpdateUserInfo({ city: val })}
-        autoComplete="address-level2"
+        autoComplete="off"
       />
 
       <View style={styles.statePickerContainer}>

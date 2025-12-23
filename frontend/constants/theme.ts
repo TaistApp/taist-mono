@@ -42,6 +42,7 @@ export const AppColors = {
   white: '#ffffff',            // Original white
   black: '#000000',            // Original black
   red: '#ff3100',              // Original red accent
+  backgroundSecondary: '#f5f5f5', // Secondary background (alias for surface)
 };
 
 /**
@@ -137,6 +138,13 @@ export const Spacing = {
  * Shadow configurations for elevation
  */
 export const Shadows = {
+  xs: {
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 0.5 },
+    shadowOpacity: 0.05,
+    shadowRadius: 1,
+    elevation: 1,
+  },
   sm: {
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 1 },

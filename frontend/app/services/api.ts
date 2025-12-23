@@ -819,7 +819,7 @@ export const GetOnlineStatusAPI = async () => {
  */
 export const CompleteChefQuizAPI = async (params: {
   user_id?: number;
-}): Promise<IResponse<IUser>> => {
+}): Promise<{ success: number; data?: IUser; error?: string }> => {
   try {
     const data = await fetch(BASE_URL + 'complete_chef_quiz', {
       method: 'POST',

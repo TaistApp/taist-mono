@@ -17,6 +17,11 @@ export default interface OrderInterface {
   created_at?: number;
   updated_at?: number;
   
+  // Discount code fields
+  discount_code?: string;
+  discount_amount?: number;
+  discount_percentage?: number;
+
   // TMA-020: Cancellation tracking fields
   cancelled_by_user_id?: number;
   cancelled_by_role?: 'customer' | 'chef' | 'admin' | 'system';
