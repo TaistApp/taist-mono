@@ -211,23 +211,63 @@ Vapor automatically handles scheduled tasks. No additional setup needed.
 
 ---
 
-### Railway
+### Railway (Recommended Setup)
 
-**1. Add to Railway service:**
+Railway supports scheduled tasks through its built-in cron feature. This is the most cost-effective approach.
 
-In your Railway dashboard:
-1. Go to your backend service
-2. Add a new "Cron" service
-3. Set command: `php artisan schedule:work`
-4. Or add to existing service startup command
+**Step 1: Create a Scheduler Service**
 
-**2. Alternative: Use Railway's cron feature**
+1. In your Railway project, click **"+ New"**
+2. Select **"Empty Service"**
+3. Name it `scheduler`
 
-Add to `railway.toml`:
-```toml
-[deploy]
-startCommand = "php artisan schedule:work & php-fpm"
+**Step 2: Connect to Source Code**
+
+1. Go to **Settings** → **Source**
+2. Connect to your GitHub repo (same as backend)
+3. Set **Root Directory** to `/backend`
+
+**Step 3: Configure Cron Schedule**
+
+1. Go to **Settings**
+2. Find **"Cron Schedule"** field
+3. Enter: `*/5 * * * *` (every 5 minutes - Railway minimum)
+
+**Step 4: Set Start Command**
+
+In Settings → Deploy → **Start Command**:
+```bash
+until php artisan tinker --execute="DB::connection()->getPdo();" 2>/dev/null; do echo "Waiting for database..."; sleep 5; done && php artisan schedule:run
 ```
+
+Note: Use `schedule:run` (not `schedule:work`) for cron - it runs once and exits.
+
+**Step 5: Share Environment Variables**
+
+In the scheduler service **Variables** tab, reference your main backend service variables:
+```
+DATABASE_URL=${{taist-mono.DATABASE_URL}}
+STRIPE_SECRET_KEY=${{taist-mono.STRIPE_SECRET_KEY}}
+TWILIO_SID=${{taist-mono.TWILIO_SID}}
+TWILIO_AUTH_TOKEN=${{taist-mono.TWILIO_AUTH_TOKEN}}
+TWILIO_PHONE_NUMBER=${{taist-mono.TWILIO_PHONE_NUMBER}}
+APP_KEY=${{taist-mono.APP_KEY}}
+```
+
+Or copy all variables from your main service.
+
+**How It Works:**
+- Railway wakes the scheduler service every 5 minutes
+- Runs `php artisan schedule:run`
+- Laravel checks which scheduled commands are due (based on Kernel.php)
+- Commands run if due, then service exits
+- Cost-effective: service only runs when triggered
+
+**Current Scheduled Commands** (defined in `app/Console/Kernel.php`):
+- `orders:process-expired` - Every 30 minutes - Auto-refunds for expired orders
+- `orders:send-reminders` - Every 30 minutes - 24-hour order reminders
+- `chef:send-confirmation-reminders` - Hourly - Chef availability confirmations
+- `chef:cleanup-old-overrides` - Daily at 2am - Database cleanup
 
 ---
 

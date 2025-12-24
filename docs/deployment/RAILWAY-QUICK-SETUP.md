@@ -269,30 +269,65 @@ php artisan up
 
 ---
 
-## Part 4: Set Up Cron Jobs
+## Part 4: Set Up Scheduler Service (Required)
 
-Railway doesn't have built-in cron. **Easiest solution:**
+The backend has scheduled tasks that must run for critical functionality like auto-refunds for expired orders.
 
-### Option 1: External Cron Service (Simplest)
+### Create Scheduler Service
 
-Use https://cron-job.org (free):
+**Step 1: Create Service**
 
-1. Create account
-2. Add job:
-   - URL: `https://taist.codeupscale.com/mapi/background_check_order_status`
-   - Schedule: `0 */2 * * *` (every 2 hours, adjust as needed)
+1. In your Railway project, click **"+ New"**
+2. Select **"Empty Service"**
+3. Name it `scheduler`
 
-### Option 2: Railway Cron Service (More Control)
+**Step 2: Connect to Source Code**
 
-Create a second service in Railway just for cron:
+1. Go to **Settings** → **Source**
+2. Connect to your GitHub repo (same as taist-mono)
+3. Set **Root Directory** to `/backend`
 
-1. Railway → + New → "Empty Service"
-2. Link same GitHub repo
-3. Root directory: `backend`
-4. Start command:
-   ```bash
-   while true; do php artisan schedule:run; sleep 60; done
-   ```
+**Step 3: Configure Cron Schedule**
+
+1. Go to **Settings**
+2. Find **"Cron Schedule"** field
+3. Enter: `*/5 * * * *` (every 5 minutes - Railway's minimum interval)
+
+**Step 4: Set Start Command**
+
+In Settings → Deploy → **Start Command**:
+```bash
+until php artisan tinker --execute="DB::connection()->getPdo();" 2>/dev/null; do echo "Waiting for database..."; sleep 5; done && php artisan schedule:run
+```
+
+**Step 5: Share Environment Variables**
+
+In the scheduler service **Variables** tab, add references to your main backend service:
+```
+DATABASE_URL=${{taist-mono.DATABASE_URL}}
+STRIPE_SECRET_KEY=${{taist-mono.STRIPE_SECRET_KEY}}
+TWILIO_SID=${{taist-mono.TWILIO_SID}}
+TWILIO_AUTH_TOKEN=${{taist-mono.TWILIO_AUTH_TOKEN}}
+TWILIO_PHONE_NUMBER=${{taist-mono.TWILIO_PHONE_NUMBER}}
+APP_KEY=${{taist-mono.APP_KEY}}
+```
+
+Or copy all variables from your main service if easier.
+
+### Scheduled Tasks
+
+The scheduler runs these commands (defined in `app/Console/Kernel.php`):
+
+| Command | Schedule | Description |
+|---------|----------|-------------|
+| `orders:process-expired` | Every 30 min | Auto-refunds for orders not accepted within deadline |
+| `orders:send-reminders` | Every 30 min | 24-hour SMS reminders for upcoming orders |
+| `chef:send-confirmation-reminders` | Hourly | Reminds chefs to confirm availability |
+| `chef:cleanup-old-overrides` | Daily 2am | Cleans up old availability records |
+
+### Cost
+
+The scheduler only runs when triggered (every 5 min), executes quickly, and exits. Expected cost: **$0-2/month** within Railway's hobby plan.
 
 ---
 
