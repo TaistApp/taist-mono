@@ -315,7 +315,7 @@ class OrderSmsService
             'chef_user_id' => $chef->id,
             'chef_name' => trim($chef->first_name . ' ' . $chef->last_name),
             'customer_user_id' => $customer->id,
-            'customer_name' => trim($customer->first_name . ' ' . $customer->last_name),
+            'customer_name' => trim($customer->first_name),
             'menu_id' => $menu->id,
             'menu_title' => $menu->title,
             'amount' => $order->amount,
