@@ -275,7 +275,7 @@ const OrderDetail = () => {
                   <Text
                     style={
                       styles.text
-                    }>{`${customerInfo?.state ?? ''}, IN ${customerInfo?.zip ?? ''}`}</Text>
+                    }>{`${customerInfo?.city ?? ''}, ${customerInfo?.state ?? ''} ${customerInfo?.zip ?? ''}`}</Text>
                 </View>
               </View>
             }
