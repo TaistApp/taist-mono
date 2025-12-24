@@ -555,7 +555,11 @@ const Checkout = () => {
                     <Text style={styles.loadingTimesText}>Loading available times...</Text>
                   </View>
                 ) : times.length === 0 ? (
-                  <Text style={styles.noTimesText}>No available times for this date</Text>
+                  <Text style={styles.noTimesText}>
+                    {DAY.isSame(moment(), 'day')
+                      ? '* This chef has no remaining availability today'
+                      : '* This chef is not available on this date'}
+                  </Text>
                 ) : (
                   times.map((item, idx) => {
                     const day = moment(DAY);
