@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { GetOnlineStatusAPI, ToggleOnlineAPI } from '../../services/api';
+import { SetAvailabilityOverrideAPI, GetAvailabilityOverridesAPI } from '../../services/api';
 import { ShowErrorToast, ShowSuccessToast } from '../../utils/toast';
 import { styles } from './styles';
 
@@ -36,13 +36,38 @@ const GoLiveToggle: React.FC = () => {
   // Fetch status on mount and when screen focuses
   const fetchStatus = async () => {
     try {
-      const response = await GetOnlineStatusAPI();
+      const today = moment().format('YYYY-MM-DD');
+      const response = await GetAvailabilityOverridesAPI({
+        start_date: today,
+        end_date: today,
+      });
+
       if (response.success === 1) {
-        setIsOnline(response.data.is_online || false);
-        setOnlineUntil(response.data.online_until);
+        // Find today's override that is not cancelled
+        const todayOverride = response.data?.find(
+          (o: any) => o.override_date === today && o.status !== 'cancelled'
+        );
+
+        if (todayOverride && todayOverride.end_time) {
+          // Check if current time is still within the override window
+          const now = moment();
+          const endTime = moment(todayOverride.end_time, 'HH:mm');
+
+          if (now.isBefore(endTime)) {
+            setIsOnline(true);
+            setOnlineUntil(todayOverride.end_time);
+          } else {
+            // Override has expired
+            setIsOnline(false);
+            setOnlineUntil(null);
+          }
+        } else {
+          setIsOnline(false);
+          setOnlineUntil(null);
+        }
       }
     } catch (error) {
-      console.error('Error fetching online status:', error);
+      console.error('Error fetching availability status:', error);
     }
   };
 
@@ -73,18 +98,31 @@ const GoLiveToggle: React.FC = () => {
     setLoading(true);
     try {
       const now = moment();
-      const onlineStart = now.format('YYYY-MM-DD HH:mm:ss');
-      const onlineUntilFormatted = moment(endTime).format('YYYY-MM-DD HH:mm:ss');
+      let endMoment = moment(endTime);
 
-      const response = await ToggleOnlineAPI({
-        is_online: true,
-        online_start: onlineStart,
-        online_until: onlineUntilFormatted,
+      // Determine override date (today or tomorrow if time rolled over)
+      let overrideDate = now.format('YYYY-MM-DD');
+
+      // If selected time is in the past, roll to tomorrow
+      if (endMoment.isSameOrBefore(now)) {
+        console.log('GoLive - time was in past, rolling to tomorrow');
+        endMoment.add(1, 'day');
+        overrideDate = endMoment.format('YYYY-MM-DD');
+      }
+
+      console.log('GoLive - Creating override for:', overrideDate, 'until:', endMoment.format('HH:mm'));
+
+      const response = await SetAvailabilityOverrideAPI({
+        override_date: overrideDate,
+        start_time: now.format('HH:mm'),
+        end_time: endMoment.format('HH:mm'),
+        status: 'confirmed',
+        source: 'manual_toggle',
       });
 
       if (response.success === 1) {
         setIsOnline(true);
-        setOnlineUntil(onlineUntilFormatted);
+        setOnlineUntil(endMoment.format('HH:mm'));
         ShowSuccessToast('You are now live!');
       } else {
         ShowErrorToast(response.error || 'Failed to go online');
@@ -102,8 +140,12 @@ const GoLiveToggle: React.FC = () => {
     setShowConfirmModal(false);
     setLoading(true);
     try {
-      const response = await ToggleOnlineAPI({
-        is_online: false,
+      const today = moment().format('YYYY-MM-DD');
+
+      const response = await SetAvailabilityOverrideAPI({
+        override_date: today,
+        status: 'cancelled',
+        source: 'manual_toggle',
       });
 
       if (response.success === 1) {

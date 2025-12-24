@@ -808,9 +808,35 @@ export const ToggleOnlineAPI = async (params: {
 
 /**
  * Get chef online status
+ * @deprecated Use GetAvailabilityOverridesAPI instead
  */
 export const GetOnlineStatusAPI = async () => {
   var response = await GETAPICALL("get_online_status", {});
+  return response;
+};
+
+/**
+ * Set availability override for today/tomorrow
+ */
+export const SetAvailabilityOverrideAPI = async (params: {
+  override_date: string;
+  start_time?: string;
+  end_time?: string;
+  status?: string;
+  source?: string;
+}) => {
+  var response = await POSTAPICALL("set_availability_override", params);
+  return response;
+};
+
+/**
+ * Get availability overrides for chef
+ */
+export const GetAvailabilityOverridesAPI = async (params?: {
+  start_date?: string;
+  end_date?: string;
+}) => {
+  var response = await GETAPICALL("get_availability_overrides", params || {});
   return response;
 };
 
