@@ -2,6 +2,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Image,
+  InteractionManager,
   Pressable,
   RefreshControl,
   SafeAreaView,
@@ -39,6 +40,8 @@ const Home = () => {
   const [categoryId, onChangeCategoryId] = useState(0);
   // Chef data from API includes menus/reviews attached, so using any
   const [chefs, setChefs] = useState<Array<any>>([]);
+  // Track when data is loaded to coordinate spinner hiding with UI rendering
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
   const isInArea = zipcodes.includes(self.zip ?? '');
   const startDate = moment();
@@ -102,6 +105,7 @@ const Home = () => {
     const timezone_gap = moment().utcOffset() / 60;
 
     if (showSpinner) {
+      setIsDataLoaded(false);
       dispatch(showLoading());
     }
 
@@ -121,15 +125,19 @@ const Home = () => {
       } else {
         setChefs([]);
       }
+      // Mark data as loaded - useEffect will handle hiding spinner after render
+      if (showSpinner) {
+        setIsDataLoaded(true);
+      }
     } catch (error) {
       console.error('Chef search failed:', error);
       setChefs([]);
-    } finally {
-      // Always hide loading - multiple hides are harmless, stuck spinner is not
+      // Also mark as loaded on error so spinner hides
       if (showSpinner) {
-        dispatch(hideLoading());
+        setIsDataLoaded(true);
       }
     }
+    // Note: hideLoading is now handled by useEffect that waits for render to complete
   }, [DAY, categoryId, timeSlotId, self?.id, dispatch]);
 
   // Focus effect - refresh zip codes and load data when screen focuses
@@ -150,6 +158,20 @@ const Home = () => {
       loadData();
     }
   }, [categoryId, timeSlotId, DAY, loadData]);
+
+  // Hide spinner AFTER React has rendered the new content
+  // This prevents the "blank screen" between spinner hide and content appearing
+  useEffect(() => {
+    if (isDataLoaded) {
+      // Wait for animations/interactions to complete, then wait for frame flush
+      const task = InteractionManager.runAfterInteractions(() => {
+        requestAnimationFrame(() => {
+          dispatch(hideLoading());
+        });
+      });
+      return () => task.cancel();
+    }
+  }, [isDataLoaded, dispatch]);
 
   const onRefresh = async () => {
     setRefreshing(true);
