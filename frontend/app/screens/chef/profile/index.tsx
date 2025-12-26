@@ -497,8 +497,6 @@ const Profile = () => {
                 onChange={(event, date) => {
                   if (date) setTempTime(date);
                 }}
-                themeVariant="light"
-                textColor="#000000"
               />
             </Pressable>
           </Pressable>

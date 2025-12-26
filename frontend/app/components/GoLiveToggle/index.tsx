@@ -265,9 +265,6 @@ const GoLiveToggle: React.FC = () => {
                 display="spinner"
                 value={displayTime}
                 onChange={onTimeChange}
-                themeVariant="light"
-                textColor="#000000"
-                style={styles.timePickerPicker}
               />
             </View>
           </Pressable>
