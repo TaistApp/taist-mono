@@ -13,6 +13,13 @@ import { navigate } from '../utils/navigation';
 let ORDER_ID = -1;
 let isNavigationReady = false;
 
+// Helper function to check if notification is the chef activation notification
+// Backend sends title "Chef Account Activated" (not "You've Been Approved!")
+const isChefActivationNotification = (remoteMessage: any): boolean => {
+  const title = remoteMessage?.notification?.title;
+  return title === "Chef Account Activated";
+};
+
 // Helper function to refresh user data from the server
 // Called when chef receives activation notification to immediately update UI
 const refreshUserData = async () => {
@@ -131,11 +138,11 @@ export const InitializeNotification = () => {
           text1: remoteMessage.notification?.title ?? '',
           position: 'bottom',
           visibilityTime: 7000,
-          onPress: remoteMessage.notification?.title !== "You've Been Approved!" ? pressMethod : () => { },
+          onPress: !isChefActivationNotification(remoteMessage) ? pressMethod : () => { },
         });
 
         // If chef was just approved, refresh user data to update UI immediately
-        if (remoteMessage.notification?.title === "You've Been Approved!") {
+        if (isChefActivationNotification(remoteMessage)) {
           await refreshUserData();
         }
 
@@ -269,9 +276,11 @@ export const firebaseActions = () => {
   messaging().onNotificationOpenedApp(async remoteMessage => {
     console.log('remoteMessage clicked in the background', remoteMessage);
 
-    // If chef was just approved, refresh user data immediately
-    if (remoteMessage?.notification?.title === "You've Been Approved!") {
+    // If chef was just approved, refresh user data and stay on current screen
+    // (activation notification has no order to show - UI updates via Redux)
+    if (isChefActivationNotification(remoteMessage)) {
       await refreshUserData();
+      return; // Don't navigate - just let the UI update in place
     }
 
     // Add navigation guard with delay
@@ -302,12 +311,14 @@ export const firebaseActions = () => {
         remoteMessage,
       );
 
-      // If chef was just approved, refresh user data
-      if (remoteMessage?.notification?.title === "You've Been Approved!") {
+      // If chef was just approved, refresh user data and stay on current screen
+      // (activation notification has no order to show - UI updates via Redux)
+      if (isChefActivationNotification(remoteMessage)) {
         // Wait a bit for store to be rehydrated before refreshing
         setTimeout(async () => {
           await refreshUserData();
         }, 2000);
+        return; // Don't navigate - just let the UI update in place
       }
 
       if (remoteMessage?.data && Object.keys(remoteMessage.data).length > 0) {
