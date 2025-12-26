@@ -2090,6 +2090,12 @@ But this indicates a data integrity issue that should be fixed on the backend.
 
 ### Effort: 15 minutes
 
+### Status: COMPLETED ✓
+
+Implemented on 2025-12-26. Changed all index-based keys to stable ID-based keys in:
+- `home/index.tsx`: timeSlots, categories, and ChefCard lists
+- `chefCard.tsx`: ChefMenuItem list
+
 ### Why This Is Low-Hanging Fruit
 
 This is a simple find-replace fix that:
@@ -2373,7 +2379,7 @@ Re-measure and document improvement in percentage.
 | Non-memoized components | High | 45 min | 50% fewer re-renders | ⏳ Pending |
 | Image loading | High | 1.5 hrs | 60% faster image display | ✅ **Done** |
 | Inline functions | Medium | 30 min | Enables memo benefits | ⏳ Pending |
-| List keys | Low | 15 min | Prevents subtle bugs | ⏳ Pending |
+| List keys | Low | 15 min | Prevents subtle bugs | ✅ **Done** |
 | Backend API | High | 3-4 hrs | 3-5x faster API | ⏳ Pending |
 
 **Total frontend fixes:** ~4-5 hours

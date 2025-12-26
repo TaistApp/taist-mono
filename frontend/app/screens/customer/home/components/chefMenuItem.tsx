@@ -1,25 +1,40 @@
+import { useCallback } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
-import { IMenu, IMenuCustomization } from '../../../../types/index';
+import { IMenu, IMenuCustomization, IReview, IUser } from '../../../../types/index';
 import { styles } from '../styles';
 
 type Props = {
   item: IMenu;
-  onPress: () => void;
+  chefInfo: IUser;
+  reviews: Array<IReview>;
+  menus: Array<IMenu>;
+  onNavigate: (chefId: number) => void;
 };
-const ChefMenuItem = (props: Props) => {
+
+const ChefMenuItem = ({
+  item,
+  chefInfo,
+  onNavigate,
+}: Props) => {
   const customizations: Array<IMenuCustomization> =
-    props.item.customizations ?? [];
+    item.customizations ?? [];
   var price_customizations = 0;
   var names_customizations: Array<string> = [];
   customizations.map((c, idx) => {
     price_customizations += c.upcharge_price ?? 0;
     names_customizations.push(c.name ?? '');
   });
+
+  // Stable callback - navigates to chef detail (same as tapping chef card)
+  const handlePress = useCallback(() => {
+    onNavigate(chefInfo.id ?? 0);
+  }, [onNavigate, chefInfo.id]);
+
   return (
-    <TouchableOpacity onPress={props.onPress} style={styles.chefCardMenuItem}>
+    <TouchableOpacity onPress={handlePress} style={styles.chefCardMenuItem}>
       <View style={styles.chefCardMenuItemHeading}>
         <View style={{flex: 1}}>
-          <Text style={styles.chefCardMenuItemTitle}>{props.item.title}</Text>
+          <Text style={styles.chefCardMenuItemTitle}>{item.title}</Text>
           {/* {customizations.length > 0 && (
             <Text style={[styles.chefCardMenuItemSize]} numberOfLines={1}>
               {`Customizations: ${names_customizations.join(
@@ -30,16 +45,16 @@ const ChefMenuItem = (props: Props) => {
         </View>
         <View style={{alignItems: 'flex-end'}}>
           <Text
-            style={styles.chefCardMenuItemPrice}>{`$${props.item.price?.toFixed(
+            style={styles.chefCardMenuItemPrice}>{`$${item.price?.toFixed(
             2,
           )} `}</Text>
           <Text style={styles.chefCardMenuItemSize}>{`${
-            props.item.serving_size ?? 0
-          } Person${(props.item.serving_size ?? 0) > 1 ? 's' : ''} `}</Text>
+            item.serving_size ?? 0
+          } Person${(item.serving_size ?? 0) > 1 ? 's' : ''} `}</Text>
         </View>
       </View>
       <Text style={styles.chefCardMenuItemDescription}>
-        {props.item.description}
+        {item.description}
       </Text>
     </TouchableOpacity>
   );

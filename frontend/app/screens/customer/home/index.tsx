@@ -298,13 +298,13 @@ const Home = () => {
               
               <Text style={styles.sectionLabel}>Time Preference</Text>
               <View style={styles.wrapContainer}>
-                {timeSlots.map((item, index) => {
+                {timeSlots.map((item) => {
                   return (
                     <StyledTabButton
                       title={item.label}
                       disabled={timeSlotId != item.id}
                       onPress={() => handleTimeSlotChange(item.id)}
-                      key={`time_${index}`}
+                      key={`time_${item.id}`}
                     />
                   );
                 })}
@@ -318,27 +318,26 @@ const Home = () => {
                   onPress={() => handleCategoryChange(0)}
                   key={`category_all`}
                 />
-                {categories.map((item, index) => {
+                {categories.map((item) => {
                   return (
                     <StyledTabButton
                       title={item.name}
                       disabled={item.id != categoryId}
                       onPress={() => handleCategoryChange(item.id ?? 0)}
-                      key={`category_${index}`}
+                      key={`category_${item.id}`}
                     />
                   );
                 })}
               </View>
               <View style={styles.chefCardContainer}>
-                {filteredChefs.map((item, index) => {
+                {filteredChefs.map((item) => {
                   return (
                     <ChefCard
                       chefInfo={item}
                       reviews={item.reviews}
                       menus={item.menus}
-                      gotoChefDetail={handleChefDetail}
-                      gotoOrder={() => handleChefDetail(item.id)}
-                      key={`cc_${index}`}
+                      onNavigate={handleChefDetail}
+                      key={`chef_${item.id}`}
                     />
                   );
                 })}
