@@ -71,7 +71,7 @@ const Menu = () => {
         </Text>
         <Image
           style={styles.missingImg}
-          source={require('../../../assets/images/unlimit.png')}
+          source={require('../../../assets/images/unlimit.webp')}
         />
         <Text style={styles.missingSubheading}>
           Tap below to create your very first menu item{' '}
