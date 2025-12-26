@@ -1352,6 +1352,35 @@ Applied consistently via theme constants
 
 ---
 
+## Android-Specific Styling Issues
+
+Android handles text rendering differently than iOS, which can cause text to be clipped or cut off unexpectedly. Here are the key fixes:
+
+### Text Cutoff / Clipping
+
+**Problem**: Text appears cut off on Android but looks fine on iOS.
+
+**Solution**: Apply these Android-specific styles to Text components:
+
+```javascript
+textStyle: {
+  fontSize: 14,
+  lineHeight: 20,              // Explicit line height (typically 1.4x font size)
+  includeFontPadding: false,   // Android-only: removes extra vertical padding
+  textAlignVertical: 'center', // Android-only: ensures proper vertical centering
+}
+```
+
+**Explanation**:
+- `includeFontPadding: false` - Android reserves extra space above/below text for tall characters (ascenders/descenders). This often causes text to clip in containers, especially when the characters don't need that space.
+- `lineHeight` - Explicit line height ensures consistent text bounds across platforms.
+- `textAlignVertical: 'center'` - Helps Android center text properly within its bounds.
+
+**Affected Screens** (fixed):
+- Chef Welcome (`chefWelcome/index.tsx`) - "Scroll to learn more" text
+
+---
+
 ## Future UI Enhancements (Recommendations)
 
 1. **Loading States**: Add skeleton screens for better perceived performance
