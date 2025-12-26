@@ -5,10 +5,32 @@ import { Platform } from 'react-native';
 import { PERMISSIONS, requestMultiple } from 'react-native-permissions';
 import Toast from 'react-native-toast-message';
 import { useAppDispatch } from '../hooks/useRedux';
+import { setUser } from '../reducers/userSlice';
+import { GetUserById } from '../services/api';
+import { store } from '../store';
 import { navigate } from '../utils/navigation';
 
 let ORDER_ID = -1;
 let isNavigationReady = false;
+
+// Helper function to refresh user data from the server
+// Called when chef receives activation notification to immediately update UI
+const refreshUserData = async () => {
+  try {
+    const state = store.getState();
+    const userId = state.user?.user?.id;
+    if (userId) {
+      console.log('Refreshing user data after activation notification...');
+      const response = await GetUserById(userId.toString());
+      if (response.success === 1) {
+        store.dispatch(setUser(response.data));
+        console.log('User data refreshed successfully, is_pending:', response.data.is_pending);
+      }
+    }
+  } catch (error) {
+    console.warn('Error refreshing user data:', error);
+  }
+};
 
 // Helper function to show local notification using Expo
 const showLocalNotification = async (title: string, body: string, data?: any) => {
@@ -111,6 +133,11 @@ export const InitializeNotification = () => {
           visibilityTime: 7000,
           onPress: remoteMessage.notification?.title !== "You've Been Approved!" ? pressMethod : () => { },
         });
+
+        // If chef was just approved, refresh user data to update UI immediately
+        if (remoteMessage.notification?.title === "You've Been Approved!") {
+          await refreshUserData();
+        }
 
         // Also show as local notification if the app is in foreground
         await showLocalNotification(
@@ -239,9 +266,14 @@ export const FCMBackgroundMessageHandler = () => {
 
 export const firebaseActions = () => {
   // Action from Background State both Android & iOS
-  messaging().onNotificationOpenedApp(remoteMessage => {
+  messaging().onNotificationOpenedApp(async remoteMessage => {
     console.log('remoteMessage clicked in the background', remoteMessage);
-    
+
+    // If chef was just approved, refresh user data immediately
+    if (remoteMessage?.notification?.title === "You've Been Approved!") {
+      await refreshUserData();
+    }
+
     // Add navigation guard with delay
     setTimeout(() => {
       if (!isReadyToNavigate()) {
@@ -254,7 +286,7 @@ export const firebaseActions = () => {
         }, 2000);
         return;
       }
-      
+
       if (remoteMessage?.data && Object.keys(remoteMessage.data).length > 0) {
         handleNotificationNavigation(remoteMessage);
       }
@@ -264,17 +296,25 @@ export const firebaseActions = () => {
   // Action from Quite/Killed State both Android & iOS
   messaging()
     .getInitialNotification()
-    .then(remoteMessage => {
+    .then(async remoteMessage => {
       console.log(
         'REMOTE MESSAGE ON CLICKED IN THE QUIT STATE: ',
         remoteMessage,
       );
-      
+
+      // If chef was just approved, refresh user data
+      if (remoteMessage?.notification?.title === "You've Been Approved!") {
+        // Wait a bit for store to be rehydrated before refreshing
+        setTimeout(async () => {
+          await refreshUserData();
+        }, 2000);
+      }
+
       if (remoteMessage?.data && Object.keys(remoteMessage.data).length > 0) {
         if (remoteMessage?.data) {
           console.log('>>>REMOTE .... MESSAGE DATA>>>', remoteMessage);
         }
-        
+
         // Add longer delay for killed state as app needs more time to initialize
         setTimeout(() => {
           if (isReadyToNavigate()) {
