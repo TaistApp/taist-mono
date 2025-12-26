@@ -931,6 +931,14 @@ While fixing the rating calculation, also fix these issues in lines 82-88:
 
 ### Effort: 20 minutes
 
+### Status: COMPLETED ✓
+
+Implemented on 2025-12-26. Changes made:
+- Added `useMemo` import
+- Created `STAR_STYLE` constant outside component
+- Replaced `var` + `.map()` with memoized `averageRating` using `useMemo` + `reduce`
+- Updated `StarRatingDisplay` to use `averageRating` and `STAR_STYLE`
+
 ### Why This Matters for Overall Performance
 
 This fix alone isn't huge, but combined with React.memo on ChefCard (Issue #4), the memoization ensures that when ChefCard doesn't re-render, the calculation also doesn't run. The two fixes work together synergistically.
@@ -1888,6 +1896,13 @@ type Props = {
 
 This fix is **required** for Issue #4 (React.memo) to be effective. Without stable function references, wrapping components in `memo()` provides no benefit.
 
+### Status: COMPLETED ✓
+
+Implemented on 2025-12-26. Changes made:
+- `home/index.tsx`: Simplified ChefCard props from `gotoChefDetail` + `gotoOrder` to single `onNavigate` callback
+- `chefCard.tsx`: Added `useCallback` for `handleChefPress` and `handleToggleMenu`
+- `chefMenuItem.tsx`: Updated to receive data props and create stable `handlePress` callback with `useCallback`
+
 ---
 
 ## Issue #7: Non-Stable List Keys
@@ -2108,7 +2123,15 @@ This is a simple find-replace fix that:
 
 ## Issue #8: Backend API Performance
 
-### Problem
+### Status: COMPLETED ✓
+
+Implemented on 2025-12-12. All four optimizations have been applied:
+- Database indexes migration: `2025_12_12_000001_add_chef_search_performance_indexes.php`
+- Bounding box pre-filter: `MapiController.php:3212-3235`
+- Batch loading (N+1 fix): `MapiController.php:3251-3288`
+- Response caching (5 min TTL): `MapiController.php:3088-3103, 3363`
+
+### Problem (RESOLVED)
 
 The `get_search_chefs` API takes 700-2800ms to respond, which is the **single largest contributor** to slow load times. This delay occurs before any frontend optimizations can help—users must wait for the network response before any content appears.
 
@@ -2309,12 +2332,12 @@ However, if backend response time exceeds 3 seconds regularly, consider prioriti
 
 ### Phase 2: Component Optimization (Day 1-2)
 
-| Task | File | Lines | Time |
-|------|------|-------|------|
-| Memoize ChefCard | chefCard.tsx | all | 30 min |
-| Memoize rating calculation | chefCard.tsx | 34-37 | 15 min |
-| Fix inline function props | home/index.tsx | 293-304 | 30 min |
-| Fix list keys | home/index.tsx, chefCard.tsx | various | 15 min |
+| Task | File | Lines | Time | Status |
+|------|------|-------|------|--------|
+| Memoize ChefCard | chefCard.tsx | all | 30 min | ⏳ Pending |
+| Memoize rating calculation | chefCard.tsx | 34-37 | 15 min | ✅ **Done** |
+| Fix inline function props | home/index.tsx | 293-304 | 30 min | ✅ **Done** |
+| Fix list keys | home/index.tsx, chefCard.tsx | various | 15 min | ✅ **Done** |
 
 **Expected result:** 50-70% fewer re-renders
 
@@ -2378,9 +2401,9 @@ Re-measure and document improvement in percentage.
 | N+1 Redux dispatches | High | 30 min | 70% faster state updates | ✅ **Done** |
 | Non-memoized components | High | 45 min | 50% fewer re-renders | ⏳ Pending |
 | Image loading | High | 1.5 hrs | 60% faster image display | ✅ **Done** |
-| Inline functions | Medium | 30 min | Enables memo benefits | ⏳ Pending |
+| Inline functions | Medium | 30 min | Enables memo benefits | ✅ **Done** |
 | List keys | Low | 15 min | Prevents subtle bugs | ✅ **Done** |
-| Backend API | High | 3-4 hrs | 3-5x faster API | ⏳ Pending |
+| Backend API | High | 3-4 hrs | 3-5x faster API | ✅ **Done** |
 
 **Total frontend fixes:** ~4-5 hours
 **Expected improvement:** From 2-5 seconds to 0.5-1.5 seconds perceived load time
