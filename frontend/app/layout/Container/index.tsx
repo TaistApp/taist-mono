@@ -140,7 +140,7 @@ const Container = ({
               gap: 4,
               alignItems: 'center',
             }}>
-            {isInChefContext && <GoLiveToggle />}
+            {isInChefContext && user?.is_pending !== 1 && <GoLiveToggle />}
             {isInCustomerContext && <CartIcon />}
             <TouchableOpacity
               onPress={handleMessagePress}
