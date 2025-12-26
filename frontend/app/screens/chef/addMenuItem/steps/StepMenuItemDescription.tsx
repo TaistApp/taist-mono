@@ -10,7 +10,7 @@ import { EnhanceMenuDescriptionAPI } from '../../../../services/api';
 interface StepMenuItemDescriptionProps {
   menuItemData: Partial<IMenu>;
   onUpdateMenuItemData: (data: Partial<IMenu>) => void;
-  onNext: () => void | Promise<void>;
+  onNext: (finalDescription?: string) => void | Promise<void>;
   onBack: () => void;
 }
 
@@ -69,7 +69,7 @@ export const StepMenuItemDescription: React.FC<StepMenuItemDescriptionProps> = (
     setIsProcessing(true);
     onUpdateMenuItemData({ description: enhancedDescription });
     setShowEnhancePreview(false);
-    await onNext();
+    await onNext(enhancedDescription);  // Pass enhanced description to avoid race condition
     setIsProcessing(false);
   };
 

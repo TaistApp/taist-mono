@@ -110,13 +110,14 @@ const AddMenuItem = () => {
   };
 
   // Auto-populate metadata using AI analysis
-  const analyzeAndPopulateMetadata = async () => {
-    if (!menuItemData.title || !menuItemData.description) return;
+  const analyzeAndPopulateMetadata = async (overrideDescription?: string) => {
+    const description = overrideDescription ?? menuItemData.description;
+    if (!menuItemData.title || !description) return;
 
     try {
       const response = await AnalyzeMenuMetadataAPI({
         dish_name: menuItemData.title,
-        description: menuItemData.description
+        description: description
       });
 
       if (response.success === 1 && response.metadata) {
@@ -264,8 +265,8 @@ const AddMenuItem = () => {
           <StepMenuItemDescription
             menuItemData={menuItemData}
             onUpdateMenuItemData={handleUpdateMenuItemData}
-            onNext={async () => {
-              await analyzeAndPopulateMetadata();
+            onNext={async (finalDescription?: string) => {
+              await analyzeAndPopulateMetadata(finalDescription);
               setStep(3);
             }}
             onBack={() => setStep(1)}
