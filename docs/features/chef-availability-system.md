@@ -37,6 +37,7 @@ The Go Live toggle appears in the chef app header and provides a quick way to co
 ### Location
 - **Component**: `frontend/app/components/GoLiveToggle/index.tsx`
 - **Displayed in**: App header when in chef context
+- **Visibility**: Only shown to activated chefs (`is_pending !== 1`). Hidden during onboarding to avoid confusion before the chef account is fully set up.
 
 ### User Flow
 

@@ -42,6 +42,7 @@ Button component used in tab bars for navigation.
 
 ### GoLiveToggle
 Chef availability toggle component displayed in the header. Allows chefs to go "live" (available for orders) or offline. Features:
+- Only visible to activated chefs (`is_pending !== 1`) - hidden during onboarding
 - Visual status indicator (green "Live" / gray "Off")
 - Time picker to set availability end time when going live
 - Confirmation modal when going offline
