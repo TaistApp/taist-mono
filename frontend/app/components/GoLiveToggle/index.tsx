@@ -111,7 +111,13 @@ const GoLiveToggle: React.FC = () => {
     setLoading(true);
     try {
       const now = moment();
-      let endMoment = moment(endTime);
+
+      // Extract just the hours and minutes from the picker (ignoring the 2030 base date)
+      const selectedHours = endTime.getHours();
+      const selectedMinutes = endTime.getMinutes();
+
+      // Create endMoment for TODAY with the selected time
+      let endMoment = moment().startOf('day').hours(selectedHours).minutes(selectedMinutes);
 
       // Determine override date (today or tomorrow if time rolled over)
       let overrideDate = now.format('YYYY-MM-DD');
