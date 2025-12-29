@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
+  SafeAreaView,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -532,15 +533,9 @@ const Checkout = () => {
   };
 
   return (
-    <Container>
-      <ScrollView
-        style={{flex: 1}}
-        contentContainerStyle={styles.pageView}
-        nestedScrollEnabled={true}
-        keyboardShouldPersistTaps="handled"
-        bounces={true}
-        showsVerticalScrollIndicator={true}
-      >
+    <SafeAreaView style={styles.main}>
+      <Container>
+        <ScrollView contentContainerStyle={styles.pageView}>
           <View style={styles.heading}>
             <Pressable onPress={() => goBack()}>
               <FontAwesomeIcon icon={faAngleLeft} size={24} color="#1a1a1a" />
@@ -767,6 +762,7 @@ const Checkout = () => {
             </TouchableOpacity>
           </View>
         </ScrollView>
+      </Container>
 
       {/* Address Collection Modal */}
       <AddressCollectionModal
@@ -775,11 +771,9 @@ const Checkout = () => {
         onSave={handleSaveAddress}
         onCancel={() => {
           setShowAddressModal(false);
-          // Optionally navigate back if user cancels without providing address
-          // goBack();
         }}
       />
-    </Container>
+    </SafeAreaView>
   );
 };
 

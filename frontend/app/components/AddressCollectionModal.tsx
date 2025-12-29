@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Modal, Pressable, StyleSheet, Platform, ScrollView } from 'react-native';
+import { View, Text, Modal, Pressable, StyleSheet, Platform, ScrollView, KeyboardAvoidingView } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faAngleDown, faClose, faSearch, faLocationArrow } from '@fortawesome/free-solid-svg-icons';
 import { SelectList } from 'react-native-dropdown-select-list';
@@ -186,6 +186,11 @@ export const AddressCollectionModal: React.FC<AddressCollectionModalProps> = ({
     onSave({ first_name: firstName, last_name: lastName, address, city, state, zip });
   };
 
+  // Don't render Modal at all when not visible - fixes iOS touch blocking issue
+  if (!visible) {
+    return null;
+  }
+
   return (
     <Modal
       visible={visible}
@@ -193,22 +198,25 @@ export const AddressCollectionModal: React.FC<AddressCollectionModalProps> = ({
       animationType="slide"
       onRequestClose={onCancel}
     >
-      <View style={styles.modalOverlay}>
+      <KeyboardAvoidingView
+        style={styles.modalOverlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Complete Your Profile</Text>
+            <Text style={styles.modalSubtitle}>
+              We need your name and delivery address to complete your order
+            </Text>
+          </View>
+
           <ScrollView
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={true}
             keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
             nestedScrollEnabled={true}
           >
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Complete Your Profile</Text>
-              <Text style={styles.modalSubtitle}>
-                We need your name and delivery address to complete your order
-              </Text>
-            </View>
-
             <View style={styles.formContent}>
               <StyledTextInput
                 label="First Name"
@@ -292,7 +300,7 @@ export const AddressCollectionModal: React.FC<AddressCollectionModalProps> = ({
             </View>
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -310,13 +318,13 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.lg,
     paddingHorizontal: Spacing.xl,
     paddingBottom: Platform.OS === 'ios' ? 40 : Spacing.xl,
-    maxHeight: '90%',
+    maxHeight: '85%',
   },
   scrollView: {
-    flex: 1,
+    flexGrow: 0,
+    flexShrink: 1,
   },
   scrollContent: {
-    flexGrow: 1,
     paddingBottom: 20,
   },
   modalHeader: {
