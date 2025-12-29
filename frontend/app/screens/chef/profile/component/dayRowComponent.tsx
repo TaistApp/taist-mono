@@ -1,10 +1,19 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
-import moment from 'moment';
 import { useState } from 'react';
 import { Platform, Modal, Pressable, Text, TouchableOpacity, View } from 'react-native';
 import StyledCheckBox from '../../../../components/styledCheckBox';
 import { getFormattedTimeA } from '../../../../utils/validations';
 import { styles } from '../styles';
+
+// Use a fixed future date to avoid iOS date constraints
+// iOS UIDatePicker in time mode still respects the date portion and
+// disables times it considers "in the past" relative to current moment.
+// Using a far-future date ensures ALL times are always selectable.
+const PICKER_BASE_DATE = new Date(2030, 0, 15, 12, 0, 0, 0); // Jan 15, 2030 noon
+
+const getPickerBaseDate = () => {
+  return new Date(PICKER_BASE_DATE);
+};
 
 type Props = {day: any; onDayChanged: (newDay: any) => void};
 
@@ -15,8 +24,9 @@ export const DayRowComponent = ({day, onDayChanged}: Props) => {
   const [tempStartTime, setTempStartTime] = useState<Date | null>(null);
   const [tempEndTime, setTempEndTime] = useState<Date | null>(null);
 
-  const startTime = moment().startOf('day').toDate();
-  const endTime = moment().endOf('day').toDate();
+  // Create display times using fixed future date to avoid iOS "past time" disabling
+  const startTime = getPickerBaseDate();
+  const endTime = getPickerBaseDate();
   if (day.start) {
     const t = day.start as Date;
     startTime.setHours(t.getHours());

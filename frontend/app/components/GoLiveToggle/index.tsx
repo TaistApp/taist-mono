@@ -14,6 +14,16 @@ import { SetAvailabilityOverrideAPI, GetAvailabilityOverridesAPI } from '../../s
 import { ShowErrorToast, ShowSuccessToast } from '../../utils/toast';
 import { styles } from './styles';
 
+// Use a fixed future date to avoid iOS date constraints
+// iOS UIDatePicker in time mode still respects the date portion and
+// disables times it considers "in the past" relative to current moment.
+// Using a far-future date ensures ALL times are always selectable.
+const PICKER_BASE_DATE = new Date(2030, 0, 15, 12, 0, 0, 0); // Jan 15, 2030 noon
+
+const getPickerBaseDate = () => {
+  return new Date(PICKER_BASE_DATE);
+};
+
 const GoLiveToggle: React.FC = () => {
   const [isOnline, setIsOnline] = useState(false);
   const [onlineUntil, setOnlineUntil] = useState<string | null>(null);
@@ -26,9 +36,12 @@ const GoLiveToggle: React.FC = () => {
   // Confirmation modal state (for going offline)
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  // Default end time: 3 hours from now
+  // Default end time: 3 hours from now, but using fixed future date for picker
   const getDefaultEndTime = () => {
-    return moment().add(3, 'hours').toDate();
+    const threeHoursFromNow = moment().add(3, 'hours');
+    const result = getPickerBaseDate();
+    result.setHours(threeHoursFromNow.hours(), threeHoursFromNow.minutes(), 0, 0);
+    return result;
   };
 
   const displayTime = tempTime || getDefaultEndTime();
