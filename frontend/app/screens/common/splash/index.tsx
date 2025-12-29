@@ -101,7 +101,7 @@ const Splash = () => {
     const fallbackTimer = setTimeout(() => {
       console.warn('Auto-login timeout - showing login screen');
       setSplash(false);
-    }, 15000); // 15 second max wait
+    }, 35000); // 35 second max wait
 
     setTimeout(() => {
       autoLogin().finally(() => {
