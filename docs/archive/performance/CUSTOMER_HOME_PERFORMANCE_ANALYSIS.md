@@ -931,31 +931,15 @@ While fixing the rating calculation, also fix these issues in lines 82-88:
 
 ### Effort: 20 minutes
 
-### Status: COMPLETED ✓
-
-Implemented on 2025-12-26. Changes made:
-- Added `useMemo` import
-- Created `STAR_STYLE` constant outside component
-- Replaced `var` + `.map()` with memoized `averageRating` using `useMemo` + `reduce`
-- Updated `StarRatingDisplay` to use `averageRating` and `STAR_STYLE`
-
 ### Why This Matters for Overall Performance
 
 This fix alone isn't huge, but combined with React.memo on ChefCard (Issue #4), the memoization ensures that when ChefCard doesn't re-render, the calculation also doesn't run. The two fixes work together synergistically.
 
 ---
 
-## Issue #4: Non-Memoized Components ✅ COMPLETED
+## Issue #4: Non-Memoized Components
 
-> **Status:** Implemented on 2025-12-26
->
-> **Changes Made:**
-> - Wrapped `ChefCard` in `React.memo` with custom `arePropsEqual` comparison function
-> - Wrapped `ChefMenuItem` in `React.memo` with custom comparison function
-> - Added `useMemo` for customization calculation in `ChefMenuItem`
-> - Custom comparisons check IDs and array lengths (cheap) rather than deep object comparison
-
-### Problem (RESOLVED)
+### Problem
 
 Neither `ChefCard` nor `ChefMenuItem` are wrapped in `React.memo`, causing unnecessary re-renders when parent state changes. This means every time the parent component updates (filter changes, scroll, etc.), ALL child components re-execute their entire function body, even if their props haven't changed.
 
@@ -1345,25 +1329,11 @@ Once adopted, manual `React.memo`, `useMemo`, and `useCallback` calls become unn
 
 These fixes are most effective when done together.
 
-### Status: COMPLETED ✓
-
-Implemented on 2025-12-26. Changes made:
-- `chefCard.tsx`: Added `memo` import, wrapped export with `memo(ChefCard, arePropsEqual)` using custom comparison
-- `chefMenuItem.tsx`: Added `memo` and `useMemo` imports, wrapped export with `memo()`, memoized customization calculations
-
 ---
 
-## Issue #5: Sequential Image Loading Without Caching ✅ COMPLETED
+## Issue #5: Sequential Image Loading Without Caching
 
-> **Status:** Implemented on 2025-12-26
->
-> **Changes Made:**
-> - Updated `StyledProfileImage` with `cachePolicy="memory-disk"`, blurhash placeholder, 200ms transition
-> - Removed unnecessary `useState` and custom overlay component
-> - Added `useMemo` for style calculation
-> - Added image prefetching for first 5 chefs in `home/index.tsx`
-
-### Problem (RESOLVED)
+### Problem
 
 Profile images load sequentially without caching configuration, causing slow visual appearance and repeated network requests. The current implementation uses a custom placeholder overlay instead of expo-image's built-in features, missing out on performance optimizations.
 
@@ -1665,13 +1635,13 @@ Then use it in frontend:
 
 ### Testing Checklist
 
-- [x] Images load with blurhash placeholder visible first
-- [x] Images fade in smoothly (200ms transition)
-- [x] Return visits load images instantly (from cache)
+- [ ] Images load with blurhash placeholder visible first
+- [ ] Images fade in smoothly (200ms transition)
+- [ ] Return visits load images instantly (from cache)
 - [ ] Memory usage doesn't grow unboundedly (check with Profiler)
 - [ ] No network requests for cached images (check Network tab)
-- [x] Fallback shows when no URL provided
-- [x] Different sizes work correctly
+- [ ] Fallback shows when no URL provided
+- [ ] Different sizes work correctly
 
 ### Impact
 
@@ -1910,13 +1880,6 @@ type Props = {
 
 This fix is **required** for Issue #4 (React.memo) to be effective. Without stable function references, wrapping components in `memo()` provides no benefit.
 
-### Status: COMPLETED ✓
-
-Implemented on 2025-12-26. Changes made:
-- `home/index.tsx`: Simplified ChefCard props from `gotoChefDetail` + `gotoOrder` to single `onNavigate` callback
-- `chefCard.tsx`: Added `useCallback` for `handleChefPress` and `handleToggleMenu`
-- `chefMenuItem.tsx`: Updated to receive data props and create stable `handlePress` callback with `useCallback`
-
 ---
 
 ## Issue #7: Non-Stable List Keys
@@ -2119,12 +2082,6 @@ But this indicates a data integrity issue that should be fixed on the backend.
 
 ### Effort: 15 minutes
 
-### Status: COMPLETED ✓
-
-Implemented on 2025-12-26. Changed all index-based keys to stable ID-based keys in:
-- `home/index.tsx`: timeSlots, categories, and ChefCard lists
-- `chefCard.tsx`: ChefMenuItem list
-
 ### Why This Is Low-Hanging Fruit
 
 This is a simple find-replace fix that:
@@ -2137,15 +2094,7 @@ This is a simple find-replace fix that:
 
 ## Issue #8: Backend API Performance
 
-### Status: COMPLETED ✓
-
-Implemented on 2025-12-12. All four optimizations have been applied:
-- Database indexes migration: `2025_12_12_000001_add_chef_search_performance_indexes.php`
-- Bounding box pre-filter: `MapiController.php:3212-3235`
-- Batch loading (N+1 fix): `MapiController.php:3251-3288`
-- Response caching (5 min TTL): `MapiController.php:3088-3103, 3363`
-
-### Problem (RESOLVED)
+### Problem
 
 The `get_search_chefs` API takes 700-2800ms to respond, which is the **single largest contributor** to slow load times. This delay occurs before any frontend optimizations can help—users must wait for the network response before any content appears.
 
@@ -2346,12 +2295,12 @@ However, if backend response time exceeds 3 seconds regularly, consider prioriti
 
 ### Phase 2: Component Optimization (Day 1-2)
 
-| Task | File | Lines | Time | Status |
-|------|------|-------|------|--------|
-| Memoize ChefCard | chefCard.tsx | all | 30 min | ✅ **Done** |
-| Memoize rating calculation | chefCard.tsx | 34-37 | 15 min | ✅ **Done** |
-| Fix inline function props | home/index.tsx | 293-304 | 30 min | ✅ **Done** |
-| Fix list keys | home/index.tsx, chefCard.tsx | various | 15 min | ✅ **Done** |
+| Task | File | Lines | Time |
+|------|------|-------|------|
+| Memoize ChefCard | chefCard.tsx | all | 30 min |
+| Memoize rating calculation | chefCard.tsx | 34-37 | 15 min |
+| Fix inline function props | home/index.tsx | 293-304 | 30 min |
+| Fix list keys | home/index.tsx, chefCard.tsx | various | 15 min |
 
 **Expected result:** 50-70% fewer re-renders
 
@@ -2413,11 +2362,11 @@ Re-measure and document improvement in percentage.
 |-------|----------|----------|--------|--------|
 | Spinner timing | Critical | 1 hr | Eliminates blank screen | ⏳ Pending |
 | N+1 Redux dispatches | High | 30 min | 70% faster state updates | ✅ **Done** |
-| Non-memoized components | High | 45 min | 50% fewer re-renders | ✅ **Done** |
-| Image loading | High | 1.5 hrs | 60% faster image display | ✅ **Done** |
-| Inline functions | Medium | 30 min | Enables memo benefits | ✅ **Done** |
-| List keys | Low | 15 min | Prevents subtle bugs | ✅ **Done** |
-| Backend API | High | 3-4 hrs | 3-5x faster API | ✅ **Done** |
+| Non-memoized components | High | 45 min | 50% fewer re-renders | ⏳ Pending |
+| Image loading | High | 1.5 hrs | 60% faster image display | ⏳ Pending |
+| Inline functions | Medium | 30 min | Enables memo benefits | ⏳ Pending |
+| List keys | Low | 15 min | Prevents subtle bugs | ⏳ Pending |
+| Backend API | High | 3-4 hrs | 3-5x faster API | ⏳ Pending |
 
 **Total frontend fixes:** ~4-5 hours
 **Expected improvement:** From 2-5 seconds to 0.5-1.5 seconds perceived load time
