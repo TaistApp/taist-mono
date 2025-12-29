@@ -3095,10 +3095,13 @@ Write only the review text:";
 
         // PERFORMANCE: Build cache key from search parameters
         // Round lat/lng to ~1 mile precision to increase cache hits
+        // Include selected_date to distinguish between same weekday on different weeks
+        // (e.g., "this Monday" vs "next Monday" have different availability due to go-live toggle)
         $cacheKey = sprintf(
-            'chef_search:%s:%s:%s:%s:%s',
+            'chef_search:%s:%s:%s:%s:%s:%s',
             round((float)$user->latitude, 2),
             round((float)$user->longitude, 2),
+            $request->selected_date ?? 'any',
             $request->week_day ?? 'any',
             $request->time_slot ?? 'any',
             $request->category_id ?? 'any'
