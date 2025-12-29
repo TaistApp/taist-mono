@@ -312,6 +312,13 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === 'ios' ? 40 : Spacing.xl,
     maxHeight: '90%',
   },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
+  },
   modalHeader: {
     marginBottom: Spacing.lg,
   },
