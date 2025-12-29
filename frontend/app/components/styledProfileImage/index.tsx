@@ -62,7 +62,7 @@ const StyledProfileImage = ({
         />
       )}
       {showPlaceholder && (
-        <View style={[styles.overlay, size && { width: size, height: size, borderRadius: size }]}>
+        <View style={[styles.overlay, size ? { width: size, height: size, borderRadius: size } : undefined]}>
           <Image
             source={require('../../assets/icons/Icon_Profile.png')}
             style={styles.imgPlaceholder}
