@@ -73,6 +73,7 @@ const Checkout = () => {
   const [appliance, onChangeAppliance] = useState(false);
   const [paymentMethod, onChangePaymentMethod] = useState<IPayment>({});
   const [showAddressModal, setShowAddressModal] = useState(false);
+  const [isSavingAddress, setIsSavingAddress] = useState(false);
   const [isLoadingTimes, setIsLoadingTimes] = useState(true);
 
   // Ref to track current timeslot request and prevent race conditions
@@ -186,11 +187,11 @@ const Checkout = () => {
   }, [DAY]);
 
   const handleSaveAddress = async (addressInfo: Partial<IUser>) => {
-    dispatch(showLoading());
+    setIsSavingAddress(true);
     try {
       const updatedUser = { ...self, ...addressInfo };
       const resp = await UpdateUserAPI(updatedUser, dispatch);
-      
+
       if (resp.success === 1) {
         setShowAddressModal(false);
         ShowSuccessToast('Address saved successfully!');
@@ -201,7 +202,7 @@ const Checkout = () => {
       ShowErrorToast('An error occurred while saving your address');
       console.error('Save address error:', error);
     } finally {
-      dispatch(hideLoading());
+      setIsSavingAddress(false);
     }
   };
 
@@ -772,6 +773,7 @@ const Checkout = () => {
         onCancel={() => {
           setShowAddressModal(false);
         }}
+        loading={isSavingAddress}
       />
     </SafeAreaView>
   );

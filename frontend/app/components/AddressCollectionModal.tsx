@@ -15,6 +15,7 @@ interface AddressCollectionModalProps {
   userInfo: Partial<IUser>;
   onSave: (addressInfo: Partial<IUser>) => void;
   onCancel: () => void;
+  loading?: boolean;
 }
 
 export const AddressCollectionModal: React.FC<AddressCollectionModalProps> = ({
@@ -22,6 +23,7 @@ export const AddressCollectionModal: React.FC<AddressCollectionModalProps> = ({
   userInfo,
   onSave,
   onCancel,
+  loading = false,
 }) => {
   const [firstName, setFirstName] = useState(userInfo.first_name || '');
   const [lastName, setLastName] = useState(userInfo.last_name || '');
@@ -293,7 +295,11 @@ export const AddressCollectionModal: React.FC<AddressCollectionModalProps> = ({
             </View>
 
             <View style={styles.buttonContainer}>
-              <StyledButton title="Save & Continue" onPress={validateAndSave} />
+              <StyledButton
+                title={loading ? "Saving..." : "Save & Continue"}
+                onPress={validateAndSave}
+                disabled={loading}
+              />
               <Pressable onPress={onCancel} style={styles.cancelButton}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </Pressable>
