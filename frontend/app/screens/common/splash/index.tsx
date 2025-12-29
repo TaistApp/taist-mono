@@ -97,9 +97,19 @@ const Splash = () => {
       // Ignore errors if splash screen is already hidden
     });
 
+    // Fallback: if auto-login takes too long, show login buttons
+    const fallbackTimer = setTimeout(() => {
+      console.warn('Auto-login timeout - showing login screen');
+      setSplash(false);
+    }, 15000); // 15 second max wait
+
     setTimeout(() => {
-      autoLogin();
+      autoLogin().finally(() => {
+        clearTimeout(fallbackTimer);
+      });
     }, 2000);
+
+    return () => clearTimeout(fallbackTimer);
   }, []);
 
   // Get version from app.json dynamically

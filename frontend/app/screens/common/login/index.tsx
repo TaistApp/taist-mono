@@ -38,19 +38,25 @@ const Login = () => {
     }
 
     dispatch(showLoading());
-    const resp = await LoginAPI({email, password, remember: true}, dispatch);
-    dispatch(hideLoading());
+    try {
+      const resp = await LoginAPI({email, password, remember: true}, dispatch);
 
-    if (resp.success == 0) {
-      ShowErrorToast(resp.message ?? resp.error);
-      return;
-    }
+      if (resp.success == 0) {
+        ShowErrorToast(resp.message ?? resp.error);
+        return;
+      }
 
-    // Navigate to appropriate home screen based on user type
-    if (resp.data?.user?.user_type == 1) {
-      navigate.toAuthorizedStacks.customerAuthorized();
-    } else {
-      navigate.toAuthorizedStacks.chefAuthorized();
+      // Navigate to appropriate home screen based on user type
+      if (resp.data?.user?.user_type == 1) {
+        navigate.toAuthorizedStacks.customerAuthorized();
+      } else {
+        navigate.toAuthorizedStacks.chefAuthorized();
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      ShowErrorToast('Login failed. Please try again.');
+    } finally {
+      dispatch(hideLoading());
     }
   };
 
