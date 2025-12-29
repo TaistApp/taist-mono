@@ -1,6 +1,8 @@
 import moment from 'moment';
 import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
 
 interface CustomCalendarProps {
   selectedDate: moment.Moment;
@@ -94,6 +96,18 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
   const isTodaySelected = today.isSame(selectedDate, 'day');
   const showTodayButton = !isViewingTodayWeek || !isTodaySelected;
 
+  // Swipe gesture to navigate between weeks
+  const swipeGesture = Gesture.Pan()
+    .activeOffsetX([-20, 20])
+    .onEnd((e) => {
+      'worklet';
+      if (e.translationX < -50) {
+        runOnJS(navigateWeek)('next');
+      } else if (e.translationX > 50) {
+        runOnJS(navigateWeek)('prev');
+      }
+    });
+
   return (
     <View style={styles.container}>
       {/* Month/Year Header */}
@@ -125,8 +139,9 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
         </TouchableOpacity>
       </View>
 
-      {/* Week Strip */}
-      <View style={styles.weekContainer}>
+      {/* Week Strip - Swipeable */}
+      <GestureDetector gesture={swipeGesture}>
+        <View style={styles.weekContainer}>
           {weekDates.map((date, index) => {
             const isSelected = isDateSelected(date);
             const isSelectable = isDateSelectable(date);
@@ -161,7 +176,8 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
               </TouchableOpacity>
             );
           })}
-      </View>
+        </View>
+      </GestureDetector>
     </View>
   );
 };
