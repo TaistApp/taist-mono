@@ -2084,7 +2084,8 @@ Respond ONLY with valid JSON:
                 if ($result['success']) {
                     $aiReviewText = trim($result['content']);
 
-                    // Create AI review record
+                    // Create AI review record with varied date
+                    $variedDate = $this->varyReviewDate($authenticReview->created_at);
                     $aiReview = app(Reviews::class)->create([
                         'order_id' => $authenticReview->order_id,
                         'from_user_id' => $authenticReview->from_user_id,
@@ -2101,8 +2102,8 @@ Respond ONLY with valid JSON:
                             'length' => $variant['length'],
                             'generated_at' => time()
                         ]),
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
+                        'created_at' => $variedDate,
+                        'updated_at' => $variedDate
                     ]);
 
                     $generatedReviews[] = $aiReview;
@@ -2159,6 +2160,7 @@ REQUIREMENTS:
 - Be specific but varied from the original review
 - NO flowery language (no \"divine,\" \"heavenly,\" \"exquisite,\" \"timeless\")
 - NO generic phrases (\"good food,\" \"nice meal,\" \"great experience\")
+- NO em dashes (—) or long dashes - use commas, periods, or \"and\" instead
 
 GOOD EXAMPLES (for 5-star):
 ✓ \"The grilled chicken was perfectly seasoned and the sides were fresh. Great meal!\"
@@ -2206,6 +2208,30 @@ Write only the review text:";
         $newRating = round($newRating * 2) / 2;
 
         return $newRating;
+    }
+
+    /**
+     * Vary the review date to add realism
+     * Returns a date within 1-14 days after the original review
+     */
+    private function varyReviewDate($originalDate)
+    {
+        $baseTimestamp = strtotime($originalDate);
+
+        // Add random days (1-14 days) and random hours (0-23)
+        $daysToAdd = rand(1, 14);
+        $hoursToAdd = rand(0, 23);
+        $minutesToAdd = rand(0, 59);
+
+        $newTimestamp = $baseTimestamp + ($daysToAdd * 86400) + ($hoursToAdd * 3600) + ($minutesToAdd * 60);
+
+        // Don't exceed current time
+        $now = time();
+        if ($newTimestamp > $now) {
+            $newTimestamp = $now - rand(3600, 86400); // 1-24 hours ago if would be in future
+        }
+
+        return date('Y-m-d H:i:s', $newTimestamp);
     }
 
     public function removeMenu(Request $request, $id = "")
@@ -2677,6 +2703,8 @@ Write only the review text:";
             if ($result['success']) {
                 $aiReviewText = trim($result['content']);
 
+                // Vary the date for each AI review
+                $variedDate = $this->varyReviewDate($authenticReview->created_at);
                 app(Reviews::class)->create([
                     'order_id' => $authenticReview->order_id,
                     'from_user_id' => $authenticReview->from_user_id,
@@ -2693,8 +2721,8 @@ Write only the review text:";
                         'length' => $variant['length'],
                         'generated_at' => time()
                     ]),
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
+                    'created_at' => $variedDate,
+                    'updated_at' => $variedDate
                 ]);
             }
         }
