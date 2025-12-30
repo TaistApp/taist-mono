@@ -276,14 +276,18 @@ const OrderDetail = () => {
               </View>
               <FontAwesomeIcon icon={faChevronRight} color="#999" size={16} />
             </TouchableOpacity>
-            <View style={styles.line} />
-            <TouchableOpacity style={styles.cardMainTappable} onPress={handleCall} activeOpacity={0.7}>
-              <FontAwesomeIcon icon={faPhone} color="#fa4616" size={20} />
-              <View style={{ flex: 1, rowGap: 5 }}>
-                <Text style={styles.text}>{customerInfo?.phone ?? ''}</Text>
-              </View>
-              <FontAwesomeIcon icon={faChevronRight} color="#999" size={16} />
-            </TouchableOpacity>
+            {orderInfo?.status !== 1 && (
+              <>
+                <View style={styles.line} />
+                <TouchableOpacity style={styles.cardMainTappable} onPress={handleCall} activeOpacity={0.7}>
+                  <FontAwesomeIcon icon={faPhone} color="#fa4616" size={20} />
+                  <View style={{ flex: 1, rowGap: 5 }}>
+                    <Text style={styles.text}>{customerInfo?.phone ?? ''}</Text>
+                  </View>
+                  <FontAwesomeIcon icon={faChevronRight} color="#999" size={16} />
+                </TouchableOpacity>
+              </>
+            )}
           </View>
 
           {/* <Text style={styles.title}>Order Details</Text> */}
@@ -549,18 +553,16 @@ const OrderDetail = () => {
           )}
         </ScrollView>
         <View style={styles.btnContainer}>
-          <TouchableOpacity style={styles.btn} onPress={handleCall}>
-            <FontAwesomeIcon icon={faPhone} color="#ffffff" size={20} />
-            <Text style={styles.btnText}>Call</Text>
-          </TouchableOpacity>
+          {orderInfo?.status !== 1 && (
+            <TouchableOpacity style={styles.btn} onPress={handleCall}>
+              <FontAwesomeIcon icon={faPhone} color="#ffffff" size={20} />
+              <Text style={styles.btnText}>Call</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={styles.btn} onPress={handleChat}>
             <FontAwesomeIcon icon={faComment} color="#ffffff" size={20} />
             <Text style={styles.btnText}>Chat</Text>
           </TouchableOpacity>
-          {/* <TouchableOpacity style={styles.btn} onPress={handleCancel}>
-            <FontAwesomeIcon icon={faXmark} color="#ffffff" size={20} />
-            <Text style={styles.btnText}>Cancel</Text>
-          </TouchableOpacity> */}
           <TouchableOpacity style={styles.btn} onPress={handleMap}>
             <FontAwesomeIcon icon={faMap} color="#ffffff" size={20} />
             <Text style={styles.btnText}>Map</Text>
