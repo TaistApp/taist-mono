@@ -6,7 +6,7 @@ import { PERMISSIONS, requestMultiple } from 'react-native-permissions';
 import Toast from 'react-native-toast-message';
 import { useAppDispatch } from '../hooks/useRedux';
 import { setUser } from '../reducers/userSlice';
-import { GetUserById } from '../services/api';
+import { GetUserById, UpdateFCMTokenAPI } from '../services/api';
 import { store } from '../store';
 import { navigate } from '../utils/navigation';
 
@@ -82,6 +82,7 @@ export const InitializeNotification = () => {
     }, 3000); // Give enough time for initial app setup
     
     RequestUserPermission();
+    GetFCMToken(); // Get FCM token and send to backend
     firebaseActions();
     
     return () => {
@@ -236,6 +237,16 @@ export const GetFCMToken = async () => {
     // await messaging().registerDeviceForRemoteMessages();
     const fcmToken = await messaging().getToken();
     console.log('FCM token: ', fcmToken);
+
+    // Send FCM token to backend so push notifications can be delivered
+    if (fcmToken) {
+      try {
+        await UpdateFCMTokenAPI(fcmToken);
+        console.log('FCM token sent to backend');
+      } catch (error) {
+        console.warn('Failed to send FCM token to backend:', error);
+      }
+    }
 
     // Also get Expo push token for local notifications
     try {
