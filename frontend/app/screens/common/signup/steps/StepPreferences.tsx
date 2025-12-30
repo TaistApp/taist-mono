@@ -95,7 +95,7 @@ export const StepPreferences: React.FC<StepPreferencesProps> = ({
         <View style={styles.permissionHeader}>
           <Text style={styles.permissionTitle}>🔔 Push Notifications</Text>
           <Text style={styles.permissionDescription}>
-            Get notified about order updates, special offers, and new chefs in your area
+            Get notified about order updates, like when your chef is on the way
           </Text>
         </View>
         <StyledSwitch
