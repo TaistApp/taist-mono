@@ -14,6 +14,7 @@ import {
 
 // NPM
 import {
+  faChevronRight,
   faComment,
   faLocationDot,
   faMap,
@@ -263,29 +264,26 @@ const OrderDetail = () => {
           />
 
           <View style={styles.card}>
-            {
-              <View style={styles.cardMain}>
-                <FontAwesomeIcon
-                  icon={faLocationDot}
-                  color="#000000"
-                  size={20}
-                />
-                <View style={{}}>
-                  <Text style={styles.text}>{customerInfo?.address ?? ''}</Text>
-                  <Text
-                    style={
-                      styles.text
-                    }>{`${customerInfo?.city ?? ''}, ${customerInfo?.state ?? ''} ${customerInfo?.zip ?? ''}`}</Text>
-                </View>
+            <TouchableOpacity style={styles.cardMainTappable} onPress={handleMap} activeOpacity={0.7}>
+              <FontAwesomeIcon
+                icon={faLocationDot}
+                color="#fa4616"
+                size={20}
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.text}>{customerInfo?.address ?? ''}</Text>
+                <Text style={styles.text}>{`${customerInfo?.city ?? ''}, ${customerInfo?.state ?? ''} ${customerInfo?.zip ?? ''}`}</Text>
               </View>
-            }
+              <FontAwesomeIcon icon={faChevronRight} color="#999" size={16} />
+            </TouchableOpacity>
             <View style={styles.line} />
-            <View style={styles.cardMain}>
-              <FontAwesomeIcon icon={faPhone} color="#000000" size={20} />
-              <View style={{ width: '50%', rowGap: 5 }}>
+            <TouchableOpacity style={styles.cardMainTappable} onPress={handleCall} activeOpacity={0.7}>
+              <FontAwesomeIcon icon={faPhone} color="#fa4616" size={20} />
+              <View style={{ flex: 1, rowGap: 5 }}>
                 <Text style={styles.text}>{customerInfo?.phone ?? ''}</Text>
               </View>
-            </View>
+              <FontAwesomeIcon icon={faChevronRight} color="#999" size={16} />
+            </TouchableOpacity>
           </View>
 
           {/* <Text style={styles.title}>Order Details</Text> */}

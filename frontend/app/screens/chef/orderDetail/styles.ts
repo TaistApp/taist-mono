@@ -95,6 +95,13 @@ export const styles = StyleSheet.create({
     gap: 20,
     alignItems: 'flex-start',
   },
+  cardMainTappable: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 15,
+    alignItems: 'center',
+    paddingVertical: 5,
+  },
   line: {
     backgroundColor: 'grey',
     width: '100%',
@@ -122,9 +129,14 @@ export const styles = StyleSheet.create({
   btnContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+    backgroundColor: AppColors.primary,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginHorizontal: 10,
+    marginBottom: 10,
   },
   btn: {
-    width: 50,
+    flex: 1,
     height: 50,
     alignItems: 'center',
     justifyContent: 'center',
