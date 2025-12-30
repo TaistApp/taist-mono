@@ -424,7 +424,7 @@ const OrderDetail = () => {
 
             {orderInfoFromParams?.title !== "Review and tip for Chef" && orderInfoFromParams?.title !== "Review for chef" && (
               orderInfo?.notes && (
-                <Text style={styles.text}>{`Special: ${orderInfo.notes ?? ''} `}</Text>
+                <Text style={styles.text}>{`Special Instructions: ${orderInfo.notes ?? ''}`}</Text>
               )
             )}
             {orderInfoFromParams?.title !== "Review and tip for Chef" && orderInfoFromParams?.title !== "Review for chef" && (

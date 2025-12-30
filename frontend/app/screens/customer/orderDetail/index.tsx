@@ -247,6 +247,7 @@ console.log("order detail useeffect....");
     name: menu.title,
     qty: orderInfo?.amount ?? 0,
     price: (menu.price ?? 0) * (orderInfo?.amount ?? 0),
+    isCustomization: false,
   });
   orderInfo?.addons?.split(',').map((addon, idx) => {
     const customize = menu.customizations?.find(x => x.id == parseInt(addon));
@@ -257,6 +258,7 @@ console.log("order detail useeffect....");
           name: customize.name,
           qty: 1,
           price: customize.upcharge_price ?? 0,
+          isCustomization: true,
         });
       } else {
         items[sameIndex].qty++;
@@ -344,12 +346,12 @@ console.log("order detail useeffect....");
             <View style={styles.line} />
             {items.length > 0 && (
               <View style={styles.cardMain}>
-                <View style={{ width: '55%', rowGap: 5 }}>
+                <View style={{ flex: 1, rowGap: 5 }}>
                   <Text style={styles.text}>Item</Text>
                   {items.map((item, idx) => {
                     return (
                       <Text style={styles.text} key={`name_${idx}`}>
-                        {item.name}
+                        {item.isCustomization ? '  + ' : ''}{item.name}
                       </Text>
                     );
                   })}
@@ -379,8 +381,7 @@ console.log("order detail useeffect....");
               </View>
             )}
             {orderInfo?.notes && (
-              <Text style={styles.text}>{`Special: ${orderInfo?.notes ?? ''
-                } `}</Text>
+              <Text style={styles.text}>{`Special Instructions: ${orderInfo?.notes ?? ''}`}</Text>
             )}
             <View style={styles.line} />
             <View style={styles.cardMain}>

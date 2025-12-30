@@ -170,7 +170,7 @@ const Cart = () => {
                           </Text>
                         )}
                         {order.notes && order.notes.length > 0 && (
-                          <Text style={styles.itemNotes}>Note: {order.notes}</Text>
+                          <Text style={styles.itemNotes}>Special Instructions: {order.notes}</Text>
                         )}
                       </View>
                       <View style={styles.itemRight}>

@@ -2259,6 +2259,11 @@ Write only the review text:";
             $data->customer = app(Listener::class)->where(['id' => $data->customer_user_id])->first();
             $data->menu = app(Menus::class)->where(['id' => $data->menu_id])->first();
 
+            // Load menu customizations for order detail display
+            if ($data->menu) {
+                $data->menu->customizations = app(Customizations::class)->where(['menu_id' => $data->menu_id])->get();
+            }
+
             // Add acceptance deadline info if order is in requested status
             if ($data->status == 1 && $data->acceptance_deadline) {
                 $data->deadline_info = $data->getDeadlineInfo();
