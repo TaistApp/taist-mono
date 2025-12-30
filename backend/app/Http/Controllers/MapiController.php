@@ -2212,24 +2212,18 @@ Write only the review text:";
 
     /**
      * Vary the review date to add realism
-     * Returns a date within 1-14 days after the original review
+     * Returns a date within 1-14 days before the current time
      */
     private function varyReviewDate($originalDate)
     {
-        $baseTimestamp = strtotime($originalDate);
-
-        // Add random days (1-14 days) and random hours (0-23)
-        $daysToAdd = rand(1, 14);
-        $hoursToAdd = rand(0, 23);
-        $minutesToAdd = rand(0, 59);
-
-        $newTimestamp = $baseTimestamp + ($daysToAdd * 86400) + ($hoursToAdd * 3600) + ($minutesToAdd * 60);
-
-        // Don't exceed current time
         $now = time();
-        if ($newTimestamp > $now) {
-            $newTimestamp = $now - rand(3600, 86400); // 1-24 hours ago if would be in future
-        }
+
+        // Subtract random days (1-14 days) and random hours (0-23)
+        $daysToSubtract = rand(1, 14);
+        $hoursToSubtract = rand(0, 23);
+        $minutesToSubtract = rand(0, 59);
+
+        $newTimestamp = $now - ($daysToSubtract * 86400) - ($hoursToSubtract * 3600) - ($minutesToSubtract * 60);
 
         return date('Y-m-d H:i:s', $newTimestamp);
     }
