@@ -10,9 +10,11 @@ import {
   View,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSelector } from 'react-redux';
 import { SetAvailabilityOverrideAPI, GetAvailabilityOverridesAPI } from '../../services/api';
 import { ShowErrorToast, ShowSuccessToast } from '../../utils/toast';
 import { styles } from './styles';
+import { RootState } from '../../store';
 
 // Use a fixed future date to avoid iOS date constraints
 // iOS UIDatePicker in time mode still respects the date portion and
@@ -26,27 +28,68 @@ const getPickerBaseDate = () => {
   return new Date(PICKER_BASE_DATE.getTime());
 };
 
+// Day name mapping for weekly schedule lookup
+const DAY_NAMES = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saterday'] as const;
+
+// Helper to parse time value from chef profile (can be HH:MM string or timestamp)
+const parseTimeValue = (value: string | number | undefined): { hours: number; minutes: number } | null => {
+  if (!value || value === '' || value === 0) return null;
+
+  if (typeof value === 'string') {
+    const [hours, minutes] = value.split(':').map(Number);
+    if (!isNaN(hours) && !isNaN(minutes)) {
+      return { hours, minutes };
+    }
+  } else if (typeof value === 'number') {
+    // Legacy timestamp format
+    const date = new Date(value * 1000);
+    return { hours: date.getHours(), minutes: date.getMinutes() };
+  }
+  return null;
+};
+
 const GoLiveToggle: React.FC = () => {
   const [isOnline, setIsOnline] = useState(false);
-  const [onlineUntil, setOnlineUntil] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Time picker state
+  // Day selection state (Today vs Tomorrow)
+  const [showDayPicker, setShowDayPicker] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<'today' | 'tomorrow' | null>(null);
+
+  // Time confirmation state
+  const [showTimeConfirm, setShowTimeConfirm] = useState(false);
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [endTime, setEndTime] = useState<Date | null>(null);
+
+  // Time picker state (for editing start or end time)
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [editingTime, setEditingTime] = useState<'start' | 'end' | null>(null);
   const [tempTime, setTempTime] = useState<Date | null>(null);
 
   // Confirmation modal state (for going offline)
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  // Default end time: 3 hours from now, but using fixed future date for picker
-  const getDefaultEndTime = () => {
-    const threeHoursFromNow = moment().add(3, 'hours');
-    const result = getPickerBaseDate();
-    result.setHours(threeHoursFromNow.hours(), threeHoursFromNow.minutes(), 0, 0);
-    return result;
-  };
+  // Get chef profile from Redux for weekly schedule
+  const chefProfile = useSelector((state: RootState) => state.chef.profile);
 
-  const displayTime = tempTime || getDefaultEndTime();
+  // Get weekly schedule for a specific day
+  const getScheduleForDay = (day: 'today' | 'tomorrow') => {
+    const targetDate = day === 'today' ? moment() : moment().add(1, 'day');
+    const dayIndex = targetDate.day(); // 0 = Sunday, 1 = Monday, etc.
+    const dayName = DAY_NAMES[dayIndex];
+
+    // Handle typo in database: "saterday" instead of "saturday"
+    const startKey = `${dayName}_start` as keyof typeof chefProfile;
+    const endKey = `${dayName}_end` as keyof typeof chefProfile;
+
+    const startValue = chefProfile?.[startKey];
+    const endValue = chefProfile?.[endKey];
+
+    const start = parseTimeValue(startValue as string | number | undefined);
+    const end = parseTimeValue(endValue as string | number | undefined);
+
+    return { start, end, dayName: targetDate.format('dddd') };
+  };
 
   // Fetch status on mount and when screen focuses
   const fetchStatus = async () => {
@@ -66,19 +109,16 @@ const GoLiveToggle: React.FC = () => {
         if (todayOverride && todayOverride.end_time) {
           // Check if current time is still within the override window
           const now = moment();
-          const endTime = moment(todayOverride.end_time, 'HH:mm');
+          const endTimeMoment = moment(todayOverride.end_time, 'HH:mm');
 
-          if (now.isBefore(endTime)) {
+          if (now.isBefore(endTimeMoment)) {
             setIsOnline(true);
-            setOnlineUntil(todayOverride.end_time);
           } else {
             // Override has expired
             setIsOnline(false);
-            setOnlineUntil(null);
           }
         } else {
           setIsOnline(false);
-          setOnlineUntil(null);
         }
       }
     } catch (error) {
@@ -96,55 +136,162 @@ const GoLiveToggle: React.FC = () => {
     }, [])
   );
 
-  // Handle toggle press
+  // Handle toggle press - show day picker first
   const handleTogglePress = () => {
     if (isOnline) {
       // Currently online - show confirmation to go offline
       setShowConfirmModal(true);
     } else {
-      // Currently offline - show time picker to go online
-      setTempTime(null);
-      setShowTimePicker(true);
+      // Currently offline - show day picker first
+      setShowDayPicker(true);
     }
   };
 
-  // Go online with selected end time
-  const handleGoOnline = async (endTime: Date) => {
-    setLoading(true);
-    try {
+  // Handle day selection
+  const handleDaySelect = (day: 'today' | 'tomorrow') => {
+    setSelectedDay(day);
+    setShowDayPicker(false);
+
+    // Get schedule for selected day and pre-fill times
+    const schedule = getScheduleForDay(day);
+
+    const baseDate = getPickerBaseDate();
+
+    if (schedule.start && schedule.end) {
+      // Pre-fill with weekly schedule times
+      const startDate = new Date(baseDate.getTime());
+      startDate.setHours(schedule.start.hours, schedule.start.minutes, 0, 0);
+
+      const endDate = new Date(baseDate.getTime());
+      endDate.setHours(schedule.end.hours, schedule.end.minutes, 0, 0);
+
+      setStartTime(startDate);
+      setEndTime(endDate);
+    } else {
+      // No weekly schedule - use defaults
       const now = moment();
 
-      // Extract just the hours and minutes from the picker (ignoring the 2030 base date)
-      const selectedHours = endTime.getHours();
-      const selectedMinutes = endTime.getMinutes();
-
-      // Create endMoment for TODAY with the selected time
-      let endMoment = moment().startOf('day').hours(selectedHours).minutes(selectedMinutes);
-
-      // Determine override date (today or tomorrow if time rolled over)
-      let overrideDate = now.format('YYYY-MM-DD');
-
-      // If selected time is in the past, roll to tomorrow
-      if (endMoment.isSameOrBefore(now)) {
-        console.log('GoLive - time was in past, rolling to tomorrow');
-        endMoment.add(1, 'day');
-        overrideDate = endMoment.format('YYYY-MM-DD');
+      // For today, start from now; for tomorrow, default to 9 AM
+      const defaultStartDate = new Date(baseDate.getTime());
+      if (day === 'today') {
+        defaultStartDate.setHours(now.hours(), now.minutes(), 0, 0);
+      } else {
+        defaultStartDate.setHours(9, 0, 0, 0);
       }
 
-      console.log('GoLive - Creating override for:', overrideDate, 'until:', endMoment.format('HH:mm'));
+      // Default end time: 3 hours after start
+      const defaultEndDate = new Date(baseDate.getTime());
+      if (day === 'today') {
+        const threeHoursFromNow = moment().add(3, 'hours');
+        defaultEndDate.setHours(threeHoursFromNow.hours(), threeHoursFromNow.minutes(), 0, 0);
+      } else {
+        defaultEndDate.setHours(12, 0, 0, 0);
+      }
+
+      setStartTime(defaultStartDate);
+      setEndTime(defaultEndDate);
+    }
+
+    // Show time confirmation screen
+    setShowTimeConfirm(true);
+  };
+
+  // Handle time tap to edit
+  const handleTimePress = (which: 'start' | 'end') => {
+    setEditingTime(which);
+    setTempTime(which === 'start' ? startTime : endTime);
+    setShowTimePicker(true);
+  };
+
+  // Time picker change handler
+  const onTimeChange = (event: any, selectedDate?: Date) => {
+    // On Android, the picker closes automatically
+    if (Platform.OS === 'android') {
+      setShowTimePicker(false);
+      if (event.type === 'set' && selectedDate) {
+        if (editingTime === 'start') {
+          setStartTime(selectedDate);
+        } else {
+          setEndTime(selectedDate);
+        }
+      }
+      setEditingTime(null);
+      return;
+    }
+
+    // On iOS with spinner mode, just update temp time as user scrolls
+    if (Platform.OS === 'ios') {
+      if (event.type === 'dismissed') {
+        setTempTime(null);
+        setShowTimePicker(false);
+        setEditingTime(null);
+      } else if (selectedDate) {
+        setTempTime(selectedDate);
+      }
+    }
+  };
+
+  // Cancel time picker
+  const handleCancelTimePicker = () => {
+    setTempTime(null);
+    setShowTimePicker(false);
+    setEditingTime(null);
+  };
+
+  // Confirm time picker (iOS Done button)
+  const handleConfirmTimePicker = () => {
+    if (tempTime) {
+      if (editingTime === 'start') {
+        setStartTime(tempTime);
+      } else {
+        setEndTime(tempTime);
+      }
+    }
+    setTempTime(null);
+    setShowTimePicker(false);
+    setEditingTime(null);
+  };
+
+  // Cancel entire flow
+  const handleCancelFlow = () => {
+    setShowTimeConfirm(false);
+    setSelectedDay(null);
+    setStartTime(null);
+    setEndTime(null);
+  };
+
+  // Confirm and go live
+  const handleConfirmGoLive = async () => {
+    if (!selectedDay || !startTime || !endTime) return;
+
+    setLoading(true);
+    setShowTimeConfirm(false);
+
+    try {
+      const overrideDate = selectedDay === 'today'
+        ? moment().format('YYYY-MM-DD')
+        : moment().add(1, 'day').format('YYYY-MM-DD');
+
+      const startTimeStr = moment(startTime).format('HH:mm');
+      const endTimeStr = moment(endTime).format('HH:mm');
+
+      console.log('GoLive - Creating override for:', overrideDate, 'from:', startTimeStr, 'to:', endTimeStr);
 
       const response = await SetAvailabilityOverrideAPI({
         override_date: overrideDate,
-        start_time: now.format('HH:mm'),
-        end_time: endMoment.format('HH:mm'),
+        start_time: startTimeStr,
+        end_time: endTimeStr,
         status: 'confirmed',
         source: 'manual_toggle',
       });
 
       if (response.success === 1) {
-        setIsOnline(true);
-        setOnlineUntil(endMoment.format('HH:mm'));
-        ShowSuccessToast('You are now live!');
+        // Only show as "Live" if this is for today
+        if (selectedDay === 'today') {
+          setIsOnline(true);
+        }
+        const dayLabel = selectedDay === 'today' ? 'today' : 'tomorrow';
+        ShowSuccessToast(`You're set to be live ${dayLabel}!`);
       } else {
         ShowErrorToast(response.error || 'Failed to go online');
       }
@@ -153,6 +300,9 @@ const GoLiveToggle: React.FC = () => {
       ShowErrorToast('Failed to go online');
     } finally {
       setLoading(false);
+      setSelectedDay(null);
+      setStartTime(null);
+      setEndTime(null);
     }
   };
 
@@ -171,7 +321,6 @@ const GoLiveToggle: React.FC = () => {
 
       if (response.success === 1) {
         setIsOnline(false);
-        setOnlineUntil(null);
         ShowSuccessToast('You are now offline');
       } else {
         ShowErrorToast(response.error || 'Failed to go offline');
@@ -184,45 +333,18 @@ const GoLiveToggle: React.FC = () => {
     }
   };
 
-  // Time picker change handler (follows dayRowComponent pattern exactly)
-  const onTimeChange = (event: any, selectedDate?: Date) => {
-    const currentDate = selectedDate || displayTime;
-
-    // On Android, the picker closes automatically
-    if (Platform.OS === 'android') {
-      setShowTimePicker(false);
-      if (event.type === 'set' && selectedDate) {
-        handleGoOnline(selectedDate);
-      }
-      return;
-    }
-
-    // On iOS with spinner mode, just update temp time as user scrolls
-    // The Done button (handleConfirmTimePicker) handles the actual confirmation
-    if (Platform.OS === 'ios') {
-      if (event.type === 'dismissed') {
-        // User cancelled
-        setTempTime(null);
-        setShowTimePicker(false);
-      } else if (selectedDate) {
-        // Update temp time as user scrolls the spinner
-        setTempTime(selectedDate);
-      }
-    }
+  // Format time for display
+  const formatDisplayTime = (date: Date | null) => {
+    if (!date) return '--:--';
+    return moment(date).format('h:mm A');
   };
 
-  // Cancel time picker
-  const handleCancelTimePicker = () => {
-    setTempTime(null);
-    setShowTimePicker(false);
-  };
-
-  // Confirm time picker (iOS Done button)
-  const handleConfirmTimePicker = () => {
-    const timeToSave = tempTime || displayTime;
-    handleGoOnline(timeToSave);
-    setTempTime(null);
-    setShowTimePicker(false);
+  // Get display time for picker
+  const getPickerDisplayTime = () => {
+    if (tempTime) return tempTime;
+    if (editingTime === 'start' && startTime) return startTime;
+    if (editingTime === 'end' && endTime) return endTime;
+    return getPickerBaseDate();
   };
 
   return (
@@ -252,7 +374,100 @@ const GoLiveToggle: React.FC = () => {
         </Text>
       </TouchableOpacity>
 
-      {/* Time Picker Modal - follows dayRowComponent pattern exactly */}
+      {/* Day Picker Modal (Today vs Tomorrow) */}
+      <Modal
+        visible={showDayPicker}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowDayPicker(false)}
+      >
+        <Pressable
+          style={styles.confirmModalOverlay}
+          onPress={() => setShowDayPicker(false)}
+        >
+          <View
+            style={styles.dayPickerContent}
+            onStartShouldSetResponder={() => true}
+          >
+            <Text style={styles.confirmTitle}>Check in for same-day orders</Text>
+            <Text style={styles.dayPickerSubtitle}>
+              Future orders still come through your weekly schedule.
+            </Text>
+            <View style={styles.confirmButtons}>
+              <TouchableOpacity
+                style={[styles.confirmButton, styles.dayButton]}
+                onPress={() => handleDaySelect('today')}
+              >
+                <Text style={[styles.confirmButtonText, styles.dayButtonText]}>
+                  Today
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmButton, styles.dayButton]}
+                onPress={() => handleDaySelect('tomorrow')}
+              >
+                <Text style={[styles.confirmButtonText, styles.dayButtonText]}>
+                  Tomorrow
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
+
+      {/* Time Confirmation Modal */}
+      <Modal
+        visible={showTimeConfirm}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={handleCancelFlow}
+      >
+        <Pressable
+          style={styles.timePickerModalOverlay}
+          onPress={handleCancelFlow}
+        >
+          <View
+            style={styles.timeConfirmContent}
+            onStartShouldSetResponder={() => true}
+          >
+            <View style={styles.timePickerModalHeader}>
+              <Pressable onPress={handleCancelFlow}>
+                <Text style={styles.timePickerModalCancel}>Cancel</Text>
+              </Pressable>
+              <Text style={styles.timePickerModalTitle}>
+                {selectedDay === 'today' ? "Today's" : "Tomorrow's"} Hours
+              </Text>
+              <Pressable onPress={handleConfirmGoLive}>
+                <Text style={styles.timePickerModalDone}>Confirm</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.timeRow}>
+              <TouchableOpacity
+                style={styles.timeBlock}
+                onPress={() => handleTimePress('start')}
+              >
+                <Text style={styles.timeLabel}>Start</Text>
+                <Text style={styles.timeValue}>{formatDisplayTime(startTime)}</Text>
+              </TouchableOpacity>
+
+              <Text style={styles.timeSeparator}>to</Text>
+
+              <TouchableOpacity
+                style={styles.timeBlock}
+                onPress={() => handleTimePress('end')}
+              >
+                <Text style={styles.timeLabel}>End</Text>
+                <Text style={styles.timeValue}>{formatDisplayTime(endTime)}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.timeHint}>Tap times to adjust</Text>
+          </View>
+        </Pressable>
+      </Modal>
+
+      {/* Time Picker Modal (for editing individual time) */}
       {Platform.OS === 'ios' ? (
         <Modal
           visible={showTimePicker}
@@ -272,7 +487,9 @@ const GoLiveToggle: React.FC = () => {
                 <Pressable onPress={handleCancelTimePicker}>
                   <Text style={styles.timePickerModalCancel}>Cancel</Text>
                 </Pressable>
-                <Text style={styles.timePickerModalTitle}>Available Until</Text>
+                <Text style={styles.timePickerModalTitle}>
+                  {editingTime === 'start' ? 'Start Time' : 'End Time'}
+                </Text>
                 <Pressable onPress={handleConfirmTimePicker}>
                   <Text style={styles.timePickerModalDone}>Done</Text>
                 </Pressable>
@@ -280,7 +497,7 @@ const GoLiveToggle: React.FC = () => {
               <DateTimePicker
                 mode="time"
                 display="spinner"
-                value={displayTime}
+                value={getPickerDisplayTime()}
                 minimumDate={new Date(2030, 0, 15, 0, 0, 0)}
                 maximumDate={new Date(2030, 0, 15, 23, 59, 59)}
                 onChange={onTimeChange}
@@ -293,7 +510,7 @@ const GoLiveToggle: React.FC = () => {
           <DateTimePicker
             mode="time"
             display="default"
-            value={displayTime}
+            value={getPickerDisplayTime()}
             minimumDate={new Date(2030, 0, 15, 0, 0, 0)}
             maximumDate={new Date(2030, 0, 15, 23, 59, 59)}
             onChange={onTimeChange}

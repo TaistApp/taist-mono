@@ -136,4 +136,70 @@ export const styles = StyleSheet.create({
   confirmButtonTextConfirm: {
     color: 'white',
   },
+
+  // Day picker styles
+  dayPickerContent: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
+    width: '80%',
+    maxWidth: 320,
+  },
+  dayPickerSubtitle: {
+    fontSize: 13,
+    color: AppColors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  dayButton: {
+    backgroundColor: AppColors.primary,
+  },
+  dayButtonText: {
+    color: 'white',
+  },
+
+  // Time confirmation modal styles
+  timeConfirmContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 34, // Safe area for home indicator
+    overflow: 'hidden',
+  },
+  timeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.md,
+  },
+  timeBlock: {
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: 12,
+    minWidth: 120,
+  },
+  timeLabel: {
+    fontSize: 12,
+    color: AppColors.textSecondary,
+    marginBottom: 4,
+  },
+  timeValue: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: AppColors.text,
+  },
+  timeSeparator: {
+    fontSize: 16,
+    color: AppColors.textSecondary,
+  },
+  timeHint: {
+    fontSize: 13,
+    color: AppColors.textSecondary,
+    textAlign: 'center',
+    paddingBottom: Spacing.lg,
+  },
 });
