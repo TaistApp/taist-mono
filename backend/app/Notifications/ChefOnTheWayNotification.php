@@ -41,7 +41,7 @@ class ChefOnTheWayNotification extends Notification
     public function toDatabase($notifiable)
     {
         return [
-            'title' => 'Chef On The Way',
+            'title' => 'Your chef is on the way!',
             'body' => 'Your chef is on the way to deliver your order!',
             'image' => $notifiable->photo ?? 'N/A',
             'fcm_token' => $notifiable->fcm_token,
@@ -60,7 +60,7 @@ class ChefOnTheWayNotification extends Notification
     public function toFirebase($notifiable)
     {
         return [
-            'title' => 'Chef On The Way',
+            'title' => 'Your chef is on the way!',
             'body' => 'Your chef is on the way to deliver your order!',
             'data' => [
                 'order_id' => (string)$this->order->id,

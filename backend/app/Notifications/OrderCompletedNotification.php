@@ -41,7 +41,7 @@ class OrderCompletedNotification extends Notification
     public function toDatabase($notifiable)
     {
         return [
-            'title' => 'Order Completed',
+            'title' => 'Your order is complete!',
             'body' => 'Your order has been completed. Enjoy your meal!',
             'image' => $notifiable->photo ?? 'N/A',
             'fcm_token' => $notifiable->fcm_token,
@@ -60,7 +60,7 @@ class OrderCompletedNotification extends Notification
     public function toFirebase($notifiable)
     {
         return [
-            'title' => 'Order Completed',
+            'title' => 'Your order is complete!',
             'body' => 'Your order has been completed. Enjoy your meal!',
             'data' => [
                 'order_id' => (string)$this->order->id,

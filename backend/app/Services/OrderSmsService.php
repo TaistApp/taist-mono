@@ -147,8 +147,8 @@ class OrderSmsService
                 return ['success' => false, 'error' => 'Order data not found'];
             }
 
-            $message = "Chef {$data['chef_name']} is on the way with your order ORDER#" .
-                       sprintf('%07d', $orderId) . "! They should arrive around {$data['order_time']}.";
+            $message = "Your chef is on the way! ORDER#" .
+                       sprintf('%07d', $orderId) . " should arrive around {$data['order_time']}.";
 
             return $this->twilioService->sendOrderNotification(
                 $data['customer_user_id'],
@@ -181,8 +181,8 @@ class OrderSmsService
                 return ['success' => false, 'error' => 'Order data not found'];
             }
 
-            $message = "Your order ORDER#" . sprintf('%07d', $orderId) . " is complete! " .
-                       "Hope you enjoyed it. Please rate your experience with Chef {$data['chef_name']} in the app.";
+            $message = "Your order is complete! ORDER#" . sprintf('%07d', $orderId) . ". " .
+                       "Hope you enjoyed it. Please rate your experience with {$data['chef_name']} in the app.";
 
             return $this->twilioService->sendOrderNotification(
                 $data['customer_user_id'],
@@ -312,7 +312,7 @@ class OrderSmsService
         return [
             'order_id' => $order->id,
             'chef_user_id' => $chef->id,
-            'chef_name' => trim($chef->first_name . ' ' . $chef->last_name),
+            'chef_name' => $chef->first_name . ' ' . strtoupper(substr($chef->last_name, 0, 1)) . '.',
             'chef_state' => $chef->state,
             'customer_user_id' => $customer->id,
             'customer_name' => trim($customer->first_name) . ' ' . strtoupper(substr($customer->last_name, 0, 1)) . '.',
