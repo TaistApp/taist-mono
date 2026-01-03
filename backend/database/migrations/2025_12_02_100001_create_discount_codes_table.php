@@ -73,3 +73,4 @@ class CreateDiscountCodesTable extends Migration
 
 
 
+

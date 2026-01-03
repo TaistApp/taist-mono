@@ -229,15 +229,12 @@ const styles = StyleSheet.create({
   },
   weekContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 4,
     justifyContent: 'space-between',
-    width: '100%',
   },
   dayContainer: {
+    flex: 1,
     alignItems: 'center',
     paddingVertical: 10,
-    paddingHorizontal: 8,
-    minWidth: 48,
     borderRadius: 10,
     backgroundColor: 'transparent',
   },
