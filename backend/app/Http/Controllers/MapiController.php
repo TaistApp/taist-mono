@@ -4259,8 +4259,9 @@ Write only the review text:";
                             'country' => 'US',
                         ],
                     ],
-                    // Pre-fill business profile to skip "website URL" question
+                    // Pre-fill business profile to skip "Business name" and "website URL" questions
                     'business_profile' => [
+                        'name' => trim($user->first_name . ' ' . $user->last_name),
                         'product_description' => 'Independent contractor chef providing services through Taist',
                         'mcc' => '5812', // Restaurants/eating places
                     ],
