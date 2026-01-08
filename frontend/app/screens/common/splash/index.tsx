@@ -9,6 +9,7 @@ import * as SplashScreen from 'expo-splash-screen';
 
 // Hooks
 import { useAppDispatch } from '../../../hooks/useRedux';
+import { setUser } from '../../../reducers/userSlice';
 
 import { navigate } from '@/app/utils/navigation';
 import { check, openSettings, PERMISSIONS, request, RESULTS } from 'react-native-permissions';
@@ -18,6 +19,10 @@ import { styles } from './styles';
 LogBox.ignoreLogs([
   'RCTBridge required dispatch_sync to load RCTAccessibilityManager',
 ]);
+
+// Dev screen preview config - only works in __DEV__ mode
+const DEV_SCREEN = __DEV__ ? Constants.expoConfig?.extra?.devScreen : null;
+const DEV_USER_TYPE = __DEV__ ? Constants.expoConfig?.extra?.devUserType : null;
 
 // No need for PropsType with Expo Router
 const Splash = () => {
@@ -96,6 +101,40 @@ const Splash = () => {
     SplashScreen.hideAsync().catch(() => {
       // Ignore errors if splash screen is already hidden
     });
+
+    // DEV SCREEN PREVIEW: Skip normal flow and go directly to specified screen
+    if (DEV_SCREEN) {
+      console.log(`[DEV] Navigating directly to: ${DEV_SCREEN} as ${DEV_USER_TYPE || 'guest'}`);
+
+      // Create mock user based on DEV_USER_TYPE
+      if (DEV_USER_TYPE === 'chef') {
+        dispatch(setUser({
+          id: 999,
+          first_name: 'Dev',
+          last_name: 'Chef',
+          email: 'dev@chef.test',
+          user_type: 2, // Chef
+          is_pending: 0,
+          quiz_completed: 1,
+          verified: 1,
+        }));
+      } else if (DEV_USER_TYPE === 'customer') {
+        dispatch(setUser({
+          id: 999,
+          first_name: 'Dev',
+          last_name: 'Customer',
+          email: 'dev@customer.test',
+          user_type: 1, // Customer
+          verified: 1,
+        }));
+      }
+
+      // Navigate after a brief delay to ensure Redux state is set
+      setTimeout(() => {
+        router.replace(DEV_SCREEN);
+      }, 100);
+      return;
+    }
 
     // Fallback: if auto-login takes too long, show login buttons
     const fallbackTimer = setTimeout(() => {

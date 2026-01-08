@@ -1,5 +1,6 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { StripeProvider } from '@stripe/stripe-react-native';
+import Constants from 'expo-constants';
 import { SplashScreen, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
@@ -22,13 +23,29 @@ import { toastConfig } from './utils/toast';
 import AppTheme from '../constants/theme';
 import { initializeCrashlytics } from './services/crashlytics';
 import { ErrorBoundary } from './components/ErrorBoundary';
+
+// Storybook conditional loading
+const STORYBOOK_ENABLED = Constants.expoConfig?.extra?.storybookEnabled;
+
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
+
+// Conditionally load Storybook
+let StorybookUI: React.ComponentType | null = null;
+if (STORYBOOK_ENABLED) {
+  StorybookUI = require('../storybook').default;
+}
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   useEffect(() => {
+    // Skip normal app initialization if Storybook is enabled
+    if (STORYBOOK_ENABLED) {
+      SplashScreen.hideAsync();
+      return;
+    }
+
     // Initialize Crashlytics early
     initializeCrashlytics().catch(error => {
       console.error('Failed to initialize Crashlytics:', error);
@@ -37,13 +54,24 @@ export default function RootLayout() {
     if (Platform.OS === 'ios') {
       KeyboardManager.setEnable(true);
     }
-    
+
     // Initialize navigation
     initializeNavigation();
-    
+
     // Don't hide splash screen here - let the Splash component handle it
     // This ensures seamless transition from native to React splash
   }, []);
+
+  // Render Storybook if enabled
+  if (STORYBOOK_ENABLED && StorybookUI) {
+    return (
+      <SafeAreaProvider>
+        <PaperProvider theme={AppTheme}>
+          <StorybookUI />
+        </PaperProvider>
+      </SafeAreaProvider>
+    );
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

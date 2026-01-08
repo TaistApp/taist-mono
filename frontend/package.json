@@ -17,7 +17,18 @@
     "ios:staging": "APP_ENV=staging npm run ios",
     "dev:prod": "APP_ENV=production npm start",
     "android:prod": "APP_ENV=production npm run android",
-    "ios:prod": "APP_ENV=production npm run ios"
+    "ios:prod": "APP_ENV=production npm run ios",
+    "storybook": "STORYBOOK_ENABLED=true expo start",
+    "storybook:ios": "STORYBOOK_ENABLED=true expo run:ios",
+    "storybook:android": "STORYBOOK_ENABLED=true expo run:android",
+    "dev:chef-menu": "DEV_SCREEN=\"/screens/chef/(tabs)/menu\" DEV_USER_TYPE=chef expo start",
+    "dev:chef-home": "DEV_SCREEN=\"/screens/chef/(tabs)/home\" DEV_USER_TYPE=chef expo start",
+    "dev:chef-orders": "DEV_SCREEN=\"/screens/chef/(tabs)/orders\" DEV_USER_TYPE=chef expo start",
+    "dev:chef-add-item": "DEV_SCREEN=/screens/chef/addMenuItem DEV_USER_TYPE=chef expo start",
+    "dev:chef-profile": "DEV_SCREEN=\"/screens/chef/(tabs)/profile\" DEV_USER_TYPE=chef expo start",
+    "dev:customer-home": "DEV_SCREEN=\"/screens/customer/(tabs)/(home)\" DEV_USER_TYPE=customer expo start",
+    "dev:customer-orders": "DEV_SCREEN=\"/screens/customer/(tabs)/orders\" DEV_USER_TYPE=customer expo start",
+    "dev:login": "DEV_SCREEN=/screens/common/login expo start"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -25,7 +36,7 @@
     "@fortawesome/free-brands-svg-icons": "^6.7.2",
     "@fortawesome/free-solid-svg-icons": "^6.7.2",
     "@fortawesome/react-native-fontawesome": "^0.3.2",
-    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-community/checkbox": "^0.5.20",
     "@react-native-community/datetimepicker": "8.4.4",
     "@react-native-community/geolocation": "^3.4.0",
@@ -91,6 +102,9 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@storybook/addon-ondevice-actions": "^10.1.11",
+    "@storybook/addon-ondevice-controls": "^10.1.11",
+    "@storybook/react-native": "^10.1.11",
     "@types/react": "~19.1.10",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
