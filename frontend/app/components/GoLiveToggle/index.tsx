@@ -222,7 +222,6 @@ const GoLiveToggle: React.FC = () => {
 
   // Handle time tap to edit
   const handleTimePress = (which: 'start' | 'end') => {
-    console.log('handleTimePress called:', which);
     setEditingTime(which);
     setTempTime(which === 'start' ? startTime : endTime);
     setShowTimePicker(true);
@@ -452,109 +451,97 @@ const GoLiveToggle: React.FC = () => {
       >
         <Pressable
           style={styles.timePickerModalOverlay}
-          onPress={handleCancelFlow}
+          onPress={showTimePicker ? handleCancelTimePicker : handleCancelFlow}
         >
           <View
             style={styles.timeConfirmContent}
             onStartShouldSetResponder={() => true}
             onResponderRelease={(e) => e.stopPropagation()}
           >
-            <View style={styles.timePickerModalHeader}>
-              <TouchableOpacity onPress={handleCancelFlow} disabled={loading}>
-                <Text style={[styles.timePickerModalCancel, loading && styles.disabledText]}>
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-              <Text style={styles.timePickerModalTitle}>
-                {selectedDay === 'today' ? "Today's" : "Tomorrow's"} Hours
-              </Text>
-              <TouchableOpacity onPress={handleConfirmGoLive} disabled={loading}>
-                {loading ? (
-                  <ActivityIndicator size="small" color="#C75B12" />
-                ) : (
-                  <Text style={styles.timePickerModalDone}>Confirm</Text>
-                )}
-              </TouchableOpacity>
-            </View>
+            {/* Show time picker inline on iOS, or show time selection UI */}
+            {showTimePicker && Platform.OS === 'ios' ? (
+              <>
+                <View style={styles.timePickerModalHeader}>
+                  <TouchableOpacity onPress={handleCancelTimePicker}>
+                    <Text style={styles.timePickerModalCancel}>Cancel</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.timePickerModalTitle}>
+                    {editingTime === 'start' ? 'Start Time' : 'End Time'}
+                  </Text>
+                  <TouchableOpacity onPress={handleConfirmTimePicker}>
+                    <Text style={styles.timePickerModalDone}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  mode="time"
+                  display="spinner"
+                  value={getPickerDisplayTime()}
+                  minimumDate={new Date(2030, 0, 15, 0, 0, 0)}
+                  maximumDate={new Date(2030, 0, 15, 23, 59, 59)}
+                  onChange={onTimeChange}
+                />
+              </>
+            ) : (
+              <>
+                <View style={styles.timePickerModalHeader}>
+                  <TouchableOpacity onPress={handleCancelFlow} disabled={loading}>
+                    <Text style={[styles.timePickerModalCancel, loading && styles.disabledText]}>
+                      Cancel
+                    </Text>
+                  </TouchableOpacity>
+                  <Text style={styles.timePickerModalTitle}>
+                    {selectedDay === 'today' ? "Today's" : "Tomorrow's"} Hours
+                  </Text>
+                  <TouchableOpacity onPress={handleConfirmGoLive} disabled={loading}>
+                    {loading ? (
+                      <ActivityIndicator size="small" color="#C75B12" />
+                    ) : (
+                      <Text style={styles.timePickerModalDone}>Confirm</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
 
-            <View style={styles.timeRow}>
-              <TouchableOpacity
-                style={styles.timeBlock}
-                onPress={() => handleTimePress('start')}
-                disabled={loading}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.timeLabel}>Start</Text>
-                <Text style={styles.timeValue}>{formatDisplayTime(startTime)}</Text>
-              </TouchableOpacity>
+                <View style={styles.timeRow}>
+                  <TouchableOpacity
+                    style={styles.timeBlock}
+                    onPress={() => handleTimePress('start')}
+                    disabled={loading}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.timeLabel}>Start</Text>
+                    <Text style={styles.timeValue}>{formatDisplayTime(startTime)}</Text>
+                  </TouchableOpacity>
 
-              <Text style={styles.timeSeparator}>to</Text>
+                  <Text style={styles.timeSeparator}>to</Text>
 
-              <TouchableOpacity
-                style={styles.timeBlock}
-                onPress={() => handleTimePress('end')}
-                disabled={loading}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.timeLabel}>End</Text>
-                <Text style={styles.timeValue}>{formatDisplayTime(endTime)}</Text>
-              </TouchableOpacity>
-            </View>
+                  <TouchableOpacity
+                    style={styles.timeBlock}
+                    onPress={() => handleTimePress('end')}
+                    disabled={loading}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.timeLabel}>End</Text>
+                    <Text style={styles.timeValue}>{formatDisplayTime(endTime)}</Text>
+                  </TouchableOpacity>
+                </View>
 
-            <Text style={styles.timeHint}>Tap times to adjust</Text>
+                <Text style={styles.timeHint}>Tap times to adjust</Text>
+              </>
+            )}
           </View>
         </Pressable>
       </Modal>
 
-      {/* Time Picker Modal (for editing individual time) */}
-      {Platform.OS === 'ios' ? (
-        <Modal
-          visible={showTimePicker}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={handleCancelTimePicker}
-        >
-          <Pressable
-            style={styles.timePickerModalOverlay}
-            onPress={handleCancelTimePicker}
-          >
-            <View
-              style={styles.timePickerModalContent}
-              onStartShouldSetResponder={() => true}
-            >
-              <View style={styles.timePickerModalHeader}>
-                <Pressable onPress={handleCancelTimePicker}>
-                  <Text style={styles.timePickerModalCancel}>Cancel</Text>
-                </Pressable>
-                <Text style={styles.timePickerModalTitle}>
-                  {editingTime === 'start' ? 'Start Time' : 'End Time'}
-                </Text>
-                <Pressable onPress={handleConfirmTimePicker}>
-                  <Text style={styles.timePickerModalDone}>Done</Text>
-                </Pressable>
-              </View>
-              <DateTimePicker
-                mode="time"
-                display="spinner"
-                value={getPickerDisplayTime()}
-                minimumDate={new Date(2030, 0, 15, 0, 0, 0)}
-                maximumDate={new Date(2030, 0, 15, 23, 59, 59)}
-                onChange={onTimeChange}
-              />
-            </View>
-          </Pressable>
-        </Modal>
-      ) : (
-        showTimePicker && (
-          <DateTimePicker
-            mode="time"
-            display="default"
-            value={getPickerDisplayTime()}
-            minimumDate={new Date(2030, 0, 15, 0, 0, 0)}
-            maximumDate={new Date(2030, 0, 15, 23, 59, 59)}
-            onChange={onTimeChange}
-          />
-        )
+      {/* Android Time Picker - rendered outside modal */}
+      {Platform.OS === 'android' && showTimePicker && (
+        <DateTimePicker
+          mode="time"
+          display="default"
+          value={getPickerDisplayTime()}
+          minimumDate={new Date(2030, 0, 15, 0, 0, 0)}
+          maximumDate={new Date(2030, 0, 15, 23, 59, 59)}
+          onChange={onTimeChange}
+        />
       )}
 
       {/* Confirmation Modal for going offline */}
