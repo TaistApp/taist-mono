@@ -147,6 +147,60 @@ export const styles = StyleSheet.create({
     color: 'white',
   },
 
+  // Online options modal (when already live)
+  onlineOptionsContent: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
+    width: '85%',
+    maxWidth: 340,
+  },
+  goOfflineButton: {
+    backgroundColor: AppColors.primary,
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  goOfflineButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  changeHoursRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  changeHoursButton: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  changeHoursButtonText: {
+    color: AppColors.text,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  changeHoursButtonSet: {
+    backgroundColor: '#e8f5e9',
+    borderWidth: 1,
+    borderColor: AppColors.success,
+  },
+  changeHoursButtonTextSet: {
+    color: AppColors.success,
+  },
+  cancelTextButton: {
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  cancelTextButtonText: {
+    color: AppColors.textSecondary,
+    fontSize: 14,
+  },
+
   // Day picker styles
   dayPickerContent: {
     backgroundColor: 'white',
@@ -166,6 +220,14 @@ export const styles = StyleSheet.create({
   },
   dayButtonText: {
     color: 'white',
+  },
+  dayButtonSet: {
+    backgroundColor: '#e8f5e9',
+    borderWidth: 1,
+    borderColor: AppColors.success,
+  },
+  dayButtonTextSet: {
+    color: AppColors.success,
   },
 
   // Time confirmation modal styles

@@ -80,6 +80,9 @@ const GoLiveToggle: React.FC = () => {
   // Confirmation modal state (for going offline)
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
+  // Tomorrow status indicator
+  const [hasTomorrowOverride, setHasTomorrowOverride] = useState(false);
+
   // Get chef profile from Redux for weekly schedule
   const chefProfile = useSelector((state: RootState) => state.chef.profile);
 
@@ -119,9 +122,10 @@ const GoLiveToggle: React.FC = () => {
   const fetchStatus = async () => {
     try {
       const today = moment().format('YYYY-MM-DD');
+      const tomorrow = moment().add(1, 'day').format('YYYY-MM-DD');
       const response = await GetAvailabilityOverridesAPI({
         start_date: today,
-        end_date: today,
+        end_date: tomorrow,
       });
 
       if (response.success === 1) {
@@ -146,6 +150,12 @@ const GoLiveToggle: React.FC = () => {
         } else {
           setIsOnline(false);
         }
+
+        // Check for tomorrow's override
+        const tomorrowOverride = response.data?.find(
+          (o: any) => o.override_date === tomorrow && o.status !== 'cancelled'
+        );
+        setHasTomorrowOverride(!!tomorrowOverride);
       }
     } catch (error) {
       console.error('Error fetching availability status:', error);
@@ -450,15 +460,21 @@ const GoLiveToggle: React.FC = () => {
                 onPress={() => handleDaySelect('today')}
               >
                 <Text style={[styles.confirmButtonText, styles.dayButtonText]}>
-                  Today
+                  Set Today
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.confirmButton, styles.dayButton]}
+                style={[
+                  styles.confirmButton,
+                  hasTomorrowOverride ? styles.dayButtonSet : styles.dayButton,
+                ]}
                 onPress={() => handleDaySelect('tomorrow')}
               >
-                <Text style={[styles.confirmButtonText, styles.dayButtonText]}>
-                  Tomorrow
+                <Text style={[
+                  styles.confirmButtonText,
+                  hasTomorrowOverride ? styles.dayButtonTextSet : styles.dayButtonText,
+                ]}>
+                  {hasTomorrowOverride ? 'Tomorrow ✓' : 'Set Tomorrow'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -568,7 +584,7 @@ const GoLiveToggle: React.FC = () => {
         />
       )}
 
-      {/* Confirmation Modal for going offline */}
+      {/* Options Modal when online - Go Offline or Change Hours */}
       <Modal
         visible={showConfirmModal}
         transparent={true}
@@ -580,31 +596,56 @@ const GoLiveToggle: React.FC = () => {
           onPress={() => setShowConfirmModal(false)}
         >
           <View
-            style={styles.confirmModalContent}
+            style={styles.onlineOptionsContent}
             onStartShouldSetResponder={() => true}
           >
-            <Text style={styles.confirmTitle}>Go Offline?</Text>
-            <Text style={styles.confirmMessage}>
-              You will stop appearing as available to customers for the rest of today.
-            </Text>
-            <View style={styles.confirmButtons}>
+            <Text style={styles.confirmTitle}>Availability Options</Text>
+
+            {/* Go Offline - Primary CTA */}
+            <TouchableOpacity
+              style={styles.goOfflineButton}
+              onPress={handleGoOffline}
+            >
+              <Text style={styles.goOfflineButtonText}>Go Offline</Text>
+            </TouchableOpacity>
+
+            {/* Change Hours Options */}
+            <View style={styles.changeHoursRow}>
               <TouchableOpacity
-                style={[styles.confirmButton, styles.confirmButtonCancel]}
-                onPress={() => setShowConfirmModal(false)}
+                style={styles.changeHoursButton}
+                onPress={() => {
+                  setShowConfirmModal(false);
+                  handleDaySelect('today');
+                }}
               >
-                <Text style={[styles.confirmButtonText, styles.confirmButtonTextCancel]}>
-                  Cancel
-                </Text>
+                <Text style={styles.changeHoursButtonText}>Change Today</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.confirmButton, styles.confirmButtonConfirm]}
-                onPress={handleGoOffline}
+                style={[
+                  styles.changeHoursButton,
+                  hasTomorrowOverride && styles.changeHoursButtonSet,
+                ]}
+                onPress={() => {
+                  setShowConfirmModal(false);
+                  handleDaySelect('tomorrow');
+                }}
               >
-                <Text style={[styles.confirmButtonText, styles.confirmButtonTextConfirm]}>
-                  Go Offline
+                <Text style={[
+                  styles.changeHoursButtonText,
+                  hasTomorrowOverride && styles.changeHoursButtonTextSet,
+                ]}>
+                  {hasTomorrowOverride ? 'Tomorrow ✓' : 'Set Tomorrow'}
                 </Text>
               </TouchableOpacity>
             </View>
+
+            {/* Cancel */}
+            <TouchableOpacity
+              style={styles.cancelTextButton}
+              onPress={() => setShowConfirmModal(false)}
+            >
+              <Text style={styles.cancelTextButtonText}>Cancel</Text>
+            </TouchableOpacity>
           </View>
         </Pressable>
       </Modal>
