@@ -197,7 +197,7 @@ class ChefConfirmationReminderService
         $tomorrowDayOfWeek = strtolower($tomorrow->format('l')); // monday, tuesday, etc.
 
         // Get all availabilities
-        $availabilities = app(Availabilities::class)->with('user')->get();
+        $availabilities = app(Availabilities::class)->get();
 
         $remindersToSend = [];
 
