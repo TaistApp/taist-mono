@@ -222,6 +222,7 @@ const GoLiveToggle: React.FC = () => {
 
   // Handle time tap to edit
   const handleTimePress = (which: 'start' | 'end') => {
+    console.log('handleTimePress called:', which);
     setEditingTime(which);
     setTempTime(which === 'start' ? startTime : endTime);
     setShowTimePicker(true);
