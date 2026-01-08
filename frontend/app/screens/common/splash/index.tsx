@@ -25,6 +25,13 @@ LogBox.ignoreLogs([
 const DEV_SCREEN = __DEV__ ? Constants.expoConfig?.extra?.devScreen : null;
 const DEV_USER_TYPE = __DEV__ ? Constants.expoConfig?.extra?.devUserType : null;
 
+// Test accounts for dev screen preview (only used in __DEV__ mode)
+// Update these with real test account credentials on staging
+const DEV_TEST_ACCOUNTS = __DEV__ ? {
+  chef: { email: 'testchef@taist.com', password: 'Test123!' },
+  customer: { email: 'testcustomer@taist.com', password: 'Test123!' },
+} : null;
+
 // No need for PropsType with Expo Router
 const Splash = () => {
   const [splash, setSplash] = useState(true);
@@ -107,35 +114,62 @@ const Splash = () => {
     if (DEV_SCREEN) {
       console.log(`[DEV] Navigating directly to: ${DEV_SCREEN} as ${DEV_USER_TYPE || 'guest'}`);
 
-      // Create mock user based on DEV_USER_TYPE
-      if (DEV_USER_TYPE === 'chef') {
-        dispatch(setUser({
-          id: 999,
-          first_name: 'Dev',
-          last_name: 'Chef',
-          email: 'dev@chef.test',
-          user_type: 2, // Chef
-          is_pending: 0,
-          quiz_completed: 1,
-          verified: 1,
-        }));
-        // Clear menus to show empty state
-        dispatch(updateMenus([]));
-      } else if (DEV_USER_TYPE === 'customer') {
-        dispatch(setUser({
-          id: 999,
-          first_name: 'Dev',
-          last_name: 'Customer',
-          email: 'dev@customer.test',
-          user_type: 1, // Customer
-          verified: 1,
-        }));
-      }
+      const performDevLogin = async () => {
+        const testAccount = DEV_USER_TYPE === 'chef'
+          ? DEV_TEST_ACCOUNTS?.chef
+          : DEV_TEST_ACCOUNTS?.customer;
 
-      // Navigate after a brief delay to ensure Redux state is set
-      setTimeout(() => {
-        router.replace(DEV_SCREEN);
-      }, 100);
+        if (testAccount) {
+          try {
+            console.log(`[DEV] Attempting login with test account: ${testAccount.email}`);
+            const response = await LoginAPI(
+              { email: testAccount.email, password: testAccount.password, remember: false },
+              dispatch
+            );
+
+            if (response.success === 1) {
+              console.log('[DEV] Login successful, navigating to screen');
+              router.replace(DEV_SCREEN);
+              return;
+            } else {
+              console.warn('[DEV] Login failed, falling back to mock user:', response);
+            }
+          } catch (error) {
+            console.warn('[DEV] Login error, falling back to mock user:', error);
+          }
+        }
+
+        // Fallback to mock user if login fails or no test account
+        console.log('[DEV] Using mock user (no API access)');
+        if (DEV_USER_TYPE === 'chef') {
+          dispatch(setUser({
+            id: 999,
+            first_name: 'Dev',
+            last_name: 'Chef',
+            email: 'dev@chef.test',
+            user_type: 2, // Chef
+            is_pending: 0,
+            quiz_completed: 1,
+            verified: 1,
+          }));
+          dispatch(updateMenus([]));
+        } else if (DEV_USER_TYPE === 'customer') {
+          dispatch(setUser({
+            id: 999,
+            first_name: 'Dev',
+            last_name: 'Customer',
+            email: 'dev@customer.test',
+            user_type: 1, // Customer
+            verified: 1,
+          }));
+        }
+
+        setTimeout(() => {
+          router.replace(DEV_SCREEN);
+        }, 100);
+      };
+
+      performDevLogin();
       return;
     }
 

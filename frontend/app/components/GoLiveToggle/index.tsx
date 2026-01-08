@@ -229,17 +229,43 @@ const GoLiveToggle: React.FC = () => {
     setShowTimePicker(true);
   };
 
+  // Auto-adjust times to maintain valid start < end relationship
+  // Matches behavior from weekly availability (chef profile screen)
+  const applyTimeWithAutoAdjust = (newTime: Date, type: 'start' | 'end') => {
+    let newStart = type === 'start' ? newTime : startTime;
+    let newEnd = type === 'end' ? newTime : endTime;
+
+    if (newStart && newEnd) {
+      const startMinutes = newStart.getHours() * 60 + newStart.getMinutes();
+      const endMinutes = newEnd.getHours() * 60 + newEnd.getMinutes();
+
+      if (startMinutes >= endMinutes) {
+        const baseDate = getPickerBaseDate();
+        if (type === 'start') {
+          // User changed start time to be >= end, push end forward by 1 hour
+          const newEndDate = new Date(baseDate.getTime());
+          newEndDate.setHours(newStart.getHours() + 1, newStart.getMinutes(), 0, 0);
+          newEnd = newEndDate;
+        } else {
+          // User changed end time to be <= start, pull start backward by 1 hour
+          const newStartDate = new Date(baseDate.getTime());
+          newStartDate.setHours(newEnd.getHours() - 1, newEnd.getMinutes(), 0, 0);
+          newStart = newStartDate;
+        }
+      }
+    }
+
+    setStartTime(newStart);
+    setEndTime(newEnd);
+  };
+
   // Time picker change handler
   const onTimeChange = (event: any, selectedDate?: Date) => {
     // On Android, the picker closes automatically
     if (Platform.OS === 'android') {
       setShowTimePicker(false);
-      if (event.type === 'set' && selectedDate) {
-        if (editingTime === 'start') {
-          setStartTime(selectedDate);
-        } else {
-          setEndTime(selectedDate);
-        }
+      if (event.type === 'set' && selectedDate && editingTime) {
+        applyTimeWithAutoAdjust(selectedDate, editingTime);
       }
       setEditingTime(null);
       return;
@@ -266,12 +292,8 @@ const GoLiveToggle: React.FC = () => {
 
   // Confirm time picker (iOS Done button)
   const handleConfirmTimePicker = () => {
-    if (tempTime) {
-      if (editingTime === 'start') {
-        setStartTime(tempTime);
-      } else {
-        setEndTime(tempTime);
-      }
+    if (tempTime && editingTime) {
+      applyTimeWithAutoAdjust(tempTime, editingTime);
     }
     setTempTime(null);
     setShowTimePicker(false);
