@@ -11,7 +11,6 @@ import {
   Pressable,
   KeyboardAvoidingView,
   Keyboard,
-  useWindowDimensions,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
@@ -115,11 +114,6 @@ const normalizeTimeDate = (date: Date): Date => {
 const Profile = () => {
   const chefProfile: IChefProfile = useAppSelector(x => x.chef.profile);
   const dispatch = useAppDispatch();
-  const { width } = useWindowDimensions();
-
-  // Use abbreviated day names on narrow screens (< 360px)
-  const useShortDayNames = width < 360;
-
   const [bio, onChangeBio] = useState('');
   const [days, onChangeDays] = useState<Array<HoursAvailableType>>([
     { id: '0', day: 'Sun', fullDay: 'Sunday', checked: false },
@@ -416,7 +410,7 @@ const Profile = () => {
                     ]}
                     numberOfLines={1}
                   >
-                    {useShortDayNames ? day.day : day.fullDay}
+                    {day.day}
                   </Text>
                 </TouchableOpacity>
 
