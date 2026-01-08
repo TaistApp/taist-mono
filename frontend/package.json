@@ -21,14 +21,14 @@
     "storybook": "STORYBOOK_ENABLED=true expo start",
     "storybook:ios": "STORYBOOK_ENABLED=true expo run:ios",
     "storybook:android": "STORYBOOK_ENABLED=true expo run:android",
-    "dev:chef-menu": "adb reverse tcp:8081 tcp:8081 2>/dev/null; DEV_SCREEN=\"/screens/chef/(tabs)/menu\" DEV_USER_TYPE=chef expo start",
-    "dev:chef-home": "adb reverse tcp:8081 tcp:8081 2>/dev/null; DEV_SCREEN=\"/screens/chef/(tabs)/home\" DEV_USER_TYPE=chef expo start",
-    "dev:chef-orders": "adb reverse tcp:8081 tcp:8081 2>/dev/null; DEV_SCREEN=\"/screens/chef/(tabs)/orders\" DEV_USER_TYPE=chef expo start",
-    "dev:chef-add-item": "adb reverse tcp:8081 tcp:8081 2>/dev/null; DEV_SCREEN=/screens/chef/addMenuItem DEV_USER_TYPE=chef expo start",
-    "dev:chef-profile": "adb reverse tcp:8081 tcp:8081 2>/dev/null; DEV_SCREEN=\"/screens/chef/(tabs)/profile\" DEV_USER_TYPE=chef expo start",
-    "dev:customer-home": "adb reverse tcp:8081 tcp:8081 2>/dev/null; DEV_SCREEN=\"/screens/customer/(tabs)/(home)\" DEV_USER_TYPE=customer expo start",
-    "dev:customer-orders": "adb reverse tcp:8081 tcp:8081 2>/dev/null; DEV_SCREEN=\"/screens/customer/(tabs)/orders\" DEV_USER_TYPE=customer expo start",
-    "dev:login": "adb reverse tcp:8081 tcp:8081 2>/dev/null; DEV_SCREEN=/screens/common/login expo start"
+    "dev:chef-menu": "adb reverse tcp:8081 tcp:8081 2>/dev/null; APP_ENV=staging DEV_SCREEN=\"/screens/chef/(tabs)/menu\" DEV_USER_TYPE=chef expo start",
+    "dev:chef-home": "adb reverse tcp:8081 tcp:8081 2>/dev/null; APP_ENV=staging DEV_SCREEN=\"/screens/chef/(tabs)/home\" DEV_USER_TYPE=chef expo start",
+    "dev:chef-orders": "adb reverse tcp:8081 tcp:8081 2>/dev/null; APP_ENV=staging DEV_SCREEN=\"/screens/chef/(tabs)/orders\" DEV_USER_TYPE=chef expo start",
+    "dev:chef-add-item": "adb reverse tcp:8081 tcp:8081 2>/dev/null; APP_ENV=staging DEV_SCREEN=/screens/chef/addMenuItem DEV_USER_TYPE=chef expo start",
+    "dev:chef-profile": "adb reverse tcp:8081 tcp:8081 2>/dev/null; APP_ENV=staging DEV_SCREEN=\"/screens/chef/(tabs)/profile\" DEV_USER_TYPE=chef expo start",
+    "dev:customer-home": "adb reverse tcp:8081 tcp:8081 2>/dev/null; APP_ENV=staging DEV_SCREEN=\"/screens/customer/(tabs)/(home)\" DEV_USER_TYPE=customer expo start",
+    "dev:customer-orders": "adb reverse tcp:8081 tcp:8081 2>/dev/null; APP_ENV=staging DEV_SCREEN=\"/screens/customer/(tabs)/orders\" DEV_USER_TYPE=customer expo start",
+    "dev:login": "adb reverse tcp:8081 tcp:8081 2>/dev/null; APP_ENV=staging DEV_SCREEN=/screens/common/login expo start"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

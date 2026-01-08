@@ -35,13 +35,15 @@ npm run | grep dev:
 For any screen not in the shortcuts above:
 
 ```bash
-# Format: DEV_SCREEN="<path>" DEV_USER_TYPE=<chef|customer> expo start
+# Format: APP_ENV=staging DEV_SCREEN="<path>" DEV_USER_TYPE=<chef|customer> expo start
 
 # Examples:
-DEV_SCREEN="/screens/chef/earnings" DEV_USER_TYPE=chef expo start
-DEV_SCREEN="/screens/customer/cart" DEV_USER_TYPE=customer expo start
-DEV_SCREEN="/screens/common/signup" expo start
+APP_ENV=staging DEV_SCREEN="/screens/chef/earnings" DEV_USER_TYPE=chef expo start
+APP_ENV=staging DEV_SCREEN="/screens/customer/cart" DEV_USER_TYPE=customer expo start
+APP_ENV=staging DEV_SCREEN="/screens/common/signup" expo start
 ```
+
+**Note:** Always include `APP_ENV=staging` to ensure the app connects to the staging server where test accounts exist.
 
 ---
 
