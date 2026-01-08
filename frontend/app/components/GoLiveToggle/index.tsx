@@ -449,55 +449,60 @@ const GoLiveToggle: React.FC = () => {
         animationType="slide"
         onRequestClose={handleCancelFlow}
       >
-        <TouchableWithoutFeedback onPress={handleCancelFlow}>
-          <View style={styles.timePickerModalOverlay}>
-            <TouchableWithoutFeedback>
-              <View style={styles.timeConfirmContent}>
-                <View style={styles.timePickerModalHeader}>
-                  <Pressable onPress={handleCancelFlow} disabled={loading}>
-                    <Text style={[styles.timePickerModalCancel, loading && styles.disabledText]}>
-                      Cancel
-                    </Text>
-                  </Pressable>
-                  <Text style={styles.timePickerModalTitle}>
-                    {selectedDay === 'today' ? "Today's" : "Tomorrow's"} Hours
-                  </Text>
-                  <Pressable onPress={handleConfirmGoLive} disabled={loading}>
-                    {loading ? (
-                      <ActivityIndicator size="small" color="#C75B12" />
-                    ) : (
-                      <Text style={styles.timePickerModalDone}>Confirm</Text>
-                    )}
-                  </Pressable>
-                </View>
+        <Pressable
+          style={styles.timePickerModalOverlay}
+          onPress={handleCancelFlow}
+        >
+          <View
+            style={styles.timeConfirmContent}
+            onStartShouldSetResponder={() => true}
+            onResponderRelease={(e) => e.stopPropagation()}
+          >
+            <View style={styles.timePickerModalHeader}>
+              <TouchableOpacity onPress={handleCancelFlow} disabled={loading}>
+                <Text style={[styles.timePickerModalCancel, loading && styles.disabledText]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <Text style={styles.timePickerModalTitle}>
+                {selectedDay === 'today' ? "Today's" : "Tomorrow's"} Hours
+              </Text>
+              <TouchableOpacity onPress={handleConfirmGoLive} disabled={loading}>
+                {loading ? (
+                  <ActivityIndicator size="small" color="#C75B12" />
+                ) : (
+                  <Text style={styles.timePickerModalDone}>Confirm</Text>
+                )}
+              </TouchableOpacity>
+            </View>
 
-                <View style={styles.timeRow}>
-                  <Pressable
-                    style={styles.timeBlock}
-                    onPress={() => handleTimePress('start')}
-                    disabled={loading}
-                  >
-                    <Text style={styles.timeLabel}>Start</Text>
-                    <Text style={styles.timeValue}>{formatDisplayTime(startTime)}</Text>
-                  </Pressable>
+            <View style={styles.timeRow}>
+              <TouchableOpacity
+                style={styles.timeBlock}
+                onPress={() => handleTimePress('start')}
+                disabled={loading}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.timeLabel}>Start</Text>
+                <Text style={styles.timeValue}>{formatDisplayTime(startTime)}</Text>
+              </TouchableOpacity>
 
-                  <Text style={styles.timeSeparator}>to</Text>
+              <Text style={styles.timeSeparator}>to</Text>
 
-                  <Pressable
-                    style={styles.timeBlock}
-                    onPress={() => handleTimePress('end')}
-                    disabled={loading}
-                  >
-                    <Text style={styles.timeLabel}>End</Text>
-                    <Text style={styles.timeValue}>{formatDisplayTime(endTime)}</Text>
-                  </Pressable>
-                </View>
+              <TouchableOpacity
+                style={styles.timeBlock}
+                onPress={() => handleTimePress('end')}
+                disabled={loading}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.timeLabel}>End</Text>
+                <Text style={styles.timeValue}>{formatDisplayTime(endTime)}</Text>
+              </TouchableOpacity>
+            </View>
 
-                <Text style={styles.timeHint}>Tap times to adjust</Text>
-              </View>
-            </TouchableWithoutFeedback>
+            <Text style={styles.timeHint}>Tap times to adjust</Text>
           </View>
-        </TouchableWithoutFeedback>
+        </Pressable>
       </Modal>
 
       {/* Time Picker Modal (for editing individual time) */}
