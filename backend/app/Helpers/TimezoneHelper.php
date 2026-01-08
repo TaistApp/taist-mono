@@ -254,4 +254,28 @@ class TimezoneHelper
             return new DateTime('now', new DateTimeZone(self::$defaultTimezone));
         }
     }
+
+    /**
+     * Get current time (HH:MM:SS) in a specific timezone
+     *
+     * @param string|null $timezone IANA timezone identifier (e.g., 'America/Chicago')
+     *                              If invalid or null, falls back to default timezone
+     * @return string Time in HH:MM:SS format
+     */
+    public static function getCurrentTimeInTimezone(?string $timezone): string
+    {
+        $tz = self::isValidTimezone($timezone) ? $timezone : self::$defaultTimezone;
+
+        try {
+            $dateTime = new DateTime('now', new DateTimeZone($tz));
+            return $dateTime->format('H:i:s');
+        } catch (Exception $e) {
+            Log::error('TimezoneHelper::getCurrentTimeInTimezone failed', [
+                'timezone' => $timezone,
+                'error' => $e->getMessage()
+            ]);
+            // Ultimate fallback - use server timezone
+            return date('H:i:s');
+        }
+    }
 }

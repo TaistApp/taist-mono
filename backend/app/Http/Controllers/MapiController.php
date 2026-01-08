@@ -3381,7 +3381,8 @@ Write only the review text:";
 
             // Get time slot range to check
             $timeSlot = isset($request->time_slot) ? (int)$request->time_slot : 0;
-            $checkTime = '12:00:00'; // Default to midday
+            $checkTime = null; // null means "any time"
+            $isAnyTime = ($timeSlot === 0);
 
             switch ($timeSlot) {
                 case 1: // Breakfast (5-11)
@@ -3410,11 +3411,28 @@ Write only the review text:";
             // Use client timezone to determine "today" (for Go Live requirement)
             $clientTimezone = $request->input('timezone');
             $today = \App\Helpers\TimezoneHelper::getTodayInTimezone($clientTimezone);
-            $data = array_values(array_filter($dataArray, function($chef) use ($dateString, $checkTime, $overrides, $today) {
+            $currentTime = \App\Helpers\TimezoneHelper::getCurrentTimeInTimezone($clientTimezone);
+            $data = array_values(array_filter($dataArray, function($chef) use ($dateString, $checkTime, $overrides, $today, $isAnyTime, $currentTime) {
                 $override = $overrides->get($chef->id);
 
                 if ($override) {
-                    // Override exists - check if available at this time
+                    // Override exists - check availability
+                    if ($override->isCancelled()) {
+                        return false;
+                    }
+
+                    if ($isAnyTime) {
+                        // "Any time" filter: show if chef has ANY remaining availability today
+                        // For today, check end_time > current time
+                        // For future dates, just check they have times set
+                        if ($dateString === $today) {
+                            return $override->end_time > $currentTime;
+                        }
+                        // Future date with active override - they're available
+                        return $override->start_time && $override->end_time;
+                    }
+
+                    // Specific time slot selected - check if available at that time
                     return $override->isAvailableAt($checkTime);
                 }
 
