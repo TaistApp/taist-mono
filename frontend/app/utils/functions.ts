@@ -57,3 +57,11 @@ export const Delay = (ms: number) => {
     setTimeout(res, ms);
   });
 };
+
+export const formatDisplayName = (firstName?: string, lastName?: string) => {
+  const first = firstName || '';
+  const lastInitial = lastName?.substring(0, 1) || '';
+  if (!first && !lastInitial) return '';
+  if (!lastInitial) return first;
+  return `${first} ${lastInitial}.`;
+};

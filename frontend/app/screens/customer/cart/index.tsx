@@ -14,7 +14,7 @@ import StyledButton from '../../../components/styledButton';
 import Container from '../../../layout/Container';
 import { useAppDispatch, useAppSelector } from '../../../hooks/useRedux';
 import { removeCustomerOrders } from '../../../reducers/customerSlice';
-import { getImageURL } from '../../../utils/functions';
+import { getImageURL, formatDisplayName } from '../../../utils/functions';
 import { ShowInfoToast } from '../../../utils/toast';
 import { styles } from './styles';
 import EmptyListView from '../../../components/emptyListView/emptyListView';
@@ -131,7 +131,7 @@ const Cart = () => {
                       />
                     )}
                     <Text style={styles.chefName}>
-                      {chef?.first_name} {chef?.last_name}
+                      {formatDisplayName(chef?.first_name, chef?.last_name)}
                     </Text>
                   </View>
                   <TouchableOpacity
