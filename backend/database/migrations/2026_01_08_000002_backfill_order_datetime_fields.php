@@ -4,8 +4,6 @@ use Illuminate\Database\Migrations\Migration;
 use App\Models\Orders;
 use App\Listener;
 use App\Helpers\TimezoneHelper;
-use DateTime;
-use DateTimeZone;
 
 return new class extends Migration
 {
@@ -22,8 +20,8 @@ return new class extends Migration
                         ? TimezoneHelper::getTimezoneForState($chef->state)
                         : TimezoneHelper::getDefaultTimezone();
 
-                    $dt = new DateTime("@{$timestamp}");
-                    $dt->setTimezone(new DateTimeZone($chefTimezone));
+                    $dt = new \DateTime("@{$timestamp}");
+                    $dt->setTimezone(new \DateTimeZone($chefTimezone));
 
                     $order->update([
                         'order_date_new' => $dt->format('Y-m-d'),
