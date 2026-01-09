@@ -44,7 +44,7 @@ class Kernel extends ConsoleKernel
         $schedule->command('chef:send-confirmation-reminders')
                  ->everyFifteenMinutes()
                  ->withoutOverlapping()
-                 ->appendOutputTo('php://stderr');
+                 ->appendOutputTo('php://stdout');
 
         // TMA-011 REVISED: Clean up old availability overrides
         // Removes override records older than 7 days to keep database clean
