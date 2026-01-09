@@ -532,7 +532,7 @@ const GoLiveToggle: React.FC = () => {
                 onPress={() => handleDaySelect('today')}
               >
                 <Text style={[styles.confirmButtonText, styles.dayButtonText]}>
-                  Set Today
+                  Go Live Today
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -546,7 +546,7 @@ const GoLiveToggle: React.FC = () => {
                   styles.confirmButtonText,
                   hasTomorrowOverride ? styles.dayButtonTextSet : styles.dayButtonText,
                 ]}>
-                  {hasTomorrowOverride ? 'Tomorrow ✓' : 'Set Tomorrow'}
+                  {hasTomorrowOverride ? 'Tomorrow ✓' : 'Go Live Tomorrow'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -604,13 +604,7 @@ const GoLiveToggle: React.FC = () => {
                   <Text style={styles.timePickerModalTitle}>
                     {selectedDay === 'today' ? "Today's" : "Tomorrow's"} Hours
                   </Text>
-                  <TouchableOpacity onPress={handleConfirmGoLive} disabled={loading}>
-                    {loading ? (
-                      <ActivityIndicator size="small" color="#C75B12" />
-                    ) : (
-                      <Text style={styles.timePickerModalDone}>Confirm</Text>
-                    )}
-                  </TouchableOpacity>
+                  <View style={styles.headerPlaceholder} />
                 </View>
 
                 <View style={styles.timeRow}>
@@ -639,13 +633,27 @@ const GoLiveToggle: React.FC = () => {
 
                 <Text style={styles.timeHint}>Tap times to adjust</Text>
 
-                <TouchableOpacity
-                  style={styles.notAvailableButton}
-                  onPress={handleNotAvailable}
-                  disabled={loading}
-                >
-                  <Text style={styles.notAvailableButtonText}>Not Available</Text>
-                </TouchableOpacity>
+                <View style={styles.actionButtonsRow}>
+                  <TouchableOpacity
+                    style={styles.notAvailableButton}
+                    onPress={handleNotAvailable}
+                    disabled={loading}
+                  >
+                    <Text style={styles.notAvailableButtonText}>Not Available</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.confirmButton, styles.confirmButtonGreen]}
+                    onPress={handleConfirmGoLive}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <ActivityIndicator size="small" color="white" />
+                    ) : (
+                      <Text style={styles.confirmButtonTextWhite}>Confirm</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
               </>
             )}
           </View>
@@ -714,7 +722,7 @@ const GoLiveToggle: React.FC = () => {
                   styles.changeHoursButtonText,
                   hasTomorrowOverride && styles.changeHoursButtonTextSet,
                 ]}>
-                  {hasTomorrowOverride ? 'Tomorrow ✓' : 'Set Tomorrow'}
+                  {hasTomorrowOverride ? 'Tomorrow ✓' : 'Go Live Tomorrow'}
                 </Text>
               </TouchableOpacity>
             </View>

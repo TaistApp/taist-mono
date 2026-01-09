@@ -274,19 +274,44 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
     paddingBottom: Spacing.md,
   },
-  notAvailableButton: {
+  // Action buttons row (Not Available + Confirm side by side)
+  actionButtonsRow: {
+    flexDirection: 'row',
     marginHorizontal: Spacing.lg,
     marginBottom: Spacing.lg,
-    paddingVertical: 12,
+    gap: 12,
+  },
+  notAvailableButton: {
+    flex: 1,
+    paddingVertical: 14,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#dc3545',
     backgroundColor: '#fff5f5',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   notAvailableButtonText: {
     fontSize: 15,
     color: '#dc3545',
     fontWeight: '600',
+  },
+  // Green confirm button
+  confirmButtonGreen: {
+    flex: 1,
+    backgroundColor: AppColors.success,
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmButtonTextWhite: {
+    fontSize: 15,
+    color: 'white',
+    fontWeight: '600',
+  },
+  // Header placeholder for balanced layout
+  headerPlaceholder: {
+    width: 50,
   },
 });
