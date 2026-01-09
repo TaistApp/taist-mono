@@ -3170,7 +3170,7 @@ Write only the review text:";
 
         $whereDayTime = "";
         if ($request->week_day == 1) {
-            $whereDayTime .= " monday_start != 0 AND monday_end != 0";
+            $whereDayTime .= " (monday_start IS NOT NULL AND monday_start != '' AND monday_end IS NOT NULL AND monday_end != '')";
 
             if (isset($request->time_slot) && isset($request->timezone_gap)) {
                 if ($request->time_slot == 1) {
@@ -3185,7 +3185,7 @@ Write only the review text:";
                 }
             }
         } else if ($request->week_day == 2) {
-            $whereDayTime .= " tuesday_start != 0 AND tuesday_end != 0";
+            $whereDayTime .= " (tuesday_start IS NOT NULL AND tuesday_start != '' AND tuesday_end IS NOT NULL AND tuesday_end != '')";
 
             if (isset($request->time_slot) && isset($request->timezone_gap)) {
                 if ($request->time_slot == 1) {
@@ -3200,7 +3200,7 @@ Write only the review text:";
                 }
             }
         } else if ($request->week_day == 3) {
-            $whereDayTime .= " wednesday_start != 0 AND wednesday_end != 0";
+            $whereDayTime .= " (wednesday_start IS NOT NULL AND wednesday_start != '' AND wednesday_end IS NOT NULL AND wednesday_end != '')";
 
             if (isset($request->time_slot) && isset($request->timezone_gap)) {
                 if ($request->time_slot == 1) {
@@ -3215,7 +3215,7 @@ Write only the review text:";
                 }
             }
         } else if ($request->week_day == 4) {
-            $whereDayTime .= " thursday_start != 0 AND thursday_end != 0";
+            $whereDayTime .= " (thursday_start IS NOT NULL AND thursday_start != '' AND thursday_end IS NOT NULL AND thursday_end != '')";
 
             if (isset($request->time_slot) && isset($request->timezone_gap)) {
                 if ($request->time_slot == 1) {
@@ -3229,7 +3229,7 @@ Write only the review text:";
                 }
             }
         } else if ($request->week_day == 5) {
-            $whereDayTime .= " friday_start != 0 AND friday_end != 0";
+            $whereDayTime .= " (friday_start IS NOT NULL AND friday_start != '' AND friday_end IS NOT NULL AND friday_end != '')";
 
             if (isset($request->time_slot) && isset($request->timezone_gap)) {
                 if ($request->time_slot == 1) {
@@ -3244,7 +3244,7 @@ Write only the review text:";
                 }
             }
         } else if ($request->week_day == 6) {
-            $whereDayTime .= " saterday_start != 0 AND saterday_end != 0";
+            $whereDayTime .= " (saterday_start IS NOT NULL AND saterday_start != '' AND saterday_end IS NOT NULL AND saterday_end != '')";
 
             if (isset($request->time_slot) && isset($request->timezone_gap)) {
                 if ($request->time_slot == 1) {
@@ -3259,7 +3259,7 @@ Write only the review text:";
                 }
             }
         } else if ($request->week_day == 0) {
-            $whereDayTime .= " sunday_start != 0 AND sunday_end != 0";
+            $whereDayTime .= " (sunday_start IS NOT NULL AND sunday_start != '' AND sunday_end IS NOT NULL AND sunday_end != '')";
 
             if (isset($request->time_slot) && isset($request->timezone_gap)) {
                 if ($request->time_slot == 1) {
