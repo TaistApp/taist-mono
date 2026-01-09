@@ -106,6 +106,8 @@ class AdminController extends Controller
             ->with(['availability', 'availabilityOverrides' => function($query) use ($today, $tomorrow) {
                 $query->whereIn('override_date', [$today, $tomorrow])
                       ->orderBy('override_date');
+            }, 'menus' => function($query) {
+                $query->where('is_live', 1);
             }])
             ->get();
 

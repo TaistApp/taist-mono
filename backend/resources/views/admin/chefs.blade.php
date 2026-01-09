@@ -29,6 +29,7 @@
                   <th>Status</th>
                   <th>Weekly Availability</th>
                   <th>Live Overrides</th>
+                  <th>Live Menus</th>
                   <th>Photo</th>
                   <th>Phone</th>
                   <th>Birthday</th>
@@ -116,6 +117,17 @@
                         }
                         ?>
                      </td>
+                     <td style="font-size: 11px;">
+                        <?php
+                        $liveMenus = $a->menus;
+                        if ($liveMenus && count($liveMenus) > 0) {
+                           $titles = $liveMenus->pluck('title')->toArray();
+                           echo implode(', ', $titles);
+                        } else {
+                           echo '<span style="color:#999">None</span>';
+                        }
+                        ?>
+                     </td>
                      <td><?php echo isset($a['photo']) && $a['photo'] != '' ? '<img src="/assets/uploads/images/'.$a['photo'].'" width="80">' : '';?></td>
                      <td><?php echo $a['phone'];?></td>
                      <td class="date" date="<?php echo $a['birthday'];?>"></td>
@@ -154,6 +166,7 @@
                   <th>Status</th>
                   <th>Weekly Availability</th>
                   <th>Live Overrides</th>
+                  <th>Live Menus</th>
                   <th>Photo</th>
                   <th>Phone</th>
                   <th>Birthday</th>

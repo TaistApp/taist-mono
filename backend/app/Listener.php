@@ -83,6 +83,14 @@ class Listener extends Authenticatable
     }
 
     /**
+     * Get chef's menu items
+     */
+    public function menus()
+    {
+        return $this->hasMany(\App\Models\Menus::class, 'user_id', 'id');
+    }
+
+    /**
      * Check if chef is currently online
      *
      * @return bool
