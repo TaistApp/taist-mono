@@ -2382,6 +2382,12 @@ Write only the review text:";
 
         // Use the override-aware availability check
         if (!$chef->isAvailableForOrder($orderDate)) {
+            $orderTime = date('H:i', $orderTimestamp);
+            $dayOfWeek = date('l', $orderTimestamp);
+            \Log::warning("[CHEF_UNAVAILABLE] Chef {$chef->id} not available for order. " .
+                "Requested: {$orderDateOnly} ({$dayOfWeek}) at {$orderTime}, " .
+                "Today: {$todayDateOnly}, " .
+                "Raw orderDate: {$orderDate}");
             return response()->json([
                 'success' => 0,
                 'error' => 'This chef is not available at the requested time. Please select a different delivery time or try again later.',
