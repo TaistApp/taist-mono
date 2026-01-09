@@ -184,6 +184,9 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
+  changeHoursButtonTextBold: {
+    fontWeight: '800',
+  },
   changeHoursButtonSet: {
     backgroundColor: '#e8f5e9',
     borderWidth: 1,
@@ -220,6 +223,9 @@ export const styles = StyleSheet.create({
   },
   dayButtonText: {
     color: 'white',
+  },
+  dayButtonTextBold: {
+    fontWeight: '800',
   },
   dayButtonSet: {
     backgroundColor: '#e8f5e9',

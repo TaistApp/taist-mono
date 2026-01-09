@@ -522,9 +522,9 @@ const GoLiveToggle: React.FC = () => {
             style={styles.dayPickerContent}
             onStartShouldSetResponder={() => true}
           >
-            <Text style={styles.confirmTitle}>Check in for same-day orders</Text>
+            <Text style={styles.confirmTitle}>Go Live for Same-Day Orders</Text>
             <Text style={styles.dayPickerSubtitle}>
-              Future orders still come through your weekly schedule.
+              Confirm your availability to receive same-day orders. This does not affect your weekly schedule.
             </Text>
             <View style={styles.confirmButtons}>
               <TouchableOpacity
@@ -532,7 +532,7 @@ const GoLiveToggle: React.FC = () => {
                 onPress={() => handleDaySelect('today')}
               >
                 <Text style={[styles.confirmButtonText, styles.dayButtonText]}>
-                  Go Live Today
+                  Go Live <Text style={styles.dayButtonTextBold}>Today</Text>
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -546,7 +546,7 @@ const GoLiveToggle: React.FC = () => {
                   styles.confirmButtonText,
                   hasTomorrowOverride ? styles.dayButtonTextSet : styles.dayButtonText,
                 ]}>
-                  {hasTomorrowOverride ? 'Tomorrow ✓' : 'Go Live Tomorrow'}
+                  {hasTomorrowOverride ? <><Text style={styles.dayButtonTextBold}>Tomorrow</Text> ✓</> : <>Go Live <Text style={styles.dayButtonTextBold}>Tomorrow</Text></>}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -706,7 +706,7 @@ const GoLiveToggle: React.FC = () => {
                   handleDaySelect('today');
                 }}
               >
-                <Text style={styles.changeHoursButtonText}>Change Today</Text>
+                <Text style={styles.changeHoursButtonText}>Change <Text style={styles.changeHoursButtonTextBold}>Today</Text></Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
@@ -722,7 +722,7 @@ const GoLiveToggle: React.FC = () => {
                   styles.changeHoursButtonText,
                   hasTomorrowOverride && styles.changeHoursButtonTextSet,
                 ]}>
-                  {hasTomorrowOverride ? 'Tomorrow ✓' : 'Go Live Tomorrow'}
+                  {hasTomorrowOverride ? <><Text style={styles.changeHoursButtonTextBold}>Tomorrow</Text> ✓</> : <>Go Live <Text style={styles.changeHoursButtonTextBold}>Tomorrow</Text></>}
                 </Text>
               </TouchableOpacity>
             </View>
