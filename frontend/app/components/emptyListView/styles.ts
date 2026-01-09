@@ -26,6 +26,7 @@ const styles = StyleSheet.create({
     color: AppColors.textSecondary,
     fontSize: 14,
     textAlign: 'center',
+    width: '100%',
   },
   txt: {
     color: AppColors.textSecondary,
