@@ -98,8 +98,10 @@ class AdminController extends Controller
         $user = $this->guard()->user();
         $data['user'] = $user;
 
-        $today = date('Y-m-d');
-        $tomorrow = date('Y-m-d', strtotime('+1 day'));
+        $tz = new \DateTimeZone('America/Los_Angeles');
+        $now = new \DateTime('now', $tz);
+        $today = $now->format('Y-m-d');
+        $tomorrow = (clone $now)->modify('+1 day')->format('Y-m-d');
 
         $data['chefs'] = app(Listener::class)
             ->where(['user_type'=>2])
