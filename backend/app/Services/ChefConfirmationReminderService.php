@@ -193,8 +193,11 @@ class ChefConfirmationReminderService
      */
     public function findChefsNeedingReminders()
     {
+        Log::info('findChefsNeedingReminders: Starting search');
+
         // Get all availabilities
         $availabilities = app(Availabilities::class)->get();
+        Log::info('findChefsNeedingReminders: Found ' . $availabilities->count() . ' availability records');
 
         $remindersToSend = [];
 
@@ -230,6 +233,11 @@ class ChefConfirmationReminderService
                 ->first();
 
             if ($existingOverride) {
+                Log::info('findChefsNeedingReminders: Chef has override, skipping', [
+                    'chef_id' => $chef->id,
+                    'date' => $tomorrowDate,
+                    'status' => $existingOverride->status
+                ]);
                 continue; // Already confirmed/modified/cancelled
             }
 
@@ -238,10 +246,25 @@ class ChefConfirmationReminderService
             $tomorrowStart = Carbon::parse("$tomorrowDate $scheduledStart", $chefTimezone);
             $reminderTime = $tomorrowStart->copy()->subDay();
             $diffSeconds = abs($chefNow->timestamp - $reminderTime->timestamp);
+            $diffMinutes = round($diffSeconds / 60);
+
+            Log::info('findChefsNeedingReminders: Checking chef', [
+                'chef_id' => $chef->id,
+                'timezone' => $chefTimezone,
+                'chef_now' => $chefNow->format('Y-m-d H:i:s'),
+                'tomorrow' => $tomorrowDayOfWeek,
+                'scheduled' => "$scheduledStart - $scheduledEnd",
+                'reminder_time' => $reminderTime->format('Y-m-d H:i:s'),
+                'diff_minutes' => $diffMinutes,
+                'in_window' => $diffSeconds <= 1800
+            ]);
 
             // Send reminder if we're within 30 minutes of the reminder time
             // This gives a wider window for cron job execution
             if ($diffSeconds <= 1800) { // 30 minute window
+                Log::info('findChefsNeedingReminders: Chef IN WINDOW, adding to reminders', [
+                    'chef_id' => $chef->id
+                ]);
                 $remindersToSend[] = [
                     'chef_id' => $chef->id,
                     'tomorrow_date' => $tomorrowDate,
@@ -250,6 +273,10 @@ class ChefConfirmationReminderService
                 ];
             }
         }
+
+        Log::info('findChefsNeedingReminders: Complete', [
+            'reminders_to_send' => count($remindersToSend)
+        ]);
 
         return $remindersToSend;
     }
