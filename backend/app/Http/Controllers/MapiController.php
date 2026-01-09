@@ -3380,22 +3380,28 @@ Write only the review text:";
             }
 
             // Get time slot range to check
+            // Define slot ranges (matching original SQL logic from first commit)
             $timeSlot = isset($request->time_slot) ? (int)$request->time_slot : 0;
-            $checkTime = null; // null means "any time"
             $isAnyTime = ($timeSlot === 0);
+            $slotStart = null;
+            $slotEnd = null;
 
             switch ($timeSlot) {
                 case 1: // Breakfast (5-11)
-                    $checkTime = '08:00:00';
+                    $slotStart = '05:00:00';
+                    $slotEnd = '11:00:00';
                     break;
                 case 2: // Lunch (11-16)
-                    $checkTime = '13:00:00';
+                    $slotStart = '11:00:00';
+                    $slotEnd = '16:00:00';
                     break;
                 case 3: // Dinner (16-22)
-                    $checkTime = '18:00:00';
+                    $slotStart = '16:00:00';
+                    $slotEnd = '22:00:00';
                     break;
-                case 4: // Late (22-5)
-                    $checkTime = '23:00:00';
+                case 4: // Late (22-5) - wraps around midnight
+                    $slotStart = '22:00:00';
+                    $slotEnd = '05:00:00'; // Next day, handled specially
                     break;
             }
 
@@ -3412,7 +3418,7 @@ Write only the review text:";
             $clientTimezone = $request->input('timezone');
             $today = \App\Helpers\TimezoneHelper::getTodayInTimezone($clientTimezone);
             $currentTime = \App\Helpers\TimezoneHelper::getCurrentTimeInTimezone($clientTimezone);
-            $data = array_values(array_filter($dataArray, function($chef) use ($dateString, $checkTime, $overrides, $today, $isAnyTime, $currentTime) {
+            $data = array_values(array_filter($dataArray, function($chef) use ($dateString, $slotStart, $slotEnd, $overrides, $today, $isAnyTime, $currentTime, $timeSlot) {
                 $override = $overrides->get($chef->id);
 
                 if ($override) {
@@ -3432,8 +3438,23 @@ Write only the review text:";
                         return $override->start_time && $override->end_time;
                     }
 
-                    // Specific time slot selected - check if available at that time
-                    return $override->isAvailableAt($checkTime);
+                    // Specific time slot selected - check if chef's hours OVERLAP with slot range
+                    // Overlap formula: chefStart < slotEnd AND chefEnd > slotStart
+                    $chefStart = $override->start_time;
+                    $chefEnd = $override->end_time;
+
+                    if (!$chefStart || !$chefEnd) {
+                        return false;
+                    }
+
+                    // Late night (22-5) wraps around midnight - special handling
+                    if ($timeSlot === 4) {
+                        // Chef overlaps with late if: ends after 22:00 OR starts before 05:00
+                        return $chefEnd > '22:00:00' || $chefStart < '05:00:00';
+                    }
+
+                    // Normal overlap: chef's range overlaps with slot's range
+                    return $chefStart < $slotEnd && $chefEnd > $slotStart;
                 }
 
                 // Today with no override = NOT available (chef must toggle on)
