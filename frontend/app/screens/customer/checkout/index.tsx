@@ -175,8 +175,8 @@ const Checkout = () => {
     };
     onChangeDay(initializeDate());
 
-    // Check if user has address, if not show modal
-    if (!self.address || !self.city || !self.state || !self.zip) {
+    // Check if user has name and address, if not show modal
+    if (!self.first_name || !self.last_name || !self.address || !self.city || !self.state || !self.zip) {
       setShowAddressModal(true);
     }
   }, []);
