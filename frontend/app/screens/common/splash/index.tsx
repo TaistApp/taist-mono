@@ -22,8 +22,11 @@ LogBox.ignoreLogs([
 ]);
 
 // Dev screen preview config - only works in __DEV__ mode
-const DEV_SCREEN = __DEV__ ? Constants.expoConfig?.extra?.devScreen : null;
-const DEV_USER_TYPE = __DEV__ ? Constants.expoConfig?.extra?.devUserType : null;
+// Ensure DEV_SCREEN is a valid non-empty string, not an empty object or falsy value
+const rawDevScreen = __DEV__ ? Constants.expoConfig?.extra?.devScreen : null;
+const DEV_SCREEN = typeof rawDevScreen === 'string' && rawDevScreen.length > 0 ? rawDevScreen : null;
+const rawDevUserType = __DEV__ ? Constants.expoConfig?.extra?.devUserType : null;
+const DEV_USER_TYPE = typeof rawDevUserType === 'string' && rawDevUserType.length > 0 ? rawDevUserType : null;
 
 // Test accounts for dev screen preview (only used in __DEV__ mode)
 // Update these with real test account credentials on staging
