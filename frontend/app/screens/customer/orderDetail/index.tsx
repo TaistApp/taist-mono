@@ -288,7 +288,7 @@ console.log("order detail useeffect....");
         <ScrollView ref={scrollViewRef} contentContainerStyle={styles.pageView}>
           <View style={{ alignItems: 'center' }}>
             <StyledProfileImage url={getImageURL(chefInfo?.photo)} size={160} />
-            <Text style={styles.chefName}>{`${chefInfo?.first_name} `}</Text>
+            <Text style={styles.chefName}>{`${chefInfo?.first_name} ${chefInfo?.last_name?.charAt(0) ?? ''}.`}</Text>
           </View>
 
           {orderInfo?.status == 3 && (
@@ -309,7 +309,7 @@ console.log("order detail useeffect....");
                   Leave a Tip & Review
                 </Text>
                 <Text style={{ color: '#ffffff', fontSize: 14, opacity: 0.9 }}>
-                  Thank {chefInfo?.first_name} for your meal
+                  Thank {chefInfo?.first_name} for your order
                 </Text>
               </View>
               <FontAwesomeIcon icon={faAngleRight} size={24} color="#ffffff" />

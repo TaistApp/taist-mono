@@ -312,10 +312,10 @@ class OrderSmsService
         return [
             'order_id' => $order->id,
             'chef_user_id' => $chef->id,
-            'chef_name' => $chef->first_name . ' ' . strtoupper(substr($chef->last_name, 0, 1)) . '.',
+            'chef_name' => $this->formatUserName($chef->first_name, $chef->last_name, 'Chef'),
             'chef_state' => $chef->state,
             'customer_user_id' => $customer->id,
-            'customer_name' => trim($customer->first_name) . ' ' . strtoupper(substr($customer->last_name, 0, 1)) . '.',
+            'customer_name' => $this->formatUserName($customer->first_name, $customer->last_name, 'Customer'),
             'menu_id' => $menu->id,
             'menu_title' => $menu->title,
             'amount' => $order->amount,
