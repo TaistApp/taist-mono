@@ -27,7 +27,7 @@ class CreateAvailabilityOverridesRawSql extends Migration
         DB::statement("
             CREATE TABLE tbl_availability_overrides (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-                chef_id BIGINT UNSIGNED NOT NULL COMMENT 'FK to tbl_users.id',
+                chef_id INT UNSIGNED NOT NULL COMMENT 'FK to tbl_users.id',
                 override_date DATE NOT NULL COMMENT 'Which date this override applies to',
                 start_time TIME NULL COMMENT 'Override start time, NULL = cancelled',
                 end_time TIME NULL COMMENT 'Override end time, NULL = cancelled',
