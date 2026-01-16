@@ -13,7 +13,6 @@ import { setUser } from '../../../reducers/userSlice';
 import { updateMenus } from '../../../reducers/tableSlice';
 
 import { navigate } from '@/app/utils/navigation';
-import { check, openSettings, PERMISSIONS, request, RESULTS } from 'react-native-permissions';
 import { GETVERSIONAPICALL, LoginAPI } from '../../../services/api';
 import { ClearStorage, ReadLoginData } from '../../../utils/storage';
 import { styles } from './styles';
@@ -40,70 +39,12 @@ const Splash = () => {
   const [splash, setSplash] = useState(true);
   const [isOutdated, setIsOutdated] = useState(false);
   const dispatch = useAppDispatch();
-  const checkLocationPermission = async (onPermissionGranted: () => void) => {
-    if (Platform.OS === 'ios') {
-      const result = await check(PERMISSIONS.IOS.LOCATION_WHEN_IN_USE);
-      if (result === RESULTS.GRANTED) {
-        onPermissionGranted();
-      } else if (result === RESULTS.DENIED) {
-        const requestResult = await request(PERMISSIONS.IOS.LOCATION_WHEN_IN_USE);
-        if (requestResult === RESULTS.GRANTED) {
-          onPermissionGranted();
-        } else {
-          showPermissionDialog();
-        }
-      } else {
-        showPermissionDialog();
-      }
-    } else if (Platform.OS === 'android') {
-      const result = await check(PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION);
-      if (result === RESULTS.GRANTED) {
-        onPermissionGranted();
-      } else if (result === RESULTS.DENIED) {
-        const requestResult = await request(PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION);
-        if (requestResult === RESULTS.GRANTED) {
-          onPermissionGranted();
-        } else {
-          showPermissionDialog();
-        }
-      } else {
-        showPermissionDialog();
-      }
-    } else {
-      console.log('Location permission check is only for iOS and Android.');
-      onPermissionGranted();
-    }
-  };
-
-  const showPermissionDialog = () => {
-    Alert.alert(
-      'Location Permission Required',
-      'This app requires location access to proceed. Please enable it in settings.',
-      [
-        {
-          text: 'Settings',
-          onPress: () => openSettings(),
-        },
-        {
-          text: 'OK',
-          onPress: () => { }, // Keep splash screen visible
-        },
-      ],
-      { cancelable: false }
-    );
-  };
-
   const handleLogin = () => {
-    checkLocationPermission(() => {
-        navigate.toCommon.login();
-
-    });
+    navigate.toCommon.login();
   };
 
   const handleSignup = () => {
-    checkLocationPermission(() => {
-      navigate.toCommon.signup();
-    });
+    navigate.toCommon.signup();
   };
 
   useEffect(() => {
