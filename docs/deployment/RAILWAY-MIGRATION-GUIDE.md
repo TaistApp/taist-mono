@@ -33,8 +33,8 @@ This guide covers the complete migration from AWS EC2 + Upscale managed infrastr
 ### Migration Scope
 
 **What's Being Migrated:**
-- ✅ Production Backend (taist.codeupscale.com)
-- ✅ Staging Backend (taist.cloudupscale.com)
+- ✅ Production Backend (taist-mono-production.up.railway.app)
+- ✅ Staging Backend (taist-mono-staging.up.railway.app)
 - ✅ MySQL Databases (both environments)
 - ✅ File storage (uploads/images)
 - ✅ Cron jobs (background checks)
@@ -491,7 +491,7 @@ From Railway dashboard:
 
 In your DNS provider (Cloudflare, Route 53, etc.):
 
-Change `taist.cloudupscale.com`:
+Change `taist-mono-staging.up.railway.app`:
 ```
 Type: CNAME
 Name: taist.cloudupscale
@@ -512,7 +512,7 @@ TTL: 300 (5 minutes)
 
 1. Railway → Service → Settings → Networking
 2. Click "Add Domain"
-3. Enter: `taist.cloudupscale.com`
+3. Enter: `taist-mono-staging.up.railway.app`
 4. Follow verification steps
 
 ---
@@ -528,18 +528,18 @@ const getEnvironmentUrls = () => {
   if (APP_ENV === 'staging' || APP_ENV === 'development') {
     // NEW Railway staging
     return {
-      BASE_URL: 'https://taist.cloudupscale.com/mapi/',
+      BASE_URL: 'https://taist-mono-staging.up.railway.app/mapi/',
       // OR if using Railway domain directly:
       // BASE_URL: 'https://taist-backend-staging.up.railway.app/mapi/',
-      Photo_URL: 'https://taist.cloudupscale.com/assets/uploads/images/',
-      HTML_URL: 'https://taist.cloudupscale.com/assets/uploads/html/',
+      Photo_URL: 'https://taist-mono-staging.up.railway.app/assets/uploads/images/',
+      HTML_URL: 'https://taist-mono-staging.up.railway.app/assets/uploads/html/',
     };
   } else {
     // Production (unchanged for now)
     return {
-      BASE_URL: 'https://taist.codeupscale.com/mapi/',
-      Photo_URL: 'https://taist.codeupscale.com/assets/uploads/images/',
-      HTML_URL: 'https://taist.codeupscale.com/assets/uploads/html/',
+      BASE_URL: 'https://taist-mono-production.up.railway.app/mapi/',
+      Photo_URL: 'https://taist-mono-production.up.railway.app/assets/uploads/images/',
+      HTML_URL: 'https://taist-mono-production.up.railway.app/assets/uploads/html/',
     };
   }
 };
@@ -719,7 +719,7 @@ railway run --environment production php artisan migrate --force
 
 **In Cloudflare (or your DNS provider):**
 
-Update `taist.codeupscale.com`:
+Update `taist-mono-production.up.railway.app`:
 
 ```
 # OLD (AWS):
@@ -737,7 +737,7 @@ TTL: Auto/300
 
 **Or add custom domain in Railway first:**
 1. Railway → Production service → Settings → Networking
-2. Add domain: `taist.codeupscale.com`
+2. Add domain: `taist-mono-production.up.railway.app`
 3. Update DNS as instructed by Railway
 
 **DNS Propagation:** 5-60 minutes (usually <10 minutes)
@@ -748,11 +748,11 @@ TTL: Auto/300
 
 ```bash
 # Test DNS propagation
-nslookup taist.codeupscale.com
-dig taist.codeupscale.com
+nslookup taist-mono-production.up.railway.app
+dig taist-mono-production.up.railway.app
 
 # Test API
-curl -I https://taist.codeupscale.com/mapi/get-version
+curl -I https://taist-mono-production.up.railway.app/mapi/get-version
 
 # Expected: HTTP 200 OK
 ```
@@ -820,7 +820,7 @@ php artisan up
 1. **Revert DNS immediately:**
    ```
    In Cloudflare/DNS:
-   Change taist.codeupscale.com back to old AWS IP
+   Change taist-mono-production.up.railway.app back to old AWS IP
    ```
 
 2. **Turn off Railway maintenance mode (if enabled):**
@@ -982,7 +982,7 @@ Use service like:
 - Cron-job.org
 - GitHub Actions
 
-Configure to hit: `https://taist.codeupscale.com/mapi/background_check_order_status`
+Configure to hit: `https://taist-mono-production.up.railway.app/mapi/background_check_order_status`
 
 ### File Storage
 
@@ -1019,8 +1019,8 @@ Run these tests on staging before production migration:
 
 ```bash
 # API endpoints
-curl https://taist.cloudupscale.com/mapi/get-version
-curl https://taist.cloudupscale.com/mapi/get_search_chefs/947
+curl https://taist-mono-staging.up.railway.app/mapi/get-version
+curl https://taist-mono-staging.up.railway.app/mapi/get_search_chefs/947
 
 # Database connection
 railway run --environment staging php artisan tinker
@@ -1037,7 +1037,7 @@ railway run --environment staging php artisan schedule:run
 
 ```bash
 # Production health check
-curl https://taist.codeupscale.com/mapi/get-version
+curl https://taist-mono-production.up.railway.app/mapi/get-version
 
 # Check logs
 railway logs --environment production
@@ -1053,7 +1053,7 @@ railway logs --environment production
 brew install apache-bench
 
 # Load test
-ab -n 1000 -c 10 https://taist.codeupscale.com/mapi/get-version
+ab -n 1000 -c 10 https://taist-mono-production.up.railway.app/mapi/get-version
 ```
 
 ---
@@ -1309,9 +1309,9 @@ php artisan config:cache
 php artisan queue:work
 
 # DNS test
-nslookup taist.codeupscale.com
-dig taist.codeupscale.com
-curl -I https://taist.codeupscale.com/mapi/get-version
+nslookup taist-mono-production.up.railway.app
+dig taist-mono-production.up.railway.app
+curl -I https://taist-mono-production.up.railway.app/mapi/get-version
 ```
 
 

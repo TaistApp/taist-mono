@@ -10,7 +10,7 @@
 
 **"Taist 2" IS YOUR PRODUCTION BACKEND SERVER!**
 
-This instance is actively serving production traffic for the mobile app via `taist.codeupscale.com` through Cloudflare CDN.
+This instance is actively serving production traffic for the mobile app via `taist-mono-production.up.railway.app` through Cloudflare CDN.
 
 **⚠️ DO NOT SHUT DOWN THIS SERVER - IT IS CRITICAL TO PRODUCTION!**
 
@@ -40,7 +40,7 @@ All legitimate app traffic comes through **Cloudflare IPs**:
 
 This confirms the routing:
 ```
-Mobile App → taist.codeupscale.com → Cloudflare CDN → Taist 2 (18.216.154.184)
+Mobile App → taist-mono-production.up.railway.app → Cloudflare CDN → Taist 2 (18.216.154.184)
 ```
 
 ### API Endpoints Being Used
@@ -138,7 +138,7 @@ The server is receiving automated attacks/scans:
                │
                ▼
     ┌──────────────────────┐
-    │ taist.codeupscale.com│
+    │ taist-mono-production.up.railway.app│
     │  DNS: Cloudflare IPs │
     │  104.21.40.91        │
     │  172.67.183.71       │
@@ -172,7 +172,7 @@ The server is receiving automated attacks/scans:
 ## Why the Confusion?
 
 **DNS pointed to Cloudflare, not the origin server:**
-- When you looked up `taist.codeupscale.com`, it resolved to Cloudflare IPs
+- When you looked up `taist-mono-production.up.railway.app`, it resolved to Cloudflare IPs
 - Cloudflare acts as a proxy/CDN in front of your real server
 - The origin server IP (18.216.154.184) is hidden from public DNS
 - This is a **security best practice** (DDoS protection, caching, hiding origin)

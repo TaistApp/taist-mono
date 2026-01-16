@@ -158,11 +158,11 @@ curl https://your-staging-url.up.railway.app/mapi/get-version
 
 ### Step 9: Update DNS for Staging (Optional)
 
-If you want to keep using `taist.cloudupscale.com`:
+If you want to keep using `taist-mono-staging.up.railway.app`:
 
 1. In Railway → backend service → Settings → Networking
 2. Click "Add Domain"
-3. Enter: `taist.cloudupscale.com`
+3. Enter: `taist-mono-staging.up.railway.app`
 4. Railway will give you CNAME instructions
 
 5. Update DNS (wherever you manage DNS):
@@ -185,7 +185,7 @@ If you want to keep using `taist.cloudupscale.com`:
 3. Repeat Step 3-9 above, but:
    - Use **production** environment
    - Use **production** AWS server (18.216.154.184)
-   - Use domain `taist.codeupscale.com`
+   - Use domain `taist-mono-production.up.railway.app`
    - Use production .env values
 
 ### Step 11: Production Database Migration
@@ -232,10 +232,10 @@ Railway will auto-deploy when you push to main branch, or:
 
 **This is the critical step - double check everything first!**
 
-**If keeping same domain (`taist.codeupscale.com`):**
+**If keeping same domain (`taist-mono-production.up.railway.app`):**
 
 1. In Railway → production backend → Settings → Networking → Add Domain
-2. Enter: `taist.codeupscale.com`
+2. Enter: `taist-mono-production.up.railway.app`
 3. Follow Railway's DNS instructions
 
 4. Update DNS:
@@ -249,7 +249,7 @@ Railway will auto-deploy when you push to main branch, or:
 
 ```bash
 # Test API
-curl https://taist.codeupscale.com/mapi/get-version
+curl https://taist-mono-production.up.railway.app/mapi/get-version
 
 # Check Railway logs
 railway logs --environment production

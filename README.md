@@ -44,10 +44,10 @@ The frontend supports three environments:
 npm run dev:local      # http://localhost:8000
 
 # Staging (test server)
-npm run dev:staging    # https://taist.cloudupscale.com
+npm run dev:staging    # https://taist-mono-staging.up.railway.app
 
 # Production (live)
-npm run dev:prod       # https://taist.codeupscale.com
+npm run dev:prod       # https://taist-mono-production.up.railway.app
 ```
 
 ---

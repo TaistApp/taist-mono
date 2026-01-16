@@ -195,7 +195,7 @@ After copying, test the staging environment:
 
 ```bash
 # Test the staging API
-curl https://taist.cloudupscale.com/mapi/get-version
+curl https://taist-mono-staging.up.railway.app/mapi/get-version
 ```
 
 The mobile app's staging builds will now use the fresh production data!

@@ -166,10 +166,10 @@ sudo systemctl restart apache2
 
 ```bash
 # Test from your local machine
-curl -I https://taist.cloudupscale.com/mapi/get-version
+curl -I https://taist-mono-staging.up.railway.app/mapi/get-version
 
 # Or test a specific endpoint that uses the database
-curl https://taist.cloudupscale.com/mapi/check-db-connection
+curl https://taist-mono-staging.up.railway.app/mapi/check-db-connection
 ```
 
 ---

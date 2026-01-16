@@ -75,8 +75,8 @@ Moving from AWS EC2 servers (managed by Upscale) to Railway platform.
 **Good News: Almost Nothing!**
 
 The domain names stay the same:
-- `taist.cloudupscale.com` (staging)
-- `taist.codeupscale.com` (production)
+- `taist-mono-staging.up.railway.app` (staging)
+- `taist-mono-production.up.railway.app` (production)
 
 Only the backend origin server changes (users won't notice).
 

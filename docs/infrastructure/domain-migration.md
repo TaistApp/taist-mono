@@ -165,11 +165,11 @@ whois taist.app
 
 ## DNS Configuration
 
-### Current Setup (CodeUpscale's Domains)
+### Current Setup (Railway Domains)
 
 ```
-taist.cloudupscale.com → 18.118.114.98 (AWS staging)
-taist.codeupscale.com → Cloudflare → 18.216.154.184 (AWS prod)
+taist-mono-staging.up.railway.app → Railway staging
+taist-mono-production.up.railway.app → Railway production
 ```
 
 ### New Setup (Your Domains)
@@ -215,15 +215,15 @@ TTL: Auto
 const getEnvironmentUrls = () => {
   if (APP_ENV === 'staging' || APP_ENV === 'development') {
     return {
-      BASE_URL: 'https://taist.cloudupscale.com/mapi/',  // OLD - CodeUpscale
-      Photo_URL: 'https://taist.cloudupscale.com/assets/uploads/images/',
-      HTML_URL: 'https://taist.cloudupscale.com/assets/uploads/html/',
+      BASE_URL: 'https://taist-mono-staging.up.railway.app/mapi/',
+      Photo_URL: 'https://taist-mono-staging.up.railway.app/assets/uploads/images/',
+      HTML_URL: 'https://taist-mono-staging.up.railway.app/assets/uploads/html/',
     };
   } else {
     return {
-      BASE_URL: 'https://taist.codeupscale.com/mapi/',  // OLD - CodeUpscale
-      Photo_URL: 'https://taist.codeupscale.com/assets/uploads/images/',
-      HTML_URL: 'https://taist.codeupscale.com/assets/uploads/html/',
+      BASE_URL: 'https://taist-mono-production.up.railway.app/mapi/',
+      Photo_URL: 'https://taist-mono-production.up.railway.app/assets/uploads/images/',
+      HTML_URL: 'https://taist-mono-production.up.railway.app/assets/uploads/html/',
     };
   }
 };
@@ -317,7 +317,7 @@ Configure Railway to respond to BOTH domains temporarily:
 
 In Railway → Production → Settings → Networking:
 - Add domain: `api.taist.app` (NEW)
-- Add domain: `taist.codeupscale.com` (OLD - temporary)
+- Add domain: `taist-mono-production.up.railway.app` (current)
 
 After transition period:
 - Remove old domain
@@ -373,7 +373,7 @@ We're moving away from CodeUpscale infrastructure to
 our own domains and Railway platform.
 
 What's Changing:
-- Old: taist.codeupscale.com
+- Current: taist-mono-production.up.railway.app
 - New: api.taist.app
 
 Timeline:
