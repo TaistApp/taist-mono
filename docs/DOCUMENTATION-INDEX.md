@@ -23,7 +23,35 @@ Complete index of all documentation in the Taist monorepo.
 
 ---
 
+## Architecture (NEW)
+
+Core system documentation covering data flow and system design.
+
+| Document | Description |
+|----------|-------------|
+| [API Reference](api/api-reference.md) | Complete mobile API reference (147+ endpoints) |
+| [Order Management](architecture/order-management.md) | Order lifecycle, cancellations, refunds |
+| [Payment Processing](architecture/payment-processing.md) | Stripe integration, payouts, tips |
+| [Data Models](architecture/data-models.md) | Database schema and relationships |
+| [Authentication](architecture/authentication.md) | Auth flow, tokens, role-based access |
+
+---
+
 ## Features
+
+### Core Features
+
+| Document | Description |
+|----------|-------------|
+| [Chef Onboarding](features/chef-onboarding.md) | Multi-step chef registration flow |
+| [Search & Discovery](features/search-discovery.md) | Chef search algorithm and filtering |
+| [Menu & Customizations](features/menu-customizations.md) | Menu items, add-ons, categories |
+| [Discount Codes](features/discount-codes.md) | Promo codes and validation |
+| [Messaging / Chat](features/messaging-chat.md) | Order-specific conversations |
+| [Reviews & Ratings](features/reviews-ratings.md) | Customer reviews and ratings |
+| [Admin Panel](features/admin-panel.md) | Administrative dashboard |
+
+### Existing Feature Docs
 
 | Document | Description |
 |----------|-------------|
@@ -37,6 +65,34 @@ Complete index of all documentation in the Taist monorepo.
 | [Stripe Verification](features/STRIPE_VERIFICATION_FIXES.md) | Stripe verification fixes |
 | [Stripe Return UX](features/STRIPE_RETURN_UX_IMPLEMENTATION.md) | Stripe return flow implementation |
 | [Performance Guide](features/REACT_NATIVE_PERFORMANCE_GUIDE.md) | React Native performance tips |
+
+---
+
+## Frontend Documentation (NEW)
+
+| Document | Description |
+|----------|-------------|
+| [Redux State Management](frontend/redux-state-management.md) | Store, slices, and data flow |
+| [Mobile Navigation](frontend/mobile-navigation.md) | Expo Router and routing |
+
+### Existing Frontend Docs
+
+| Document | Location |
+|----------|----------|
+| [Frontend README](../frontend/README.md) | Main frontend documentation |
+| [CHANGELOG](../frontend/CHANGELOG.md) | Version history |
+| [Deployment Guide](../frontend/DEPLOYMENT.md) | Deployment instructions |
+| [Android Guide](../frontend/android_guide.md) | Android-specific setup |
+| [Version Bump Guide](../frontend/VERSION-BUMP-GUIDE.md) | Version management |
+
+---
+
+## Operations (NEW)
+
+| Document | Description |
+|----------|-------------|
+| [Background Jobs](operations/background-jobs.md) | Console commands and scheduled tasks |
+| [Environment Configuration](operations/environment-configuration.md) | All env variables reference |
 
 ---
 
@@ -60,7 +116,6 @@ Complete index of all documentation in the Taist monorepo.
 | [Railway Setup First](deployment/RAILWAY-SETUP-FIRST.md) | Initial Railway setup |
 | [Railway DB Copy](deployment/RAILWAY-DB-COPY-QUICK-START.md) | Database copy to Railway |
 | [Local to Railway DB](deployment/LOCAL-TO-RAILWAY-DB-COPY-PLAN.md) | Local to Railway migration |
-| [Railway Storage](deployment/RAILWAY_PERSISTENT_STORAGE.md) | Persistent storage on Railway |
 
 ---
 
@@ -80,6 +135,15 @@ Complete index of all documentation in the Taist monorepo.
 | [Google Maps Setup](GOOGLE-MAPS-API-SETUP.md) | Google Maps API configuration |
 | [Admin User Creation](ADMIN-USER-CREATION.md) | Creating admin users |
 | [Quick Admin Setup](QUICK-ADMIN-SETUP.md) | Quick admin setup |
+
+---
+
+## Backend Documentation
+
+| Document | Location |
+|----------|----------|
+| [Backend README](../backend/README.md) | Main backend documentation |
+| [Routes README](../backend/routes/README.md) | API routes documentation |
 
 ---
 
@@ -117,48 +181,37 @@ Located in `archive/migration-history/`:
 
 ---
 
-## Frontend Documentation
-
-| Document | Location |
-|----------|----------|
-| [Frontend README](../frontend/README.md) | Main frontend documentation |
-| [CHANGELOG](../frontend/CHANGELOG.md) | Version history |
-| [Deployment Guide](../frontend/DEPLOYMENT.md) | Deployment instructions |
-| [Android Guide](../frontend/android_guide.md) | Android-specific setup |
-| [Version Bump Guide](../frontend/VERSION-BUMP-GUIDE.md) | Version management |
-
----
-
-## Backend Documentation
-
-| Document | Location |
-|----------|----------|
-| [Backend README](../backend/README.md) | Main backend documentation |
-| [Routes README](../backend/routes/README.md) | API routes documentation |
-
----
-
 ## Directory Structure
 
 ```
 docs/
-├── setup/              # Getting started guides
+├── api/                # API reference
+│   └── api-reference.md
+├── architecture/       # System architecture
+│   ├── authentication.md
+│   ├── data-models.md
+│   ├── order-management.md
+│   └── payment-processing.md
 ├── features/           # Feature documentation
+│   ├── admin-panel.md
+│   ├── chef-onboarding.md
+│   ├── discount-codes.md
+│   ├── menu-customizations.md
+│   ├── messaging-chat.md
+│   ├── reviews-ratings.md
+│   ├── search-discovery.md
+│   └── [existing docs...]
+├── frontend/           # Frontend-specific docs
+│   ├── mobile-navigation.md
+│   └── redux-state-management.md
+├── operations/         # Operations docs
+│   ├── background-jobs.md
+│   └── environment-configuration.md
+├── setup/              # Getting started guides
 ├── infrastructure/     # Infrastructure setup
 ├── deployment/         # Deployment guides
 ├── ui/                 # UI documentation
 ├── archive/            # Historical documentation
-│   ├── analysis-reports/
-│   ├── implementation-plans/
-│   ├── sprint-1/
-│   ├── migration-history/
-│   ├── plans/
-│   ├── ai-features-implementation/
-│   └── performance/
-├── ADMIN-USER-CREATION.md
-├── GOOGLE-MAPS-API-SETUP.md
-├── QUICK-ADMIN-SETUP.md
-├── VERSION-MANAGEMENT.md
 └── DOCUMENTATION-INDEX.md
 ```
 
