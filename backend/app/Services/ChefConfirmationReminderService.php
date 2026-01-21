@@ -168,6 +168,18 @@ class ChefConfirmationReminderService
      */
     private function sendSmsReminder($chef, $tomorrowFormatted, $timeRange)
     {
+        // Check if availability SMS reminders are enabled
+        // Defaults to true in production, false otherwise (staging/local)
+        $smsEnabled = env('SMS_AVAILABILITY_REMINDERS_ENABLED', env('APP_ENV') === 'production');
+
+        if (!$smsEnabled) {
+            Log::info("SMS availability reminders disabled (SMS_AVAILABILITY_REMINDERS_ENABLED=false)", [
+                'chef_id' => $chef->id,
+                'env' => env('APP_ENV')
+            ]);
+            return; // Skip SMS but don't throw - push notification may still succeed
+        }
+
         $message = "Taist: You're scheduled {$tomorrowFormatted}, {$timeRange}. You will NOT receive same-day orders unless you check in. Open app to confirm.";
 
         $result = $this->twilioService->sendSMS(
