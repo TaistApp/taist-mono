@@ -39,7 +39,7 @@
       </dict>
     </array>
     <key>CFBundleVersion</key>
-    <string>7</string>
+    <string>8</string>
     <key>LSMinimumSystemVersion</key>
     <string>12.0</string>
     <key>LSRequiresIPhoneOS</key>
@@ -52,7 +52,7 @@
       <true/>
     </dict>
     <key>NSCameraUsageDescription</key>
-    <string>We need access to your camera to allow you to take a picture</string>
+    <string>Taist needs camera access to take photos for your chef profile and to capture images of your dishes that will be displayed to customers.</string>
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
     <string>Taist needs your location to show nearby chefs and improve your experience in finding culinary services.</string>
     <key>NSLocationAlwaysUsageDescription</key>
@@ -65,9 +65,9 @@
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>Allow Taist to use your location to show nearby chefs.</string>
     <key>NSPhotoLibraryAddUsageDescription</key>
-    <string>$(PRODUCT_NAME) would like to save photos to your photo gallery</string>
+    <string>Taist would like to save photos to your gallery, such as images received in messages.</string>
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>$(PRODUCT_NAME) uses photos</string>
+    <string>Taist needs access to your photo library to select images for your chef profile picture and dish photos that will be displayed to customers.</string>
     <key>NSUserActivityTypes</key>
     <array>
       <string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>
