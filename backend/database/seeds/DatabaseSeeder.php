@@ -15,5 +15,8 @@ class DatabaseSeeder extends Seeder
         $this->call(VersionSeeder::class);
 
         // $this->call(UsersTableSeeder::class);
+
+        // Maestro E2E test users (safe to re-run — deletes & recreates)
+        $this->call(\Database\Seeders\MaestroTestUserSeeder::class);
     }
 }
