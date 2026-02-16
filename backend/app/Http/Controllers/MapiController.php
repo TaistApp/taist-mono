@@ -3501,10 +3501,14 @@ Write only the review text:";
             return response()->json(['success' => 0, 'error' => "Token has been expired."]);
 
         // FIXED: Use parameterized queries to prevent SQL injection
-        $data = app(Menus::class)
-            ->where('user_id', $request->user_id)
-            ->whereRaw('FIND_IN_SET(?, allergens) = 0', [$request->allergen])
-            ->get();
+        // Only apply allergen filter when the parameter is actually provided
+        $query = app(Menus::class)->where('user_id', $request->user_id);
+
+        if ($request->allergen) {
+            $query->whereRaw('FIND_IN_SET(?, allergens) = 0', [$request->allergen]);
+        }
+
+        $data = $query->get();
 
         // FIXED: Batch load customizations to avoid N+1 queries
         $menuIds = $data->pluck('id')->toArray();

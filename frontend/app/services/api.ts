@@ -44,10 +44,10 @@ const getEnvironmentUrls = () => {
       // iOS simulator and web can use localhost
       const localHost = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
       return {
-        BASE_URL: `http://${localHost}:8000/mapi/`,
-        Photo_URL: `http://${localHost}:8000/assets/uploads/images/`,
-        Static_URL: `http://${localHost}:8000/assets/images/`,
-        HTML_URL: `http://${localHost}:8000/assets/uploads/html/`,
+        BASE_URL: `http://${localHost}:8002/mapi/`,
+        Photo_URL: `http://${localHost}:8002/assets/uploads/images/`,
+        Static_URL: `http://${localHost}:8002/assets/images/`,
+        HTML_URL: `http://${localHost}:8002/assets/uploads/html/`,
       };
     
     case 'staging':
