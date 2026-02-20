@@ -40,6 +40,7 @@ import {
 } from '../../../utils/functions';
 import { navigate } from '../../../utils/navigation';
 import { ShowErrorToast } from '../../../utils/toast';
+import AvailabilitySection from './components/availabilitySection';
 import ChefMenuItem from './components/chefMenuItem';
 import ChefReviewItem from './components/chefReviewItem';
 import { styles } from './styles';
@@ -53,6 +54,8 @@ const ChefDetail = () => {
 
   const [allergyIds, onChangeAllergyIds] = useState<Array<number>>([]);
   const [chefProfile, onChangeChefProfile] = useState<IChefProfile>();
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [availabilityDate, setAvailabilityDate] = useState<string>('');
 
   const chefInfo: IUser = JSON.parse(params.chefInfo as string);
   const reviews: Array<IReview> = JSON.parse(params.reviews as string);
@@ -114,7 +117,13 @@ const ChefDetail = () => {
     });
   };
 
+  const handleTimeSelect = (time: string | null, date: string) => {
+    setSelectedTime(time);
+    setAvailabilityDate(date);
+  };
+
   const handleCheckout = () => {
+    const dateToPass = availabilityDate || selectedDate;
     router.push({
       pathname: '/screens/customer/(tabs)/(home)/checkout',
       params: {
@@ -122,7 +131,8 @@ const ChefDetail = () => {
         orders: JSON.stringify(chefOrders),
         weekDay: weekDay.toString(),
         chefProfile: JSON.stringify(chefProfile),
-        selectedDate: selectedDate,
+        selectedDate: dateToPass,
+        selectedTime: selectedTime || '',
       }
     });
   };
@@ -183,6 +193,16 @@ const ChefDetail = () => {
                 );
               })}
             </View>
+          )}
+
+          {chefProfile && (
+            <AvailabilitySection
+              chefId={chefInfo.id ?? 0}
+              initialDate={selectedDate}
+              chefProfile={chefProfile}
+              selectedTime={selectedTime}
+              onTimeSelect={handleTimeSelect}
+            />
           )}
 
           {allergen.length > 0 && (

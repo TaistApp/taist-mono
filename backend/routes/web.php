@@ -52,3 +52,12 @@ Route::redirect('/contact/', '/account-deletion', 302);
 // The frontend opens these via WebBrowser.openBrowserAsync at the same URL paths.
 Route::view('/assets/uploads/html/privacy.html', 'legal.privacy');
 Route::view('/assets/uploads/html/terms.html', 'legal.terms');
+
+// Admin panel SPA catch-all — serves the React app for all /admin-new/* routes.
+// Locally: server.php handles this (PHP built-in server quirk with directory paths).
+// Production: Nginx try_files serves index.html for non-asset paths.
+// This Laravel route is a fallback for any server that routes through index.php normally.
+Route::get('/admin-new/{any?}', function () {
+    return response(file_get_contents(public_path('admin-new/index.html')), 200)
+        ->header('Content-Type', 'text/html');
+})->where('any', '.*');

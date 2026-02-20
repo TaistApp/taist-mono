@@ -122,7 +122,7 @@ const Container = ({
               <Text style={styles.title}>{title}</Text>
             </View>
 
-            <TouchableOpacity onPress={handleBackPress} style={styles.button}>
+            <TouchableOpacity testID="header.backButton" onPress={handleBackPress} style={styles.button}>
               <FontAwesomeIcon icon={faAngleLeft} size={20} color="#000000" />
             </TouchableOpacity>
 
@@ -149,7 +149,7 @@ const Container = ({
                 source={require('../../assets/images/logo-2.png')}
               />
             </View>
-            <TouchableOpacity onPress={toggleDrawer} style={styles.button}>
+            <TouchableOpacity testID="header.hamburgerMenu" onPress={toggleDrawer} style={styles.button}>
               <FontAwesomeIcon icon={faBars} size={20} color="#000000" />
             </TouchableOpacity>
 
@@ -161,11 +161,13 @@ const Container = ({
             {isInChefContext && user?.is_pending !== 1 && <GoLiveToggle />}
             {isInCustomerContext && <CartIcon />}
             <TouchableOpacity
+              testID="header.chatButton"
               onPress={handleMessagePress}
               style={styles.button}>
               <FontAwesomeIcon icon={faMessage} size={20} color="#000000" />
             </TouchableOpacity>
             <TouchableOpacity
+              testID="header.notificationsButton"
               onPress={handleNotificationPress}
               style={styles.button}>
               <FontAwesomeIcon icon={faBell} size={20} color="#000000" />

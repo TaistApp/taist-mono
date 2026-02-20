@@ -35,9 +35,9 @@ A food marketplace connecting customers with local chefs — Laravel API + React
 - User types: `1` = customer, `2` = chef
 - Verified states: `0` = pending, `1` = active, `2` = denied, `3` = banned
 
-## Maestro E2E Test Users
+## Maestro E2E Testing
 
-**Never seed in production.** Full details: `docs/maestro-test-users.md`
+**Never seed in production.** Full details: `docs/maestro-test-users.md` | Conventions: `docs/maestro-conventions.md`
 
 - Seed: `php artisan db:seed --class="Database\Seeders\MaestroTestUserSeeder"` (idempotent)
 - Env vars: `frontend/.maestro/test-users.env.yaml`
@@ -78,6 +78,15 @@ Reusable system for post-deploy checks. Full details: `docs/production-verificat
 
 - **Backend port: 8005** (8005 standard for local runs)
 - Frontend API URLs point to `localhost:8005`
+
+## Maestro Simulator Isolation (Multi-Session)
+
+When multiple Claude Code sessions run Maestro simultaneously:
+- **Each session MUST boot its own simulator** — never reuse one that's already booted
+- **Always pass `device_id`** to every Maestro MCP tool call and `--device <UDID>` to CLI commands
+- Check booted devices first: `xcrun simctl list devices booted`
+- To reset app state on a new simulator: `xcrun simctl uninstall <UDID> org.taist.taist` then reinstall
+- The app caches login sessions — a freshly booted sim may still be logged in from a prior install
 
 ## Database
 

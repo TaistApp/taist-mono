@@ -52,9 +52,16 @@ const ChefCard = ({
         <StyledProfileImage url={getImageURL(chefInfo.photo)} size={80} />
         <View style={styles.chefCardInfo}>
           <View style={{flex: 1}}>
-            <Text style={styles.chefCardTitle}>{`${
-              chefInfo.first_name
-            } ${chefInfo.last_name?.substring(0, 1)}. `}</Text>
+            <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}>
+              <Text style={styles.chefCardTitle}>{`${
+                chefInfo.first_name
+              } ${chefInfo.last_name?.substring(0, 1)}. `}</Text>
+              {chefInfo.is_hot && (
+                <View style={styles.hotBadge}>
+                  <Text style={styles.hotBadgeText}>🔥 Popular</Text>
+                </View>
+              )}
+            </View>
             <Text style={styles.chefCardDescription} numberOfLines={2}>
               {chefInfo.bio ?? ''}
             </Text>
@@ -111,6 +118,7 @@ const ChefCard = ({
 const arePropsEqual = (prevProps: Props, nextProps: Props): boolean => {
   return (
     prevProps.chefInfo.id === nextProps.chefInfo.id &&
+    prevProps.chefInfo.is_hot === nextProps.chefInfo.is_hot &&
     prevProps.reviews.length === nextProps.reviews.length &&
     prevProps.menus.length === nextProps.menus.length &&
     prevProps.onNavigate === nextProps.onNavigate

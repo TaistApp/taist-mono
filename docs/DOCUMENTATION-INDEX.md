@@ -51,6 +51,12 @@ Core system documentation covering data flow and system design.
 | [Reviews & Ratings](features/reviews-ratings.md) | Customer reviews and ratings |
 | [Admin Panel](features/admin-panel.md) | Administrative dashboard |
 
+### Sprint 2 Feature Docs
+
+| Document | Description |
+|----------|-------------|
+| [TMA-037 Implementation Plan](../tma-037-implementation-plan.md) | Order time blockout, demand signaling, chef detail availability |
+
 ### Existing Feature Docs
 
 | Document | Description |
@@ -217,4 +223,4 @@ docs/
 
 ---
 
-*Last updated: January 2026*
+*Last updated: February 2026*

@@ -161,18 +161,20 @@ const DrawerModal: React.FC<DrawerModalProps> = ({ visible, onClose }) => {
               transform: [{ translateX: slideAnim }]
             }
           ]}>
-          <TouchableOpacity 
-            activeOpacity={1} 
+          <TouchableOpacity
+            activeOpacity={1}
+            accessible={false}
             onPress={(e) => e.stopPropagation()}
             style={styles.drawerTouchable}>
             <View style={styles.drawerHeader}>
-              <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+              <TouchableOpacity testID="drawer.closeButton" onPress={handleClose} style={styles.closeButton}>
                 <FontAwesomeIcon icon={faAngleLeft} size={20} color="#000000" />
               </TouchableOpacity>
             </View>
           
-            <View style={styles.drawerContent}>
+            <View accessible={false} style={styles.drawerContent}>
             <TouchableOpacity
+              testID="drawer.account"
               onPress={() => handleGotoScreen('Account')}
               style={styles.drawerItem}>
               <Text style={styles.drawerItemText}>ACCOUNT</Text>
@@ -182,6 +184,7 @@ const DrawerModal: React.FC<DrawerModalProps> = ({ visible, onClose }) => {
             {isInChefContext && (
               <>
                 <TouchableOpacity
+                  testID="drawer.howToDoIt"
                   onPress={() => handleGotoScreen('HowToDoIt')}
                   style={styles.drawerItem}>
                   <Text style={styles.drawerItemText}>HOW TO DO IT</Text>
@@ -189,6 +192,7 @@ const DrawerModal: React.FC<DrawerModalProps> = ({ visible, onClose }) => {
                 
                 {user.is_pending == 1 && (
                   <TouchableOpacity
+                    testID="drawer.cancelApplication"
                     onPress={() => handleGotoScreen('CancelApplication')}
                     style={styles.drawerItem}>
                     <Text style={styles.drawerItemText}>CANCEL APPLICATION TO COOK</Text>
@@ -215,22 +219,25 @@ const DrawerModal: React.FC<DrawerModalProps> = ({ visible, onClose }) => {
             </TouchableOpacity> */}
             
             <TouchableOpacity
+              testID="drawer.privacyPolicy"
               onPress={() => handleGotoScreen('Privacy')}
               style={styles.drawerItem}>
               <Text style={styles.drawerItemText}>PRIVACY POLICY</Text>
             </TouchableOpacity>
             
             <TouchableOpacity
+              testID="drawer.termsAndConditions"
               onPress={() => handleGotoScreen('Terms')}
               style={styles.drawerItem}>
               <Text style={styles.drawerItemText}>TERMS AND CONDITIONS</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity onPress={handleLogOut} style={styles.drawerItem}>
+            <TouchableOpacity testID="drawer.logout" onPress={handleLogOut} style={styles.drawerItem}>
               <Text style={styles.drawerItemText}>LOGOUT</Text>
             </TouchableOpacity>
             
             <TouchableOpacity
+              testID="drawer.deleteAccount"
               onPress={showDeleteAccountPopup}
               style={styles.drawerItem}>
               <Text style={[styles.drawerItemText, { color: '#fa4616' }]}>DELETE ACCOUNT</Text>

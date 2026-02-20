@@ -23,6 +23,8 @@ export default interface UserInterface {
   created_at?: number;
   updated_at?: number;
 
+  is_hot?: boolean;
+
   remember?: boolean;
   password?: string;
 }

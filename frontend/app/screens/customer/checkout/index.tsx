@@ -66,6 +66,7 @@ const Checkout = () => {
   const weekDay: number = params.weekDay ? parseInt(params.weekDay as string) : 0;
   const chefProfile: IChefProfile = params.chefProfile ? JSON.parse(params.chefProfile as string) : {};
   const selectedDateParam: string = (params.selectedDate as string) || '';
+  const selectedTimeParam: string = (params.selectedTime as string) || '';
 
   const [DAY, onChangeDay] = useState(moment());
   const [times, onChangeTimes] = useState<Array<any>>([]);
@@ -78,6 +79,8 @@ const Checkout = () => {
 
   // Ref to track current timeslot request and prevent race conditions
   const currentTimeslotRequestRef = useRef<string | null>(null);
+  // Track whether we've applied the pre-selected time from chef detail
+  const hasAppliedPreselection = useRef(false);
 
   // Discount code state
   const [discountCode, setDiscountCode] = useState<string>('');
@@ -259,6 +262,16 @@ const Checkout = () => {
         });
 
         onChangeTimes(timeslots);
+
+        // Pre-select time from chef detail screen (only on first load)
+        if (selectedTimeParam && !hasAppliedPreselection.current) {
+          hasAppliedPreselection.current = true;
+          const [preH, preM] = selectedTimeParam.split(':').map(Number);
+          const match = timeslots.find((t: any) => t.h === preH && t.m === preM);
+          if (match) {
+            onChangeTimeId(match.id);
+          }
+        }
       } else {
         // No timeslots available (chef cancelled or no times within 3 hours)
         onChangeTimes([]);

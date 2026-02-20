@@ -404,6 +404,62 @@ const ChefCard = ({ chef }) => {
 
 ---
 
+## Demand Signaling ("In Demand" Badge)
+
+The search system includes a demand signal that displays an "In Demand" badge on select chef cards. This creates social proof and encourages conversions.
+
+### How It Works
+
+- A deterministic hash function (`computeDemandSignal`) decides which chefs get the badge
+- Uses `CRC32(chefId + '-' + dateString) % 100 < 40` — approximately 40% of chefs are marked "hot" on any given day
+- The result is **deterministic**: same chef + same date always produces the same result
+- Different dates produce different distributions (the date acts as a daily seed)
+- No real order data is used — this is a marketing signal, not a live metric
+
+### Backend Implementation
+
+**File:** `backend/app/Http/Controllers/MapiController.php`
+
+```php
+// Class constants
+const DEMAND_SIGNAL_FAKE_PERCENTAGE = 40;
+
+private function computeDemandSignal(int $chefId, string $dateString): bool
+{
+    $hash = abs(crc32($chefId . '-' . $dateString));
+    return ($hash % 100) < self::DEMAND_SIGNAL_FAKE_PERCENTAGE;
+}
+```
+
+The signal is appended to each chef in the `getSearchChefs` response:
+
+```php
+foreach ($chefs as $chef) {
+    $chef->is_hot = $this->computeDemandSignal($chef->id, $selectedDate);
+}
+```
+
+### Frontend Display
+
+**File:** `frontend/app/screens/customer/home/components/chefCard.tsx`
+
+When `chef.is_hot === true`, the chef card renders an "In Demand" badge with a flame icon.
+
+### API Response
+
+The `is_hot` boolean is included in each chef object in the `getSearchChefs` response:
+
+```json
+{
+  "id": 42,
+  "first_name": "Maria",
+  "is_hot": true,
+  ...
+}
+```
+
+---
+
 ## Performance Optimization
 
 ### Database Indexes

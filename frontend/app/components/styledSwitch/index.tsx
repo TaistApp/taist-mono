@@ -8,9 +8,10 @@ type Props = {
   labelLines?: number;
   value: boolean;
   onPress: () => void;
+  testID?: string;
 };
 
-const StyledSwitch = ({label, labelLines = 1, value, onPress}: Props) => {
+const StyledSwitch = ({label, labelLines = 1, value, onPress, testID}: Props) => {
   return (
     <View style={styles.container}>
       <View style={{flex: 1}}>
@@ -19,6 +20,7 @@ const StyledSwitch = ({label, labelLines = 1, value, onPress}: Props) => {
         </Text>
       </View>
       <TouchableOpacity
+        testID={testID}
         onPress={onPress}
         style={value ? styles.bg : styles.bg_disabled}>
         <View style={value ? styles.thumb : styles.thumb_disabled} />

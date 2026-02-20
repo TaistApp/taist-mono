@@ -14,7 +14,7 @@ const HeaderWithBack = (props: any) => {
 
   return (
     <View style={styles.topHeader}>
-      <TouchableOpacity onPress={onPressBack} style={styles.drawerClose}>
+      <TouchableOpacity testID="header.backButton" onPress={onPressBack} style={styles.drawerClose}>
         <FontAwesomeIcon icon={faAngleLeft} size={20} color="#ffffff" />
       </TouchableOpacity>
     </View>

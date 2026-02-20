@@ -112,17 +112,17 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
           style={styles.navButton}
           onPress={() => navigateWeek('prev')}
         >
-          <Text style={styles.navButtonText}>{'<'}</Text>
+          <Text maxFontSizeMultiplier={1.2} style={styles.navButtonText}>{'<'}</Text>
         </TouchableOpacity>
         
         <View style={styles.centerContent}>
-          <Text style={styles.monthYearText}>{monthYearText}</Text>
+          <Text maxFontSizeMultiplier={1.2} style={styles.monthYearText}>{monthYearText}</Text>
           {showTodayButton && (
             <TouchableOpacity 
               style={styles.todayButton}
               onPress={handleTodayPress}
             >
-              <Text style={styles.todayButtonText}>Today</Text>
+              <Text maxFontSizeMultiplier={1.2} style={styles.todayButtonText}>Today</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -131,7 +131,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
           style={styles.navButton}
           onPress={() => navigateWeek('next')}
         >
-          <Text style={styles.navButtonText}>{'>'}</Text>
+          <Text maxFontSizeMultiplier={1.2} style={styles.navButtonText}>{'>'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -141,7 +141,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
           {weekDates.map((date, index) => {
             const isSelected = isDateSelected(date);
             const isDisabled = isDateDisabled(date);
-            const dayName = date.format('ddd').toUpperCase();
+            const dayName = date.format('dd').toUpperCase();
             const dayNumber = date.format('D');
 
             return (
@@ -155,14 +155,14 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                 onPress={() => handleDayPress(date)}
                 disabled={isDisabled}
               >
-                <Text style={[
+                <Text maxFontSizeMultiplier={1.2} style={[
                   styles.dayName,
                   isSelected && styles.selectedDayName,
                   isDisabled && styles.disabledText,
                 ]}>
                   {dayName}
                 </Text>
-                <Text style={[
+                <Text maxFontSizeMultiplier={1.2} style={[
                   styles.dayNumber,
                   isSelected && styles.selectedDayNumber,
                   isDisabled && styles.disabledText,
@@ -231,8 +231,8 @@ const styles = StyleSheet.create({
   dayContainer: {
     alignItems: 'center',
     paddingVertical: 10,
-    paddingHorizontal: 8,
-    minWidth: 48,
+    paddingHorizontal: 4,
+    flex: 1,
     borderRadius: 10,
     backgroundColor: 'transparent',
   },

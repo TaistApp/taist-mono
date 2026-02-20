@@ -205,6 +205,62 @@ This behavior is controlled by comparison operators (`<` for exclusive) in:
 
 ---
 
+## Time Blockout Logic
+
+When customers browse a chef's available time slots, the system filters out slots that conflict with existing orders. This prevents double-booking and ensures chefs have adequate prep time.
+
+### How It Works
+
+1. Customer requests available timeslots for a chef on a specific date
+2. Backend fetches all active orders for that chef on that date (statuses: Requested=1, Accepted=2, On My Way=7)
+3. For each order, a "blocked window" is calculated:
+   - **Start**: `order_time - estimated_time` (prep start)
+   - **End**: `order_time + ORDER_BUFFER_MINUTES` (30 min post-delivery buffer)
+4. Any timeslot that falls within a blocked window is removed from the result
+
+### Constants
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `BLOCKOUT_ORDER_STATUSES` | `[1, 2, 7]` | Statuses that block timeslots |
+| `ORDER_BUFFER_MINUTES` | `30` | Buffer after order time |
+| `DEFAULT_ORDER_DURATION_MINUTES` | `120` | Fallback if no estimated_time on menu |
+
+### Example
+
+Chef has an order at 12:00 with a 20-minute prep item:
+- Blocked window: 11:40 (12:00 - 20min) to 12:30 (12:00 + 30min)
+- Slots removed: 11:30, 12:00, 12:30 (any slot starting within the blocked window)
+
+### API Endpoint
+
+```
+GET /mapi/get_available_timeslots/{chef_id}?date=YYYY-MM-DD
+```
+
+Returns an array of available time strings: `["09:00", "09:30", "10:00", ...]`
+
+### Backend Code
+
+| File | Method | Description |
+|------|--------|-------------|
+| `MapiController.php` | `getAvailableTimeslots()` | Main endpoint |
+| `MapiController.php` | `filterSlotsByOrders()` | Blockout filtering logic |
+
+### Frontend: Availability Section
+
+The chef detail screen includes an interactive availability section where customers can browse dates and times before adding items to cart.
+
+**File:** `frontend/app/screens/customer/chefDetail/components/availabilitySection.tsx`
+
+Features:
+- Horizontal scrollable date pills (next 14 days)
+- Time slot pills fetched from `GetAvailableTimeslotsAPI`
+- Selected time is passed through to checkout for pre-selection
+- Loading and empty states
+
+---
+
 ## 24-Hour Confirmation Reminders
 
 Chefs receive reminders 24 hours before their scheduled availability to confirm/modify/cancel.
@@ -231,10 +287,11 @@ Taist: You're scheduled [Day], [Time Range] tomorrow. If plans changed, open the
 |------|-------------|
 | `backend/app/Models/AvailabilityOverride.php` | Override model with scopes and methods |
 | `backend/app/Listener.php` | `isAvailableForOrder()` method |
-| `backend/app/Http/Controllers/MapiController.php` | API endpoints |
+| `backend/app/Http/Controllers/MapiController.php` | API endpoints, timeslot generation, blockout filtering |
 | `backend/app/Services/ChefConfirmationReminderService.php` | 24-hour reminders |
 | `backend/app/Console/Commands/SendConfirmationReminders.php` | Reminder command |
 | `backend/app/Console/Commands/CleanupOldOverrides.php` | Cleanup command |
+| `frontend/app/screens/customer/chefDetail/components/availabilitySection.tsx` | Chef detail availability UI |
 
 ### Listener::isAvailableForOrder()
 

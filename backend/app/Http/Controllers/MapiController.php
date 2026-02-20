@@ -59,6 +59,13 @@ class MapiController extends Controller
     protected $orderSmsService; // SMS Notification Service
     protected $chatSmsService; // Chat SMS Alert Service
 
+    // TMA-037: Demand signaling & time blockout constants
+    const DEMAND_SIGNAL_FAKE_PERCENTAGE = 40;       // % of chefs without orders that get fake "hot" badge
+    const DEMAND_SIGNAL_STATUSES = [1, 2];           // Order statuses that count as real demand
+    const BLOCKOUT_ORDER_STATUSES = [1, 2, 7];       // Order statuses that block timeslots (Requested, Accepted, On My Way)
+    const ORDER_BUFFER_MINUTES = 30;                  // Buffer time (minutes) between orders
+    const DEFAULT_ORDER_DURATION_MINUTES = 120;       // Fallback if chef has no live menu items
+
     public function __construct(Request $request, OrderSmsService $orderSmsService, ChatSmsService $chatSmsService)
     {
         $this->request = $request;
@@ -946,9 +953,9 @@ class MapiController extends Controller
             ]);
         }
 
-        // Calculate 3-hour minimum from now (only applies to today)
+        // Calculate 2-hour minimum from now (only applies to today)
         $now = time();
-        $minimumOrderTime = $now + (3 * 60 * 60);
+        $minimumOrderTime = $now + (2 * 60 * 60);
 
         // Use client timezone to determine if requested date is "today"
         $clientTimezone = $request->input('timezone');
@@ -1030,7 +1037,7 @@ class MapiController extends Controller
                 // Create timestamp for this slot on the selected date
                 $slotTimestamp = strtotime($date . ' ' . $timeStr . ':00');
 
-                // Skip if less than 3 hours from now (only for today's date)
+                // Skip if less than 2 hours from now (only for today's date)
                 if ($isRequestedDateToday && $slotTimestamp < $minimumOrderTime) {
                     continue;
                 }
@@ -1043,6 +1050,9 @@ class MapiController extends Controller
                 }
             }
         }
+
+        // TMA-037: Filter out slots blocked by existing orders
+        $allSlots = self::filterSlotsByOrders($allSlots, (int) $chefId, $dateOnly);
 
         return response()->json([
             'success' => 1,
@@ -1074,6 +1084,100 @@ class MapiController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Convert "HH:MM" time string to minutes since midnight.
+     */
+    public static function timeToMinutes(string $time): int
+    {
+        $parts = explode(':', $time);
+        return ((int) $parts[0] * 60) + (int) ($parts[1] ?? 0);
+    }
+
+    /**
+     * TMA-037: Filter timeslots by existing orders for a chef on a date.
+     * Removes slots that would overlap with existing orders (including buffer time).
+     */
+    public static function filterSlotsByOrders(array $slots, int $chefId, string $dateOnly): array
+    {
+        $existingOrders = DB::table('tbl_orders')
+            ->join('tbl_menus', 'tbl_orders.menu_id', '=', 'tbl_menus.id')
+            ->where('tbl_orders.chef_user_id', $chefId)
+            ->where('tbl_orders.order_date_new', $dateOnly)
+            ->whereIn('tbl_orders.status', self::BLOCKOUT_ORDER_STATUSES)
+            ->select('tbl_orders.order_time', 'tbl_menus.estimated_time')
+            ->get();
+
+        if ($existingOrders->isEmpty()) {
+            return $slots;
+        }
+
+        // Build order windows: [start => arrival_minutes, end => arrival + prep]
+        $orderWindows = [];
+        foreach ($existingOrders as $order) {
+            $arrivalMinutes = self::timeToMinutes($order->order_time);
+            $prepMinutes = (int) ($order->estimated_time ?? 120);
+            $orderWindows[] = [
+                'start' => $arrivalMinutes,
+                'end'   => $arrivalMinutes + $prepMinutes,
+            ];
+        }
+        usort($orderWindows, fn($a, $b) => $a['start'] - $b['start']);
+
+        // Chef's max menu item duration (conservative estimate for new order)
+        $maxNewSessionMinutes = (int) (DB::table('tbl_menus')
+            ->where('user_id', $chefId)
+            ->where('is_live', 1)
+            ->max('estimated_time') ?? self::DEFAULT_ORDER_DURATION_MINUTES);
+
+        $bufferMinutes = self::ORDER_BUFFER_MINUTES;
+
+        return array_values(array_filter($slots, function ($slotHHMM) use ($orderWindows, $maxNewSessionMinutes, $bufferMinutes) {
+            $parts = explode(':', $slotHHMM);
+            $slotMinutes = ((int) $parts[0] * 60) + (int) $parts[1];
+            $newOrderEnd = $slotMinutes + $maxNewSessionMinutes;
+
+            foreach ($orderWindows as $window) {
+                // Slot is clear if it fully comes after existing order (with buffer)
+                // or fully ends before existing order starts (with buffer)
+                $comesAfter = $slotMinutes >= $window['end'] + $bufferMinutes;
+                $comesBefore = $newOrderEnd + $bufferMinutes <= $window['start'];
+                if (!$comesAfter && !$comesBefore) {
+                    return false;
+                }
+            }
+            return true;
+        }));
+    }
+
+    /**
+     * TMA-037: Compute demand signal (is_hot flag) for a set of chefs on a given date.
+     *
+     * @return array Map of chefId => bool (is_hot)
+     */
+    public static function computeDemandSignal(array $chefIds, string $dateString): array
+    {
+        $chefsWithOrders = !empty($chefIds)
+            ? DB::table('tbl_orders')
+                ->whereIn('chef_user_id', $chefIds)
+                ->where('order_date_new', $dateString)
+                ->whereIn('status', self::DEMAND_SIGNAL_STATUSES)
+                ->distinct()
+                ->pluck('chef_user_id')
+                ->flip()
+                ->toArray()
+            : [];
+
+        $result = [];
+        foreach ($chefIds as $id) {
+            $hasRealDemand = isset($chefsWithOrders[$id]);
+            $hasFakeDemand = !$hasRealDemand && self::DEMAND_SIGNAL_FAKE_PERCENTAGE > 0
+                && (abs(crc32($id . '-' . $dateString)) % 100) < self::DEMAND_SIGNAL_FAKE_PERCENTAGE;
+            $result[$id] = $hasRealDemand || $hasFakeDemand;
+        }
+
+        return $result;
     }
 
     private function resizeImage($file, $png = FALSE, $crop = FALSE)
@@ -2385,13 +2489,13 @@ Write only the review text:";
         $isSameDay = ($orderDateOnly === $todayDateOnly);
 
         if ($isSameDay) {
-            $minimumOrderTime = $currentTimestamp + (3 * 60 * 60); // 3 hours from now
+            $minimumOrderTime = $currentTimestamp + (2 * 60 * 60); // 2 hours from now
 
             if ($orderTimestamp < $minimumOrderTime) {
                 $hoursNeeded = ceil(($minimumOrderTime - $orderTimestamp) / 3600);
                 return response()->json([
                     'success' => 0,
-                    'error' => "Same-day orders must be placed at least 3 hours in advance. Please select a time at least {$hoursNeeded} hours from now, or choose a different day.",
+                    'error' => "Same-day orders must be placed at least 2 hours in advance. Please select a time at least {$hoursNeeded} hours from now, or choose a different day.",
                     'minimum_order_timestamp' => $minimumOrderTime,
                     'requested_timestamp' => $orderTimestamp,
                 ]);
@@ -3555,6 +3659,17 @@ Write only the review text:";
                 return true;
             }));
         }
+
+        // TMA-037: Demand signaling — add is_hot flag to each chef
+        if (!isset($dateString)) {
+            $dateString = date('Y-m-d');
+        }
+        $currentChefIds = collect($data)->pluck('id')->toArray();
+        $demandSignal = self::computeDemandSignal($currentChefIds, $dateString);
+        $data = collect($data)->map(function ($chef) use ($demandSignal) {
+            $chef->is_hot = $demandSignal[$chef->id] ?? false;
+            return $chef;
+        })->values()->all();
 
         // PERFORMANCE: Cache the results for 5 minutes (300 seconds)
         Cache::put($cacheKey, $data, 300);
