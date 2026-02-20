@@ -39,7 +39,7 @@
       </dict>
     </array>
     <key>CFBundleVersion</key>
-    <string>8</string>
+    <string>9</string>
     <key>LSMinimumSystemVersion</key>
     <string>12.0</string>
     <key>LSRequiresIPhoneOS</key>
@@ -52,7 +52,7 @@
       <true/>
     </dict>
     <key>NSCameraUsageDescription</key>
-    <string>Taist needs camera access to take photos for your chef profile and to capture images of your dishes that will be displayed to customers.</string>
+    <string>Taist uses your camera to take a profile photo that represents you as a chef, and to photograph your dishes. For example, you can snap a photo of your signature meal to display on your chef profile for customers to see.</string>
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
     <string>Taist needs your location to show nearby chefs and improve your experience in finding culinary services.</string>
     <key>NSLocationAlwaysUsageDescription</key>
@@ -65,9 +65,9 @@
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>Allow Taist to use your location to show nearby chefs.</string>
     <key>NSPhotoLibraryAddUsageDescription</key>
-    <string>Taist would like to save photos to your gallery, such as images received in messages.</string>
+    <string>Taist saves photos to your photo library when you choose to download images from messages or order confirmations. For example, saving a receipt image shared by a customer.</string>
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>Taist needs access to your photo library to select images for your chef profile picture and dish photos that will be displayed to customers.</string>
+    <string>Taist accesses your photo library so you can select an existing photo for your chef profile picture or upload photos of dishes you offer. For example, choosing a professional headshot as your profile image or selecting food photos to showcase your menu.</string>
     <key>NSUserActivityTypes</key>
     <array>
       <string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>

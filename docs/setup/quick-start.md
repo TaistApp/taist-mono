@@ -7,7 +7,7 @@ Your local environment is **fully configured** with database and test data ready
 ### Terminal 1: Backend
 ```bash
 cd backend
-php artisan serve --port=8000
+php artisan serve --port=8005
 ```
 
 ### Terminal 2: Frontend
@@ -16,7 +16,7 @@ cd frontend
 npm run dev:local        # Points to local backend
 ```
 
-That's it! Backend runs at `http://127.0.0.1:8000`, frontend opens in Expo.
+That's it! Backend runs at `http://127.0.0.1:8005`, frontend opens in Expo.
 
 ---
 
@@ -78,7 +78,7 @@ SELECT id, title, price FROM tbl_menus;
 
 ```bash
 # Backend responding?
-curl http://127.0.0.1:8000/mapi/get-version
+curl http://127.0.0.1:8005/mapi/get-version
 
 # Should return: {"success":1,"data":[{"version":"1.0.0",...}]}
 ```
@@ -87,11 +87,11 @@ curl http://127.0.0.1:8000/mapi/get-version
 
 ## Quick Fixes
 
-### "Port 8000 already in use"
+### "Port 8005 already in use"
 ```bash
-lsof -i :8000          # Find what's using it
+lsof -i :8005          # Find what's using it
 kill -9 <PID>          # Kill it
-php artisan serve      # Restart
+php artisan serve --port=8005  # Restart
 ```
 
 ### "Can't connect to MySQL"

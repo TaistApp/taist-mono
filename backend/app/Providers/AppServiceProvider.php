@@ -30,6 +30,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        //
+        // Generate Firebase credentials file from JSON env variable
+        // Railway stores the JSON content directly in FIREBASE_CREDENTIALS
+        // but the Laravel Firebase package expects a file path
+        $firebaseCredentials = env('FIREBASE_CREDENTIALS');
+        $credentialsPath = base_path('firebase_credentials.json');
+
+        if ($firebaseCredentials && str_starts_with($firebaseCredentials, '{') && !file_exists($credentialsPath)) {
+            file_put_contents($credentialsPath, $firebaseCredentials);
+        }
     }
 }

@@ -1,5 +1,15 @@
 # Taist Monorepo
 
+A food marketplace connecting customers with local chefs — Laravel API + React Native (Expo) mobile app.
+
+**Keep this file under 100 lines.** Move details to `docs/` and link from here.
+
+## Rules
+
+1. **No task is done until verified** — run commands, tests, or Maestro flows to prove it works
+2. **No task is done until documented** — update CLAUDE.md, docs, seeders, and env configs as needed
+3. **Keep this file concise** — reference `docs/` for details, don't duplicate
+
 ## Project Structure
 
 - `backend/` — Laravel 8 API (PHP)
@@ -19,74 +29,45 @@
 
 ## Auth System
 
-- Token-based auth via `api_token` field on `tbl_users`
+- Token-based auth via `api_token` on `tbl_users`
 - Mobile API guard: `mapi` (token-based, uses `Listener` model)
-- All API requests require `Authorization: Bearer {token}` + hardcoded `apiKey` header
+- Requests require `Authorization: Bearer {token}` + hardcoded `apiKey` header
 - User types: `1` = customer, `2` = chef
 - Verified states: `0` = pending, `1` = active, `2` = denied, `3` = banned
 
 ## Maestro E2E Test Users
 
-Pre-seeded accounts for automated UI testing. **Never seed these in production.**
+**Never seed in production.** Full details: `docs/maestro-test-users.md`
 
-### Seeding
+- Seed: `php artisan db:seed --class="Database\Seeders\MaestroTestUserSeeder"` (idempotent)
+- Env vars: `frontend/.maestro/test-users.env.yaml`
 
-```bash
-cd backend
-php artisan db:seed --class="Database\Seeders\MaestroTestUserSeeder"
-```
+## Commands
 
-The seeder is idempotent (deletes `maestro+*@test.com` users before re-inserting).
+| Action | Command |
+| ------ | ------- |
+| Start backend | `cd backend && php artisan serve --host=0.0.0.0 --port=8005` |
+| Run migrations | `cd backend && php artisan migrate` |
+| Seed test users | `cd backend && php artisan db:seed --class="Database\Seeders\MaestroTestUserSeeder"` |
+| Start frontend (local) | `cd frontend && npm run dev:local` |
+| Start frontend (staging) | `cd frontend && npm run start` |
+| Lint frontend | `cd frontend && npm run lint` |
+| Run Maestro tests | `maestro test frontend/.maestro/` |
 
-### Credentials
+## Branching & Deployment
 
-**Password for all:** `maestro123`
-
-| ID  | Email                            | Role     | Purpose                        |
-| --- | -------------------------------- | -------- | ------------------------------ |
-| 100 | `maestro+customer1@test.com`     | Customer | General customer flows         |
-| 101 | `maestro+customer2@test.com`     | Customer | Browse/search testing          |
-| 102 | `maestro+customer3@test.com`     | Customer | Order flow testing             |
-| 103 | `maestro+customer-new@test.com`  | Customer | New user (no address)          |
-| 110 | `maestro+chef1@test.com`         | Chef     | Active, has menus + full sched |
-| 111 | `maestro+chef2@test.com`         | Chef     | Weekday-only schedule          |
-| 112 | `maestro+chef3@test.com`         | Chef     | Narrow hours schedule          |
-| 113 | `maestro+chef-pending@test.com`  | Chef     | Unverified / pending           |
-| 114 | `maestro+chef-noquiz@test.com`   | Chef     | Quiz not completed             |
-
-### Using in Maestro Flows
-
-Pass credentials via env vars when calling `run_flow`:
-
-```json
-{
-  "env": {
-    "CUSTOMER_EMAIL": "maestro+customer1@test.com",
-    "PASSWORD": "maestro123"
-  }
-}
-```
-
-All env vars are defined in `frontend/.maestro/test-users.env.yaml`.
-
-Available vars: `PASSWORD`, `CUSTOMER_EMAIL`, `CUSTOMER2_EMAIL`, `CUSTOMER3_EMAIL`, `CUSTOMER_NEW_EMAIL`, `CHEF_EMAIL`, `CHEF2_EMAIL`, `CHEF3_EMAIL`, `CHEF_PENDING_EMAIL`, `CHEF_NOQUIZ_EMAIL`.
-
-### Files
-
-- Seeder: `backend/database/seeds/MaestroTestUserSeeder.php`
-- Env config: `frontend/.maestro/test-users.env.yaml`
-- Full docs: `docs/maestro-test-users.md`
+- **`staging` branch** → Railway staging environment (auto-deploys on push)
+- **`main` branch** → Railway production environment (auto-deploys on push)
+- Workflow: feature branches → PR to `staging` → test → PR from `staging` to `main`
+- Frontend (Expo/EAS) is deployed separately, not via Railway
 
 ## Local Development
 
-- **Laravel backend port: 8002** (port 8000 is used by another local service)
-- Start backend: `cd backend && php artisan serve --host=0.0.0.0 --port=8002`
-- Frontend local API URLs point to `localhost:8002`
+- **Backend port: 8005** (8005 standard for local runs)
+- Frontend API URLs point to `localhost:8005`
 
 ## Database
 
 - Local: MySQL (`taist_local`, root, no password)
 - Tables use `tbl_` prefix (e.g., `tbl_users`, `tbl_menus`, `tbl_availabilities`)
 - Seeders in `backend/database/seeds/`
-- `LocalTestDataSeeder` — manual test data (IDs 1-5)
-- `MaestroTestUserSeeder` — automated test data (IDs 100-119)

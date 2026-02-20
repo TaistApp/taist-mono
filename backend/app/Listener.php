@@ -126,9 +126,6 @@ class Listener extends Authenticatable
         $orderDateOnly = date('Y-m-d', $orderTimestamp);
         $orderTime = date('H:i', $orderTimestamp);
 
-        // Use client timezone to determine "today" (matches getAvailableTimeslots logic)
-        $today = \App\Helpers\TimezoneHelper::getTodayInTimezone($timezone);
-
         // Check for override first
         $override = \App\Models\AvailabilityOverride::forChef($this->id)
             ->forDate($orderDateOnly)
@@ -139,12 +136,7 @@ class Listener extends Authenticatable
             return $override->isAvailableAt($orderTime);
         }
 
-        // Today with no override = NOT available (chef must toggle on)
-        if ($orderDateOnly === $today) {
-            return false;
-        }
-
-        // Tomorrow and beyond - fall back to weekly recurring schedule
+        // No override - fall back to weekly recurring schedule (today and future dates)
         return $this->hasScheduleForDateTime($orderTimestamp, $orderTime);
     }
 

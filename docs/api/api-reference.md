@@ -789,6 +789,18 @@ Submit support request.
 | user_id | int | Yes |
 | subject | string | Yes |
 | message | string | Yes |
+| issue_type | string | No |
+| current_screen | string | No |
+| origin_screen | string | No |
+| entry_point | string | No |
+| device_model | string | No |
+| device_os | string | No |
+| platform | string | No |
+| app_version | string | No |
+| app_build | string | No |
+| app_env | string | No |
+| client_timestamp | string (ISO-8601) | No |
+| screenshot | file image/jpeg\|image/png\|image/webp | No |
 
 ### Get Tickets
 ```

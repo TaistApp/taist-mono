@@ -116,36 +116,38 @@ Where all the platform's data is stored - users, orders, menus, reviews, etc.
 
 ---
 
-## Cloud Hosting (AWS)
+## Cloud Hosting (Railway)
 
 ### What It Is
-The servers that run the backend are hosted on **Amazon Web Services (AWS)** - the same cloud infrastructure used by Netflix, NASA, and major banks.
+The servers that run the backend are hosted on **Railway** - a modern cloud platform that simplifies deployment and scaling. Railway is trusted by thousands of companies for its ease of use and reliability.
 
 ### Server Setup
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    AWS INFRASTRUCTURE                        │
-│                    Region: Ohio (us-east-2)                  │
+│                   RAILWAY INFRASTRUCTURE                     │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│   PRODUCTION SERVER                STAGING SERVER           │
-│   ─────────────────                ──────────────           │
+│   PRODUCTION                       STAGING                  │
+│   ──────────                       ───────                  │
 │   • Live customer traffic          • Testing environment    │
 │   • Real payments processed        • Safe for experiments   │
-│   • Protected by Cloudflare        • Development builds     │
-│   • t2.small instance              • t2.medium instance     │
+│   • Auto-scaling                   • Development builds     │
+│   • Zero-downtime deploys          • Preview deployments    │
 │                                                             │
-│   taist.codeupscale.com            taist.cloudupscale.com   │
+│   Backend API                      Staging API              │
+│   + MySQL Database                 + MySQL Database         │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Security & Performance
+### Why Railway?
 | Feature | Description |
 |---------|-------------|
-| **Cloudflare CDN** | Protects production from attacks, speeds up delivery |
-| **SSL/HTTPS** | All data encrypted in transit |
-| **Automated Backups** | Database backed up regularly |
+| **Simple Deployments** | Push code to GitHub, Railway deploys automatically |
+| **Auto-Scaling** | Handles traffic spikes automatically |
+| **SSL/HTTPS** | All data encrypted in transit (automatic) |
+| **Managed Database** | MySQL hosted and backed up by Railway |
+| **Zero Config** | No server management needed |
 
 ---
 
@@ -297,8 +299,7 @@ taist-mono/
 ### Infrastructure
 | Service | Provider | Purpose |
 |---------|----------|---------|
-| Hosting | AWS EC2 | Server hosting |
-| CDN | Cloudflare | Security & performance |
+| Hosting | Railway | Server & database hosting |
 | Payments | Stripe | Payment processing |
 | Push Notifications | Firebase | Mobile notifications |
 | SMS | Twilio | Text messages |
@@ -314,7 +315,7 @@ taist-mono/
 | **Transport** | HTTPS/SSL encryption for all data |
 | **Authentication** | OAuth 2.0 tokens, secure password hashing |
 | **Payments** | PCI-compliant via Stripe (no card data stored) |
-| **Infrastructure** | Cloudflare DDoS protection, AWS security groups |
+| **Infrastructure** | Railway's built-in security, automatic SSL |
 | **Code** | Private GitHub repository, code reviews |
 
 ---
@@ -327,12 +328,13 @@ The platform is built to grow:
 |--------|---------|--------------|
 | **Users** | Hundreds | Thousands+ |
 | **Orders/Day** | Dozens | Hundreds+ |
-| **Server** | Single EC2 | Multiple servers or Railway |
+| **Server** | Railway | Auto-scales as needed |
 
-**Scaling Options:**
-- Upgrade server size (vertical scaling)
-- Add more servers (horizontal scaling)
-- Move to managed platform (Railway - in progress)
+**Scaling Benefits with Railway:**
+- Automatic scaling based on traffic
+- No manual server management
+- Easy to add more resources
+- Built-in load balancing
 
 ---
 

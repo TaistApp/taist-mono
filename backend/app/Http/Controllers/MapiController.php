@@ -36,6 +36,7 @@ use App\Notifications\OrderRejectedNotification;
 use App\Notifications\ChefOnTheWayNotification;
 use App\Services\TwilioService;
 use App\Services\OrderSmsService;
+use App\Services\ChatSmsService;
 use App\Helpers\TimezoneHelper;
 use Illuminate\Support\Str;
 use Exception;
@@ -56,11 +57,13 @@ class MapiController extends Controller
     protected $request; // request as an attribute of the controllers
     protected $notification; // Push Notification
     protected $orderSmsService; // SMS Notification Service
+    protected $chatSmsService; // Chat SMS Alert Service
 
-    public function __construct(Request $request, OrderSmsService $orderSmsService)
+    public function __construct(Request $request, OrderSmsService $orderSmsService, ChatSmsService $chatSmsService)
     {
         $this->request = $request;
         $this->orderSmsService = $orderSmsService;
+        $this->chatSmsService = $chatSmsService;
 
         try {
             $this->notification = Firebase::messaging();
@@ -111,6 +114,31 @@ class MapiController extends Controller
         if (!$user)
             $user = auth('mapi')->user();
         return $user;
+    }
+
+    private function _appBaseUrl()
+    {
+        $baseUrl = rtrim((string) config('app.url'), '/');
+        if ($baseUrl !== '') {
+            return $baseUrl;
+        }
+
+        $requestUrl = rtrim((string) url('/'), '/');
+        if ($requestUrl !== '') {
+            return $requestUrl;
+        }
+
+        throw new \RuntimeException('APP_URL is not configured.');
+    }
+
+    private function _logoUrl()
+    {
+        return $this->_appBaseUrl() . '/assets/images/logo-2.png';
+    }
+
+    private function _adminUrl()
+    {
+        return $this->_appBaseUrl() . '/admin';
     }
 
     private function _sendSMS($user)
@@ -422,7 +450,7 @@ class MapiController extends Controller
             $msg .= "<p><b>" . $code . "</b> is a verification code to reset your password.</p>";
             $msg .= "<p>Thank You! <div>- The Taist Team</div></p>";
             $msg .= "<p><i>If you didn’t make this request, or if you’re having trouble signing in, contact us via contact@taist.app</i></p>";
-            $msg .= "<p><img alt='Taist logo' src='http://18.216.154.184/assets/uploads/images/logo-2.png' /></p>";
+            $msg .= "<p><img alt='Taist logo' src='" . $this->_logoUrl() . "' /></p>";
             $email = $user->email;
             $b = $this->_sendEmail($email, "Taist - Password Reset", $msg);
 
@@ -957,15 +985,6 @@ class MapiController extends Controller
             $startTime = $override->start_time ? date('H:i', strtotime($override->start_time)) : null;
             $endTime = $override->end_time ? date('H:i', strtotime($override->end_time)) : null;
         } else {
-            // Today with no override = NOT available (chef must toggle on)
-            // This matches the logic in isAvailableForOrder() for consistency
-            if ($isRequestedDateToday) {
-                return response()->json([
-                    'success' => 1,
-                    'data' => []
-                ]);
-            }
-
             // No override - get weekly schedule (single query)
             $availability = \App\Models\Availabilities::where('user_id', $chefId)->first();
 
@@ -1527,6 +1546,14 @@ class MapiController extends Controller
         $id = app(Conversations::class)->insertGetId($ary);
 
         $data = app(Conversations::class)->where(['id' => $id])->first();
+
+        // TMA-055: send throttled SMS chat alert to recipient (non-blocking)
+        $this->chatSmsService->sendNewMessageAlert(
+            (int) $request->from_user_id,
+            (int) $request->to_user_id,
+            (int) $request->order_id
+        );
+
         return response()->json(['success' => 1, 'data' => $data]);
     }
 
@@ -2823,10 +2850,56 @@ Write only the review text:";
         if ($this->_checktaistApiKey($request->header('apiKey')) === false)
             return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
 
+        $message = trim((string)$request->message);
+        $contextLines = [];
+
+        $contextFields = [
+            'issue_type' => $request->issue_type,
+            'current_screen' => $request->current_screen,
+            'origin_screen' => $request->origin_screen,
+            'entry_point' => $request->entry_point,
+            'device_model' => $request->device_model,
+            'device_os' => $request->device_os,
+            'platform' => $request->platform,
+            'app_version' => $request->app_version,
+            'app_build' => $request->app_build,
+            'app_env' => $request->app_env,
+            'client_timestamp' => $request->client_timestamp,
+        ];
+
+        foreach ($contextFields as $key => $value) {
+            if (!is_null($value) && trim((string)$value) !== '') {
+                $contextLines[] = $key . ': ' . trim((string)$value);
+            }
+        }
+
+        if (isset($_FILES['screenshot']) && !empty($_FILES['screenshot']['name'])) {
+            $ext = 'jpg';
+            $mimeType = (string)($_FILES['screenshot']['type'] ?? '');
+            if ($mimeType === 'image/png') $ext = 'png';
+            if ($mimeType === 'image/webp') $ext = 'webp';
+
+            $uploadDir = 'assets/uploads/images/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+
+            $ticketUserId = (int)($request->user_id ?? 0);
+            $screenshotName = 'issue_report_' . $ticketUserId . '_' . time() . '.' . $ext;
+            if (move_uploaded_file($_FILES['screenshot']['tmp_name'], $uploadDir . $screenshotName)) {
+                $contextLines[] = 'screenshot_url: ' . url('/assets/uploads/images/' . $screenshotName);
+            }
+        }
+
+        if (!empty($contextLines)) {
+            $prefix = $message !== '' ? $message . "\n\n" : '';
+            $message = $prefix . "---\nIssue Context:\n" . implode("\n", $contextLines);
+        }
+
         $ary = [
             'user_id' => $request->user_id,
             'subject' => $request->subject,
-            'message' => $request->message,
+            'message' => $message,
             'created_at' => now(),
             'updated_at' => now(),
         ];
@@ -3477,12 +3550,8 @@ Write only the review text:";
                     return $chefStart < $slotEnd && $chefEnd > $slotStart;
                 }
 
-                // Today with no override = NOT available (chef must toggle on)
-                if ($dateString === $today) {
-                    return false;
-                }
-
-                // Tomorrow+ without override - use weekly schedule (already filtered by main query)
+                // Without an override, use weekly schedule rules from the main query.
+                // For today this means chefs are considered available by schedule.
                 return true;
             }));
         }
@@ -3878,7 +3947,7 @@ Write only the review text:";
                 $msg .= "<p>Special Instructions: <b>" . $order->notes . "</b></p>";
             }
             $msg .= "<br><p>Thank You! <div>- The Taist Team</div></p>";
-            $msg .= "<p><img alt='Taist logo' src='http://18.216.154.184/assets/uploads/images/logo-2.png' /></p>";
+            $msg .= "<p><img alt='Taist logo' src='" . $this->_logoUrl() . "' /></p>";
 
             $emailResponse = $this->_sendEmail($user->email, "Taist - Order Receipt", $msg);
 
@@ -4070,9 +4139,9 @@ Write only the review text:";
 
             $msg = "";
             $msg .= "<p>Hi Taist Admin,</p>";
-            $msg .= "<p>Please check <a href='https://safescreener.instascreen.net/editor/viewReport.taz?file=" . $response['fileNumber'] . "'>SafeScreener</a> for their status and convert them from Pending to Active from <a href='http://18.216.154.184/admin'>Taist Admin</a>.</p>";
+            $msg .= "<p>Please check <a href='https://safescreener.instascreen.net/editor/viewReport.taz?file=" . $response['fileNumber'] . "'>SafeScreener</a> for their status and convert them from Pending to Active from <a href='" . $this->_adminUrl() . "'>Taist Admin</a>.</p>";
             $msg .= "<p>Thank You! <div>- The Taist Team</div></p>";
-            $msg .= "<p><img alt='Taist logo' src='http://18.216.154.184/assets/uploads/images/logo-2.png' /></p>";
+            $msg .= "<p><img alt='Taist logo' src='" . $this->_logoUrl() . "' /></p>";
 
             $emailResponse = $this->_sendEmail("contact@taist.app", "Taist - Background Check Submitted by Pending Chef", $msg);
 
@@ -4361,8 +4430,11 @@ Write only the review text:";
                 $accountId = $account['id'];
             }
 
-            // Stripe requires HTTPS URLs - use backend endpoints that redirect to the app
-            $baseUrl = config('app.url') ?: 'https://taist-mono-staging.up.railway.app';
+            // Stripe requires HTTPS URLs - APP_URL must be configured per environment.
+            $baseUrl = rtrim((string) config('app.url'), '/');
+            if ($baseUrl === '') {
+                throw new \RuntimeException('APP_URL is not configured for Stripe onboarding.');
+            }
 
             $account_link = $stripe->accountLinks->create([
                 'account' => $accountId,

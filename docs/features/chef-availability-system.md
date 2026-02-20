@@ -16,7 +16,7 @@ The chef availability system controls when chefs appear in customer searches and
 
 | Order Date | Override Exists? | Result |
 |------------|-----------------|--------|
-| **Today** | No | NOT available - chef must toggle on |
+| **Today** | No | Available per weekly schedule |
 | **Today** | Yes (active) | Available during override times |
 | **Today** | Yes (cancelled) | NOT available |
 | **Tomorrow** | No | Available per weekly schedule |
@@ -24,9 +24,11 @@ The chef availability system controls when chefs appear in customer searches and
 | **Tomorrow** | Yes (cancelled) | NOT available |
 | **2+ days out** | N/A | Available per weekly schedule |
 
-### Key Rule: Today Requires Override
+### Key Rule: Override Takes Priority
 
-For same-day orders, chefs must explicitly "go live" by creating an availability override. This ensures chefs are actively ready to receive orders rather than relying on a static weekly schedule.
+For same-day and future-day orders, weekly schedule is the default. If an override exists for that date, the override wins:
+- Active override: use override hours
+- Cancelled override: chef is unavailable for that date
 
 ---
 
@@ -216,7 +218,7 @@ Chefs receive reminders 24 hours before their scheduled availability to confirm/
 
 ### SMS Content
 ```
-Taist: You're scheduled [Day], [Time Range]. Open the app to confirm, modify, or cancel.
+Taist: You're scheduled [Day], [Time Range] tomorrow. If plans changed, open the app to update availability.
 ```
 
 ---
@@ -254,12 +256,7 @@ public function isAvailableForOrder($orderDate)
         return $override->isAvailableAt($orderTime);
     }
 
-    // Today with no override = NOT available
-    if ($orderDateOnly === $today) {
-        return false;
-    }
-
-    // Tomorrow and beyond - fall back to weekly schedule
+    // No override - fall back to weekly schedule
     return $this->hasScheduleForDateTime($orderTimestamp, $orderTime);
 }
 ```
@@ -326,7 +323,7 @@ The `is_online`, `online_start`, `online_until` fields on tbl_users are deprecat
 1. [ ] Chef toggles Live → appears in customer search for today
 2. [ ] Chef toggles Off → disappears from customer search for today
 3. [ ] Customer can order from chef with active override
-4. [ ] Customer cannot order from chef without override for today
+4. [ ] Customer can order from chef without override for today if weekly schedule/time allows
 5. [ ] Tomorrow orders work with weekly schedule (no override needed)
 6. [ ] Past time selection rolls over to tomorrow
 7. [ ] Toggle shows "Off" after end time passes

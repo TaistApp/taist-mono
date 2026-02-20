@@ -44,10 +44,10 @@ const getEnvironmentUrls = () => {
       // iOS simulator and web can use localhost
       const localHost = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
       return {
-        BASE_URL: `http://${localHost}:8002/mapi/`,
-        Photo_URL: `http://${localHost}:8002/assets/uploads/images/`,
-        Static_URL: `http://${localHost}:8002/assets/images/`,
-        HTML_URL: `http://${localHost}:8002/assets/uploads/html/`,
+        BASE_URL: `http://${localHost}:8005/mapi/`,
+        Photo_URL: `http://${localHost}:8005/assets/uploads/images/`,
+        Static_URL: `http://${localHost}:8005/assets/images/`,
+        HTML_URL: `http://${localHost}:8005/assets/uploads/html/`,
       };
     
     case 'staging':
@@ -677,6 +677,64 @@ export const CreateTicketAPI = async (
   dispatch?: any
 ) => {
   var response = await POSTAPICALL("create_ticket", params);
+  if (response.success == 1 && dispatch) {
+  }
+  return response;
+};
+
+export const CreateIssueReportAPI = async (
+  params: {
+    user_id: number;
+    subject: string;
+    message: string;
+    issue_type?: string;
+    current_screen?: string;
+    origin_screen?: string;
+    entry_point?: string;
+    device_model?: string;
+    device_os?: string;
+    platform?: string;
+    app_version?: string;
+    app_build?: string;
+    app_env?: string;
+    client_timestamp?: string;
+    screenshot_uri?: string;
+  },
+  dispatch?: any
+) => {
+  const headers = {
+    "Content-Type": "multipart/form-data",
+  };
+
+  const formData = new FormData();
+  formData.append("user_id", String(params.user_id));
+  formData.append("subject", params.subject);
+  formData.append("message", params.message);
+  if (params.issue_type) formData.append("issue_type", params.issue_type);
+  if (params.current_screen) formData.append("current_screen", params.current_screen);
+  if (params.origin_screen) formData.append("origin_screen", params.origin_screen);
+  if (params.entry_point) formData.append("entry_point", params.entry_point);
+  if (params.device_model) formData.append("device_model", params.device_model);
+  if (params.device_os) formData.append("device_os", params.device_os);
+  if (params.platform) formData.append("platform", params.platform);
+  if (params.app_version) formData.append("app_version", params.app_version);
+  if (params.app_build) formData.append("app_build", params.app_build);
+  if (params.app_env) formData.append("app_env", params.app_env);
+  if (params.client_timestamp) formData.append("client_timestamp", params.client_timestamp);
+
+  if (params.screenshot_uri) {
+    const uri = params.screenshot_uri;
+    const lowerUri = uri.toLowerCase();
+    const ext = lowerUri.endsWith('.png') ? 'png' : lowerUri.endsWith('.webp') ? 'webp' : 'jpg';
+    const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+    formData.append("screenshot", {
+      uri,
+      type: mime,
+      name: `issue_report.${ext}`,
+    } as any);
+  }
+
+  var response = await POSTAPICALL("create_ticket", formData, headers);
   if (response.success == 1 && dispatch) {
   }
   return response;

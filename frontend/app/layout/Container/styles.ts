@@ -30,6 +30,11 @@ export const styles = StyleSheet.create({
     // gap: 20,
     // borderWidth: 1,
   },
+  rightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 1,
+  },
   logoContainer: {
     position: 'absolute',
     top: 0,

@@ -230,6 +230,10 @@ export const navigate = {
     terms: () => router.push('/screens/common/terms' as any),
     privacy: () => router.push('/screens/common/privacy' as any),
     contactUs: () => router.push('/screens/common/contactUs' as any),
+    reportIssue: (params?: { origin_screen?: string; entry_point?: string }) => router.push({
+      pathname: '/screens/common/reportIssue',
+      params: params || {}
+    } as any),
     inbox: () => router.push('/screens/common/inbox' as any),
     map: (latitude: number, longitude: number) => router.push({
       pathname: '/screens/common/map',

@@ -8,7 +8,6 @@ import {
   Pressable,
   Text,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -57,6 +56,20 @@ const parseTimeValue = (value: string | number | undefined): { hours: number; mi
     return { hours: date.getHours(), minutes: date.getMinutes() };
   }
   return null;
+};
+
+const isNowWithinHours = (start: { hours: number; minutes: number }, end: { hours: number; minutes: number }): boolean => {
+  const now = moment();
+  const nowMinutes = now.hours() * 60 + now.minutes();
+  const startMinutes = start.hours * 60 + start.minutes;
+  const endMinutes = end.hours * 60 + end.minutes;
+
+  // Overnight range (e.g., 22:00 -> 05:00)
+  if (endMinutes <= startMinutes) {
+    return nowMinutes >= startMinutes || nowMinutes < endMinutes;
+  }
+
+  return nowMinutes >= startMinutes && nowMinutes < endMinutes;
 };
 
 const GoLiveToggle: React.FC = () => {
@@ -133,26 +146,21 @@ const GoLiveToggle: React.FC = () => {
       });
 
       if (response.success === 1) {
-        // Find today's override that is not cancelled
+        const todayOverrideAny = response.data?.find((o: any) => o.override_date === today);
         const todayOverride = response.data?.find(
           (o: any) => o.override_date === today && o.status !== 'cancelled'
         );
 
-        if (todayOverride && todayOverride.end_time) {
-          // Check if current time is still within the override window
-          // Times are stored in HH:mm format in the user's local timezone
-          const now = moment();
-          // Parse end_time as today's date with that time (in local timezone)
-          const endTimeMoment = moment(`${today} ${todayOverride.end_time}`, 'YYYY-MM-DD HH:mm');
-
-          if (now.isBefore(endTimeMoment)) {
-            setIsOnline(true);
-          } else {
-            // Override has expired
-            setIsOnline(false);
-          }
-        } else {
+        if (todayOverrideAny?.status === 'cancelled') {
           setIsOnline(false);
+        } else if (todayOverride?.start_time && todayOverride?.end_time) {
+          const overrideStart = parseTimeValue(todayOverride.start_time);
+          const overrideEnd = parseTimeValue(todayOverride.end_time);
+          setIsOnline(!!overrideStart && !!overrideEnd && isNowWithinHours(overrideStart, overrideEnd));
+        } else {
+          // No today override - "Live" follows weekly schedule for current day/time.
+          const schedule = getScheduleForDay('today');
+          setIsOnline(!!schedule.start && !!schedule.end && isNowWithinHours(schedule.start, schedule.end));
         }
 
         // Check for tomorrow's override
@@ -524,7 +532,7 @@ const GoLiveToggle: React.FC = () => {
           >
             <Text style={styles.confirmTitle}>Go Live for Same-Day Orders</Text>
             <Text style={styles.dayPickerSubtitle}>
-              Confirm your availability to receive same-day orders. This does not affect your weekly schedule.
+              Set custom hours for today or tomorrow. Leaving this unchanged uses your regular weekly schedule.
             </Text>
             <View style={styles.confirmButtons}>
               <TouchableOpacity

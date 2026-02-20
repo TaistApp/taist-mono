@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import {
   Image,
+  SafeAreaView,
   Text,
   TouchableOpacity,
   View,
   ViewStyle
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { styles } from './styles';
 
@@ -15,11 +15,12 @@ import {
   faAngleLeft,
   faBars,
   faBell,
+  faBug,
   faMessage
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { useNavigation } from '@react-navigation/native';
-import { useRouter, useSegments } from 'expo-router';
+import { usePathname, useSegments } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import DrawerModal from '../../components/DrawerModal';
 import CartIcon from '../../components/cartIcon';
@@ -43,12 +44,11 @@ const Container = ({
   onBack,
   children,
 }: IProps) => {
-  const router = useRouter();
   const navigation = useNavigation();
   const segments = useSegments();
+  const pathname = usePathname();
   const user = useAppSelector(x => x.user).user;
 
-  const [openDrawer, setOpenDrawer] = useState(false);
   const [showDrawerModal, setShowDrawerModal] = useState(false);
 
   // Check if we're in a chef context (exact match to avoid matching "chefDetail" etc.)
@@ -91,6 +91,13 @@ const Container = ({
     navigate.toCommon.notification();
   };
 
+  const handleReportIssuePress = () => {
+    navigate.toCommon.reportIssue({
+      origin_screen: pathname || 'unknown',
+      entry_point: 'header_bug_icon',
+    });
+  };
+
   const handleBackPress = () => {
     if (onBack) {
       onBack();
@@ -119,9 +126,20 @@ const Container = ({
               <FontAwesomeIcon icon={faAngleLeft} size={20} color="#000000" />
             </TouchableOpacity>
 
-            {rightContent && (
-              <View style={styles.topHeaderLeft}>{rightContent}</View>
-            )}
+            <View style={styles.rightActions}>
+              {(isInChefContext || isInCustomerContext) && user?.id ? (
+                <TouchableOpacity
+                  onPress={handleReportIssuePress}
+                  style={styles.button}
+                  accessibilityLabel="Report issue"
+                  accessibilityHint="Open the issue reporting form">
+                  <FontAwesomeIcon icon={faBug} size={20} color="#000000" />
+                </TouchableOpacity>
+              ) : null}
+              {rightContent && (
+                <View style={styles.topHeaderLeft}>{rightContent}</View>
+              )}
+            </View>
           </View>
         ) : (
           <View style={styles.topHeader}>
@@ -152,6 +170,15 @@ const Container = ({
               style={styles.button}>
               <FontAwesomeIcon icon={faBell} size={20} color="#000000" />
             </TouchableOpacity>
+            {(isInChefContext || isInCustomerContext) && user?.id ? (
+              <TouchableOpacity
+                onPress={handleReportIssuePress}
+                style={styles.button}
+                accessibilityLabel="Report issue"
+                accessibilityHint="Open the issue reporting form">
+                <FontAwesomeIcon icon={faBug} size={20} color="#000000" />
+              </TouchableOpacity>
+            ) : null}
 
             </View>
 

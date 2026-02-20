@@ -119,7 +119,7 @@ APP_NAME=Taist
 APP_ENV=local
 APP_KEY=
 APP_DEBUG=true
-APP_URL=http://localhost:8000
+APP_URL=http://localhost:8005
 
 LOG_CHANNEL=stack
 
@@ -277,13 +277,13 @@ print_success "Backend is ready for local development!"
 echo ""
 print_info "Next steps:"
 echo "  1. Start the backend server:"
-echo "     ${GREEN}php artisan serve${NC}"
+echo "     ${GREEN}php artisan serve --host=127.0.0.1 --port=8005${NC}"
 echo ""
 echo "  2. Backend will be available at:"
-echo "     ${GREEN}http://localhost:8000${NC}"
+echo "     ${GREEN}http://localhost:8005${NC}"
 echo ""
 echo "  3. Test the API:"
-echo "     ${GREEN}curl http://localhost:8000/api/get-version${NC}"
+echo "     ${GREEN}curl http://localhost:8005/api/get-version${NC}"
 echo ""
 print_info "Optional Configuration:"
 echo "  • Edit .env to add Stripe, Twilio, Google Maps API keys"
@@ -295,5 +295,3 @@ echo "  • Run: ${GREEN}cd ../frontend && npm run dev:local${NC}"
 echo ""
 print_warning "Remember: Keep the backend server running while developing!"
 echo ""
-
-

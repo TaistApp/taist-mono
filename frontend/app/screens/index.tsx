@@ -1,6 +1,7 @@
 export { default as Account } from './common/account';
 export { default as Chat } from './common/chat';
 export { default as ContactUs } from './common/contactUs';
+export { default as ReportIssue } from './common/reportIssue';
 export { default as Forgot } from './common/forgot';
 export { default as Inbox } from './common/inbox';
 export { default as Login } from './common/login';
@@ -38,4 +39,3 @@ export { default as Chef_HowToDoIt } from './chef/howToDo';
 export { default as Chef_Onboarding } from './chef/onboarding';
 export { default as Chef_OrderDetail } from './chef/orderDetail';
 export { default as Chef_SetupStrip } from './chef/setupStrip';
-

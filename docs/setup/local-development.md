@@ -21,7 +21,7 @@ Complete guide for setting up and running Taist locally with test data.
 ```bash
 # Terminal 1: Backend
 cd backend
-php artisan serve --port=8000
+php artisan serve --port=8005
 
 # Terminal 2: Frontend
 cd frontend
@@ -88,17 +88,17 @@ php artisan db:seed --class=LocalTestDataSeeder
 
 ```bash
 cd backend
-php artisan serve --port=8000
+php artisan serve --port=8005
 ```
 
 **Expected output**:
 ```
-Laravel development server started: http://127.0.0.1:8000
+Laravel development server started: http://127.0.0.1:8005
 ```
 
 **Test it works**:
 ```bash
-curl http://127.0.0.1:8000/mapi/get-version
+curl http://127.0.0.1:8005/mapi/get-version
 # Should return: {"success":1,"data":[{"version":"1.0.0",...}]}
 ```
 
@@ -111,7 +111,7 @@ npm run dev:local
 
 This will:
 - Start the Expo dev server
-- Configure API to point to `http://127.0.0.1:8000`
+- Configure API to point to `http://127.0.0.1:8005`
 - Show a QR code to scan with Expo Go app
 
 **Platform-specific commands**:
@@ -166,7 +166,7 @@ The frontend supports three environments:
 
 | Environment | Backend URL | Usage |
 |------------|-------------|-------|
-| **local** | http://localhost:8000 | Development on your machine |
+| **local** | http://localhost:8005 | Development on your machine |
 | **staging** | https://taist-mono-staging.up.railway.app | Testing before production |
 | **production** | https://taist-mono-production.up.railway.app | Live application |
 
@@ -198,7 +198,7 @@ The environment is set via the `APP_ENV` environment variable:
 const APP_ENV = process.env.APP_ENV || 'local';
 
 if (APP_ENV === 'local') {
-  BASE_URL = 'http://localhost:8000/mapi/';
+  BASE_URL = 'http://localhost:8005/mapi/';
 } else if (APP_ENV === 'staging') {
   BASE_URL = 'https://taist-mono-staging.up.railway.app/mapi/';
 } else {
@@ -289,11 +289,11 @@ SELECT * FROM tbl_zipcodes;
 
 ### Backend won't start
 
-**"Port 8000 already in use"**
+**"Port 8005 already in use"**
 ```bash
-lsof -i :8000
+lsof -i :8005
 kill -9 <PID>
-php artisan serve --port=8000
+php artisan serve --port=8005
 ```
 
 **"Can't connect to MySQL"**
@@ -320,7 +320,7 @@ brew link php@8.2 --force
 ### Frontend can't reach backend
 
 **"Network request failed"**
-1. Verify backend is running: `curl http://127.0.0.1:8000/mapi/get-version`
+1. Verify backend is running: `curl http://127.0.0.1:8005/mapi/get-version`
 2. Ensure you ran `npm run dev:local` (not just `npm start`)
 3. Check Metro bundler shows "Environment: local"
 
@@ -339,7 +339,7 @@ Then temporarily update the API URL:
 ```typescript
 // frontend/app/services/api.ts
 // Change localhost to your IP:
-BASE_URL: 'http://192.168.1.100:8000/mapi/',
+BASE_URL: 'http://192.168.1.100:8005/mapi/',
 ```
 
 Or set `LOCAL_IP` in `frontend/app.json`:
@@ -427,15 +427,15 @@ php artisan db:seed --class=LocalTestDataSeeder
 
 ```bash
 # Get version
-curl http://127.0.0.1:8000/mapi/get-version
+curl http://127.0.0.1:8005/mapi/get-version
 
 # Login (get auth token)
-curl -X POST http://127.0.0.1:8000/mapi/login \
+curl -X POST http://127.0.0.1:8005/mapi/login \
   -H "Content-Type: application/json" \
   -d '{"email":"john.customer@test.com","password":"password"}'
 
 # Get allergens (requires auth)
-curl http://127.0.0.1:8000/mapi/get_allergens \
+curl http://127.0.0.1:8005/mapi/get_allergens \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 

@@ -9,7 +9,7 @@ A food marketplace connecting local chefs with customers.
 ```bash
 # Terminal 1: Backend
 cd backend
-php artisan serve --port=8000
+php artisan serve --port=8005
 
 # Terminal 2: Frontend
 cd frontend
@@ -41,7 +41,7 @@ The frontend supports three environments:
 
 ```bash
 # Local (your machine)
-npm run dev:local      # http://localhost:8000
+npm run dev:local      # http://localhost:8005
 
 # Staging (test server)
 npm run dev:staging    # https://taist-mono-staging.up.railway.app
@@ -109,7 +109,7 @@ Fully configured with test data:
 ### Backend
 ```bash
 cd backend
-php artisan serve              # Start server
+php artisan serve --host=127.0.0.1 --port=8005  # Start server
 php artisan migrate:fresh      # Reset database
 php artisan db:seed            # Add test data
 tail -f storage/logs/laravel.log  # View logs
@@ -128,9 +128,9 @@ npm start -- --clear  # Clear Metro cache
 
 ## Troubleshooting
 
-**Port 8000 in use?**
+**Port 8005 in use?**
 ```bash
-lsof -i :8000 && kill -9 <PID>
+lsof -i :8005 && kill -9 <PID>
 ```
 
 **MySQL not running?**

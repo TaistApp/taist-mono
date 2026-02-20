@@ -1,4 +1,5 @@
 import { Image, StyleSheet, Text, View } from 'react-native';
+import { Photo_URL } from '../../../../services/api';
 
 interface INotificationCard {
   title: string;
@@ -40,7 +41,7 @@ const NotificationCard = ({
       
       <Image
         source={{
-          uri: `https://taist.cloudupscale.com/assets/uploads/images/${customer_image}`,
+          uri: `${Photo_URL}${customer_image}`,
         }}
         style={{
           height: 50,

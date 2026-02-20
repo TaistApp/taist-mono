@@ -41,7 +41,7 @@ fi
 echo ""
 echo -e "${GREEN}✓ Starting development servers...${NC}"
 echo ""
-echo -e "${BLUE}Backend:${NC}  http://localhost:8000"
+echo -e "${BLUE}Backend:${NC}  http://localhost:8005"
 echo -e "${BLUE}Frontend:${NC} Will open in Expo"
 echo ""
 echo -e "${YELLOW}Press Ctrl+C to stop all servers${NC}"
@@ -61,7 +61,7 @@ trap cleanup EXIT INT TERM
 # Start backend server
 cd "$SCRIPT_DIR/backend"
 echo -e "${BLUE}[BACKEND]${NC} Starting Laravel server..."
-php artisan serve &
+php artisan serve --host=127.0.0.1 --port=8005 &
 BACKEND_PID=$!
 
 # Wait for backend to start
@@ -76,5 +76,4 @@ APP_ENV=local npm start
 
 # Wait for any process to exit
 wait
-
 
