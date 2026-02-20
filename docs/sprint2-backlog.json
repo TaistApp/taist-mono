@@ -1,0 +1,304 @@
+[
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-063",
+    "type": "Task",
+    "title": "Regular reminder notifications to order (2pm ish on random weekdays)",
+    "priority": "High",
+    "created_date": "2026-02-05"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-026",
+    "type": "Task",
+    "title": "Email Campaign Automation",
+    "description": "Look into Make.com",
+    "priority": "High",
+    "created_date": "2025-12-01"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-037",
+    "type": "Task",
+    "title": "Add time blockout logic for before, during, and after already-accepted orders",
+    "priority": "High",
+    "created_date": "2025-12-04"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-054",
+    "type": "Task",
+    "title": "In-app bug/issue reporting",
+    "priority": "High",
+    "created_date": "2025-01-09"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-055",
+    "type": "Task",
+    "title": "SMS notifications for chats between customer and chef",
+    "priority": "High",
+    "created_date": "2026-01-06"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-036",
+    "type": "Task",
+    "title": "Link Privacy Policy and Terms pages",
+    "description": "Nothing currently loads for both",
+    "priority": "High",
+    "created_date": "2026-02-09",
+    "status": "Not Started"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-022",
+    "type": "Bug",
+    "title": "Profile (bio and hours) not visible from Admin Panel pre activation",
+    "description": "Pre-activation",
+    "priority": "Medium",
+    "created_date": "2025-11-11"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-025",
+    "type": "Task",
+    "title": "Add Stripe Transaction notifications",
+    "description": "https://dashboard.stripe.com/acct_1KWXqKKujvfsOOCM/workbench/webhooks",
+    "priority": "Medium",
+    "created_date": "2025-11-22"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-027",
+    "type": "Task",
+    "title": "Switch Review character account from 100 to 200",
+    "priority": "Medium",
+    "created_date": "2025-12-02"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-040",
+    "type": "Task",
+    "title": "Reminder to Chef to put bag/cooler on floor and wash hands",
+    "priority": "Medium",
+    "created_date": "2025-12-09"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-041",
+    "type": "Task",
+    "title": "Create Menu Item flow to start with \"Standard? Ideal for customers wanting a dish for that evening\" or \"Meal Prep? Ideal for customers wanting to reheat over a week\"",
+    "priority": "Medium",
+    "created_date": "2025-12-09"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-042",
+    "type": "Task",
+    "title": "Chef messaging to avoid frozen ingredients (proteins) when creating menu items",
+    "priority": "Medium",
+    "created_date": "2025-12-09"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-043",
+    "type": "Task",
+    "title": "Reminder to Chef to turn off any appliances and wipe down surfaces at the time of the order completion (based on arrival time and completion time)",
+    "priority": "Medium",
+    "created_date": "2025-12-09"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-048",
+    "type": "Bug",
+    "title": "Android Chef Profile Not Erasing After Deleting",
+    "priority": "Medium",
+    "created_date": "2025-12-17"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-049",
+    "type": "Task",
+    "title": "Speed/performance",
+    "description": "point out specific areas (viewing Chefs Available between dates on Home tab)",
+    "priority": "Medium",
+    "created_date": "2025-12-17"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-050",
+    "type": "Task",
+    "title": "Live updating from Pending to Active Chef UI on Android",
+    "priority": "Medium",
+    "created_date": "2025-12-17"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-053",
+    "type": "Task",
+    "title": "Google signup capability",
+    "priority": "Medium",
+    "created_date": "2025-01-09"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-030",
+    "type": "Bug",
+    "title": "iOS Stripe step asking for Statement Descriptor",
+    "priority": "Medium",
+    "created_date": "2025-01-09"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-032",
+    "type": "Task",
+    "title": "Strategy around dealing with Stripe accounts linked to different email than what\u2019s linked to Taist account",
+    "description": "Tech Ref",
+    "priority": "Medium",
+    "created_date": "Sprint 1",
+    "status": "Not Started",
+    "est_hours": "2"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-033",
+    "type": "Task",
+    "title": "General overhaul of menu item (split form into multiple pages)",
+    "description": "Add minimum order qty field for chefs",
+    "priority": "Medium",
+    "created_date": "Sprint 1",
+    "status": "Not Started",
+    "est_hours": "4"
+  },
+  {
+    "ticket_id": "TMA-061",
+    "type": "Bug",
+    "title": "Unable to order from chef for tomorrow (without chef live-overriding)",
+    "description": "\"Middle ground\" solution where customer opens the app to the first day where chefs are confirmed available ?",
+    "priority": "Medium",
+    "created_date": "2025-01-09"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-023",
+    "type": "Task",
+    "title": "Remove Serving Size and replace with MOQ (every item serves 1 person to start); except for meal prep items",
+    "priority": "Low",
+    "created_date": "2025-11-13",
+    "dependency": "TMA-034"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-024",
+    "type": "Task",
+    "title": "Automatic app updates for users",
+    "priority": "Low",
+    "created_date": "2025-11-13"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-028",
+    "type": "Task",
+    "title": "Assure all time values in Admin Panel are set to EST (or EDT)",
+    "priority": "Low",
+    "created_date": "2025-12-03"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-038",
+    "type": "Task",
+    "title": "Replace onboarding graphics with masks for ones without masks",
+    "priority": "Low",
+    "created_date": "2025-12-04"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-039",
+    "type": "Task",
+    "title": "Chef button to notify customer of arrival; \"Your chef has arrived.\"",
+    "priority": "Low",
+    "created_date": "2025-12-09"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-044",
+    "type": "Task",
+    "title": "Reminder to Chef that order should almost be complete",
+    "description": "when order is 10 minutes to completion (based on arrival time and completion time)",
+    "priority": "Low",
+    "created_date": "2025-12-09"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-045",
+    "type": "Task",
+    "title": "Alternate time selection field layouts for Android",
+    "priority": "Low",
+    "created_date": "2025-12-09"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-046",
+    "type": "Task",
+    "title": "Option for chef to request a New Allergen when creating a menu item",
+    "priority": "Low",
+    "created_date": "2025-12-10"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-047",
+    "type": "Task",
+    "title": "\"Free parking available?\" checkbox on Customer side for Chef",
+    "priority": "Low",
+    "created_date": "2025-12-11"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-051",
+    "type": "Bug",
+    "title": "Birthday date field inaccurate for Customers page on STAGING admin panel",
+    "priority": "Low",
+    "created_date": "2025-12-23"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-052",
+    "type": "Task",
+    "title": "Link Tip/Review page and other pages in Twilio notification",
+    "priority": "Low",
+    "created_date": "2025-12-30"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-031",
+    "type": "Task",
+    "title": "Add qty adjustment buttons to Customizations when ordering",
+    "description": "Tech Ref",
+    "priority": "Low",
+    "created_date": "Sprint 1",
+    "status": "Not Started",
+    "est_hours": "NA"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-034",
+    "type": "Task",
+    "title": "Category overhaul (allow items to go live with an \"Other\" category",
+    "description": "Tech Ref",
+    "priority": "Low",
+    "created_date": "Sprint 1",
+    "status": "Not Started",
+    "est_hours": "3"
+  },
+  {
+    "sprint": "2",
+    "ticket_id": "TMA-035",
+    "type": "Task",
+    "title": "Demand-gated background checks",
+    "description": "Temporarily build off existing zip code logic currently pertaining to only customer signups. Con: cannot build up chef profiles in areas ahead of opening in new market (size of issue dependent on actual leadtime of creating a chef profile)",
+    "priority": "Low",
+    "created_date": "Sprint 1",
+    "status": "Not Started"
+  }
+]

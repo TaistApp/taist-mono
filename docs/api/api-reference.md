@@ -2,7 +2,7 @@
 
 Complete reference for the Taist Mobile API (MAPI).
 
-**Base URL:** `https://api.taist.com/mapi/`
+**Base URL:** `https://api.taist.app/mapi/`
 **Authentication:** Bearer token via Laravel Passport (OAuth2)
 
 ---

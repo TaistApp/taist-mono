@@ -20,7 +20,7 @@ Documentation of the administrative dashboard for platform management.
 
 The admin panel provides platform oversight and management capabilities.
 
-**URL:** `https://api.taist.com/admin/`
+**URL:** `https://api.taist.app/admin/`
 
 **Related Files:**
 - Controller: `backend/app/Http/Controllers/Admin/AdminController.php`

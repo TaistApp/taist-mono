@@ -272,7 +272,7 @@ The server is receiving automated attacks/scans:
 The confusion arose because:
 1. Cloudflare hides the origin server IP
 2. Instance name "Taist 2" doesn't clearly indicate it's production
-3. `api.taist.com` points elsewhere (different purpose/unused)
+3. `api.taist.app` points elsewhere (different purpose/unused)
 
 **Recommendation:** Rename instance to "Taist-Production" for clarity.
 

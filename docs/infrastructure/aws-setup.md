@@ -127,7 +127,7 @@ The Taist platform currently uses AWS EC2 instances to host backend APIs. There 
 |--------|---------------|-----------|--------|
 | `taist-mono-staging.up.railway.app` | `18.118.114.98` | taist-staging-n... instance | ✅ Active |
 | `taist-mono-production.up.railway.app` | `104.21.40.91`, `172.67.183.71` | Cloudflare CDN → Taist 2 (18.216.154.184) | ✅ Active |
-| `api.taist.com` | `54.243.117.197`, `13.223.25.84` | Unknown (.NET/Kestrel server) | ⚠️ Mismatch |
+| `api.taist.app` | `54.243.117.197`, `13.223.25.84` | Unknown (.NET/Kestrel server) | ⚠️ Mismatch |
 
 ### DNS Verification Results
 
@@ -143,7 +143,7 @@ Address: 104.21.40.91, 172.67.183.71
 ✅ Cloudflare CDN (hiding origin server)
 
 # Client Production API
-$ nslookup api.taist.com
+$ nslookup api.taist.app
 Address: 54.243.117.197, 13.223.25.84
 ❌ ISSUE: Points to .NET server, not PHP/Laravel
 ❌ Does NOT point to "Taist 2" instance
@@ -151,11 +151,11 @@ Address: 54.243.117.197, 13.223.25.84
 
 ### DNS Issues
 
-1. **`api.taist.com` DNS Mismatch:**
+1. **`api.taist.app` DNS Mismatch:**
    - Currently points to: `54.243.117.197` / `13.223.25.84`
    - Running: .NET/Kestrel server (not Laravel)
    - "Taist 2" configured for this domain but DNS doesn't point there
-   - **Action Required:** Investigate which server should serve `api.taist.com`
+   - **Action Required:** Investigate which server should serve `api.taist.app`
 
 ---
 
@@ -238,7 +238,7 @@ HTML_URL: 'https://taist-mono-production.up.railway.app/assets/uploads/html/'
 According to `backend/README.md`, the intended production URL should be:
 
 ```
-Production: https://api.taist.com/api
+Production: https://api.taist.app/api
 ```
 
 This suggests a migration is planned or partially complete.
@@ -280,7 +280,7 @@ Additional savings from stopped instance:
   - ✅ Critical - DO NOT shut down
   - See: [INVESTIGATION-RESULTS.md](./INVESTIGATION-RESULTS.md) for full details
   
-- [ ] **Resolve api.taist.com DNS mismatch**
+- [ ] **Resolve api.taist.app DNS mismatch**
   - Current DNS points to .NET server (not Laravel)
   - "Taist 2" configured for this domain but not used
   - Determine correct configuration
@@ -297,7 +297,7 @@ Additional savings from stopped instance:
   
 - [ ] **Check other AWS regions**
   - Verify no other instances in us-east-1 or other regions
-  - Look for the api.taist.com server (54.243.117.197)
+  - Look for the api.taist.app server (54.243.117.197)
   
 - [ ] **Implement monitoring**
   - Set up CloudWatch alarms for active instances
@@ -363,7 +363,7 @@ sudo find / -name "artisan" 2>/dev/null
 curl -I http://18.216.154.184
 
 # Test with host header
-curl -H "Host: api.taist.com" http://18.216.154.184/api
+curl -H "Host: api.taist.app" http://18.216.154.184/api
 
 # Test actual mobile app URLs
 curl -I https://taist-mono-staging.up.railway.app/mapi/get-version

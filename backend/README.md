@@ -193,7 +193,7 @@ For production, configure your web server (Apache/Nginx) to point to the `public
 ```nginx
 server {
     listen 80;
-    server_name api.taist.com;
+    server_name api.taist.app;
     root /path/to/taist-mono/backend/public;
 
     add_header X-Frame-Options "SAMEORIGIN";
@@ -223,7 +223,7 @@ server {
 
 ### Base URL
 - Development: `http://localhost:8000/api`
-- Production: `https://api.taist.com/api`
+- Production: `https://api.taist.app/api`
 
 ### Authentication
 

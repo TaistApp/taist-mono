@@ -152,7 +152,7 @@ GOOGLE_MAPS_API_KEY=AIzaxxxxxxxxxx
 
 ```env
 # Frontend .env
-EXPO_PUBLIC_API_URL=https://api.taist.com
+EXPO_PUBLIC_API_URL=https://api.taist.app
 EXPO_PUBLIC_API_VERSION=v1
 ```
 
