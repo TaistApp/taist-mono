@@ -29,7 +29,6 @@ import { useAppDispatch, useAppSelector } from '../../../hooks/useRedux';
 import { useStripe } from '@stripe/stripe-react-native';
 import moment, { Moment } from 'moment';
 import StyledSwitch from '../../../components/styledSwitch';
-import StyledTabButton from '../../../components/styledTabButton';
 import { AddressCollectionModal } from '../../../components/AddressCollectionModal';
 import DiscountCodeInput from '../../../components/DiscountCodeInput';
 import Container from '../../../layout/Container';
@@ -49,9 +48,9 @@ import { Delay } from '../../../utils/functions';
 import { goBack, navigate } from '../../../utils/navigation';
 import { ShowErrorToast, ShowSuccessToast } from '../../../utils/toast';
 import { getFormattedDateTime } from '../../../utils/validations';
-import CustomCalendar from './components/customCalendar';
 import OrderItem from './components/orderItem';
 import { styles } from './styles';
+import { AppColors } from '../../../../constants/theme';
 import { getApplianceById } from '../../../constants/appliances';
 
 const Checkout = () => {
@@ -127,10 +126,6 @@ const Checkout = () => {
 
   const chefWorkingDays = getChefWorkingDays();
   console.log('[CHECKOUT] Final chefWorkingDays:', chefWorkingDays);
-
-  // Simple date range: today to 1 month from now
-  const startDate = moment().startOf('day');
-  const endDate = moment().add(1, 'months').endOf('day');
 
   var price_total = 0;
   orders.map((o, idx) => {
@@ -564,52 +559,95 @@ const Checkout = () => {
             <Text style={styles.checkoutText}>
               Completion times may vary depending on your appliances.
             </Text>
-            <CustomCalendar
-              selectedDate={DAY}
-              onDateSelect={handleDayPress}
-              minDate={startDate}
-              maxDate={endDate}
-              datesWhitelist={(date: moment.Moment) => {
-                // Allow any day the chef works within the date range
+            {/* Date pills */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.datePillRow}
+            >
+              {Array.from({ length: 30 }, (_, i) => {
+                const date = moment().add(i, 'days');
+                const dateStr = date.format('YYYY-MM-DD');
+                const isSelected = DAY.format('YYYY-MM-DD') === dateStr;
+                const isWorking = chefWorkingDays.includes(date.weekday());
                 return (
-                  chefWorkingDays.includes(date.weekday()) &&
-                  date.isSameOrAfter(startDate, 'day') &&
-                  date.isSameOrBefore(endDate, 'day')
+                  <TouchableOpacity
+                    key={dateStr}
+                    style={[
+                      styles.datePill,
+                      isSelected && styles.datePillSelected,
+                      !isWorking && styles.datePillDisabled,
+                    ]}
+                    onPress={() => handleDayPress(date.clone())}
+                    disabled={!isWorking}
+                  >
+                    <Text
+                      style={[
+                        styles.datePillDay,
+                        isSelected && styles.datePillTextSelected,
+                        !isWorking && styles.datePillTextDisabled,
+                      ]}
+                    >
+                      {i === 0 ? 'Today' : date.format('ddd')}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.datePillNum,
+                        isSelected && styles.datePillTextSelected,
+                        !isWorking && styles.datePillTextDisabled,
+                      ]}
+                    >
+                      {date.format('D')}
+                    </Text>
+                  </TouchableOpacity>
                 );
-              }}
-            />
-            <Text style={styles.timeLabel}>Select a time:</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.timeContainer}>
-                {isLoadingTimes ? (
-                  <View style={styles.loadingTimesContainer}>
-                    <ActivityIndicator size="small" color="#fa4616" />
-                    <Text style={styles.loadingTimesText}>Loading available times...</Text>
-                  </View>
-                ) : times.length === 0 ? (
-                  <Text style={styles.noTimesText}>
-                    {DAY.isSame(moment(), 'day')
-                      ? '* This chef has no remaining availability today'
-                      : '* This chef is not available on this date'}
-                  </Text>
-                ) : (
-                  times.map((item, idx) => {
-                    const day = moment(DAY);
-                    day.hour(item?.h);
-                    day.minute(item?.m);
-                    if (day < moment()) return null;
-                    return (
-                      <StyledTabButton
-                        title={item.label}
-                        disabled={item.id != timeId}
-                        onPress={() => onChangeTimeId(item.id)}
-                        key={`time_${idx}`}
-                      />
-                    );
-                  })
-                )}
-              </View>
+              })}
             </ScrollView>
+
+            {/* Time pills */}
+            <Text style={styles.timeLabel}>Select a time:</Text>
+            {isLoadingTimes ? (
+              <View style={styles.loadingTimesContainer}>
+                <ActivityIndicator size="small" color={AppColors.primary} />
+                <Text style={styles.loadingTimesText}>Loading available times...</Text>
+              </View>
+            ) : times.length === 0 ? (
+              <Text style={styles.noTimesText}>
+                {DAY.isSame(moment(), 'day')
+                  ? '* This chef has no remaining availability today'
+                  : '* This chef is not available on this date'}
+              </Text>
+            ) : (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.timePillRow}
+              >
+                {times.map((item, idx) => {
+                  const day = moment(DAY);
+                  day.hour(item?.h);
+                  day.minute(item?.m);
+                  if (day < moment()) return null;
+                  const isSelected = item.id === timeId;
+                  return (
+                    <TouchableOpacity
+                      key={`time_${idx}`}
+                      style={[styles.timePill, isSelected && styles.timePillSelected]}
+                      onPress={() => onChangeTimeId(item.id)}
+                    >
+                      <Text
+                        style={[
+                          styles.timePillText,
+                          isSelected && styles.timePillTextSelected,
+                        ]}
+                      >
+                        {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            )}
             <Text style={styles.estimated}>
               {`* Estimated completion time is ${getEstimatedTime()}`}
             </Text>

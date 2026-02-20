@@ -9,6 +9,9 @@ vendor/
 backend/.env
 frontend/.env
 
+# MCP config (contains tokens)
+.mcp.json
+
 # IDE
 .idea/
 .vscode/

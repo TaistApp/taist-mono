@@ -18,6 +18,7 @@ interface Props {
   chefProfile?: IChefProfile;
   selectedTime: string | null; // "HH:MM" or null
   onTimeSelect: (time: string | null, date: string) => void;
+  onReady?: () => void;
 }
 
 const hasValidTime = (value: string | number | undefined): boolean => {
@@ -48,7 +49,9 @@ const AvailabilitySection: React.FC<Props> = ({
   chefProfile,
   selectedTime,
   onTimeSelect,
+  onReady,
 }) => {
+  const hasCalledReady = useRef(false);
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [timeslots, setTimeslots] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,8 +59,8 @@ const AvailabilitySection: React.FC<Props> = ({
 
   const workingDays = getChefWorkingDays(chefProfile);
 
-  // Generate date pills: today + next 6 days
-  const datePills = Array.from({ length: 7 }, (_, i) => {
+  // Generate date pills: today + next 29 days (1 month, matches checkout)
+  const datePills = Array.from({ length: 30 }, (_, i) => {
     const date = moment().add(i, 'days');
     return {
       dateStr: date.format('YYYY-MM-DD'),
@@ -98,6 +101,10 @@ const AvailabilitySection: React.FC<Props> = ({
     } finally {
       if (requestRef.current === requestId) {
         setIsLoading(false);
+        if (!hasCalledReady.current && onReady) {
+          hasCalledReady.current = true;
+          onReady();
+        }
       }
     }
   };

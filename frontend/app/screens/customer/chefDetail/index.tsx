@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Pressable,
   SafeAreaView,
@@ -56,6 +56,8 @@ const ChefDetail = () => {
   const [chefProfile, onChangeChefProfile] = useState<IChefProfile>();
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [availabilityDate, setAvailabilityDate] = useState<string>('');
+  const scrollViewRef = useRef<ScrollView>(null);
+  const availabilityY = useRef<number>(0);
 
   const chefInfo: IUser = JSON.parse(params.chefInfo as string);
   const reviews: Array<IReview> = JSON.parse(params.reviews as string);
@@ -153,7 +155,7 @@ const ChefDetail = () => {
   return (
     <SafeAreaView style={styles.main}>
       <Container>
-        <ScrollView contentContainerStyle={styles.pageView}>
+        <ScrollView ref={scrollViewRef} contentContainerStyle={styles.pageView}>
           <View style={styles.heading}>
             <Pressable onPress={() => router.back()}>
               <FontAwesomeIcon icon={faAngleLeft} size={20} color="#ffffff" />
@@ -195,15 +197,22 @@ const ChefDetail = () => {
             </View>
           )}
 
-          {chefProfile && (
-            <AvailabilitySection
-              chefId={chefInfo.id ?? 0}
-              initialDate={selectedDate}
-              chefProfile={chefProfile}
-              selectedTime={selectedTime}
-              onTimeSelect={handleTimeSelect}
-            />
-          )}
+          <View onLayout={(e) => { availabilityY.current = e.nativeEvent.layout.y; }}>
+            {chefProfile && (
+              <AvailabilitySection
+                chefId={chefInfo.id ?? 0}
+                initialDate={selectedDate}
+                chefProfile={chefProfile}
+                selectedTime={selectedTime}
+                onTimeSelect={handleTimeSelect}
+                onReady={() => {
+                  setTimeout(() => {
+                    scrollViewRef.current?.scrollTo({ y: availabilityY.current, animated: true });
+                  }, 300);
+                }}
+              />
+            )}
+          </View>
 
           {allergen.length > 0 && (
             <>

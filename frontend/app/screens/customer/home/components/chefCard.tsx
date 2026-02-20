@@ -45,23 +45,23 @@ const ChefCard = ({
   }, []);
 
   return (
-    <View style={styles.chefCard}>
+    <View style={[styles.chefCard, chefInfo.is_hot && styles.chefCardHot]}>
       <TouchableOpacity
         style={styles.chefCardMain}
         onPress={handleChefPress}>
-        <StyledProfileImage url={getImageURL(chefInfo.photo)} size={80} />
+        <View style={{position: 'relative', overflow: 'visible'}}>
+          <StyledProfileImage url={getImageURL(chefInfo.photo)} size={80} />
+          {chefInfo.is_hot && (
+            <View style={styles.hotBadge}>
+              <Text style={styles.hotBadgeText}>🔥 Popular</Text>
+            </View>
+          )}
+        </View>
         <View style={styles.chefCardInfo}>
           <View style={{flex: 1}}>
-            <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}>
-              <Text style={styles.chefCardTitle}>{`${
-                chefInfo.first_name
-              } ${chefInfo.last_name?.substring(0, 1)}. `}</Text>
-              {chefInfo.is_hot && (
-                <View style={styles.hotBadge}>
-                  <Text style={styles.hotBadgeText}>🔥 Popular</Text>
-                </View>
-              )}
-            </View>
+            <Text style={styles.chefCardTitle} numberOfLines={1}>{`${
+              chefInfo.first_name
+            } ${chefInfo.last_name?.substring(0, 1)}. `}</Text>
             <Text style={styles.chefCardDescription} numberOfLines={2}>
               {chefInfo.bio ?? ''}
             </Text>
