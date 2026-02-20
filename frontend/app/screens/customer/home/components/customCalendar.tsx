@@ -141,7 +141,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
           {weekDates.map((date, index) => {
             const isSelected = isDateSelected(date);
             const isDisabled = isDateDisabled(date);
-            const dayName = date.format('dd').toUpperCase();
+            const dayName = date.format('ddd').toUpperCase();
             const dayNumber = date.format('D');
 
             return (

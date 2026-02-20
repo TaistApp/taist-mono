@@ -11,17 +11,16 @@
 
 When a device's system font size is increased (iOS Dynamic Type / Android font_scale), the 7-day row in the home screen calendar overflows to the right. Friday is partially clipped and Saturday is completely off-screen.
 
-**Root cause — three compounding issues:**
+**Root cause — two compounding issues:**
 
 1. **`minWidth: 48`** on `dayContainer` (line 235) — 7 × 48 = 336px minimum, plus padding, easily exceeds screen width when text is scaled up
 2. **No `maxFontSizeMultiplier`** on any `<Text>` — font sizes 11 and 18 get multiplied by the full system scale factor (up to ~3.5x on iOS)
-3. **3-letter day names** (`'ddd'` → "TUE", "WED") take more horizontal space than needed
 
 ---
 
 ## Implementation Plan
 
-All changes are in **one file**: `frontend/app/screens/customer/home/components/customCalendar.tsx`
+All changes are in **one file**: `frontend/app/screens/customer/home/components/customCalendar.tsx` (3-letter day names SUN–SAT kept as-is)
 
 ### Change 1: Flexible day containers (line 231–238)
 
@@ -86,25 +85,12 @@ Add `maxFontSizeMultiplier={1.2}` to the four `<Text>` elements that can overflo
 ```
 (same for the `>` arrow on line 133)
 
-### Change 3: Shorten day names from 3-letter to 2-letter (line 144)
-
-Moment `'dd'` format gives `Su Mo Tu We Th Fr Sa` — same pattern used by Apple Calendar and Google Calendar.
-
-```diff
- // line 144
--           const dayName = date.format('ddd').toUpperCase();
-+           const dayName = date.format('dd').toUpperCase();
-```
-
-Output changes: `SUN MON TUE WED THU FRI SAT` → `SU MO TU WE TH FR SA`
-
 ---
 
 ## Summary of All Edits
 
 | Line(s) | What | Before | After |
 |---------|------|--------|-------|
-| 144 | Day name format | `date.format('ddd').toUpperCase()` | `date.format('dd').toUpperCase()` |
 | 115 | Nav `<` text | `<Text style={...}>` | `<Text maxFontSizeMultiplier={1.2} style={...}>` |
 | 119 | Month/year text | `<Text style={...}>` | `<Text maxFontSizeMultiplier={1.2} style={...}>` |
 | 125 | "Today" button text | `<Text style={...}>` | `<Text maxFontSizeMultiplier={1.2} style={...}>` |
