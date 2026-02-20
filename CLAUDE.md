@@ -42,6 +42,15 @@ A food marketplace connecting customers with local chefs — Laravel API + React
 - Seed: `php artisan db:seed --class="Database\Seeders\MaestroTestUserSeeder"` (idempotent)
 - Env vars: `frontend/.maestro/test-users.env.yaml`
 
+## Production Verification
+
+Reusable system for post-deploy checks. Full details: `docs/production-verification.md`
+
+- Creates temp accounts (`prodverify+*@taist.app`), runs checks, **always cleans up**
+- Run: `./scripts/verify-production.sh [staging|production]`
+- Manual: `php artisan verify:accounts create|cleanup|status`
+- Daily 3am cron catches orphaned accounts older than 2 hours
+
 ## Commands
 
 | Action | Command |
@@ -53,6 +62,10 @@ A food marketplace connecting customers with local chefs — Laravel API + React
 | Start frontend (staging) | `cd frontend && npm run start` |
 | Lint frontend | `cd frontend && npm run lint` |
 | Run Maestro tests | `maestro test frontend/.maestro/` |
+| Verify production | `./scripts/verify-production.sh production` |
+| Verify staging | `./scripts/verify-production.sh staging` |
+| Create verify accounts | `cd backend && php artisan verify:accounts create` |
+| Cleanup verify accounts | `cd backend && php artisan verify:accounts cleanup` |
 
 ## Branching & Deployment
 

@@ -59,6 +59,13 @@ class Kernel extends ConsoleKernel
                  ->everyFifteenMinutes()
                  ->withoutOverlapping()
                  ->runInBackground();
+
+        // Safety net: clean up stale verification accounts older than 2 hours.
+        // Won't touch accounts from an active session (created < 2h ago).
+        $schedule->command('verify:accounts cleanup --max-age=120')
+                 ->daily()
+                 ->at('03:00')
+                 ->withoutOverlapping();
     }
 
     /**
