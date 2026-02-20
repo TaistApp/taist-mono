@@ -89,7 +89,7 @@ $response = $client->post('https://api.resend.com/emails', [
         'Authorization' => 'Bearer ' . env('RESEND_API_KEY'),
 ```
 
-**Staging has it:** `re_YyBig3oV_EtZ4RhgRjBCm6sXG695xMntX`
+**Staging has it** (set as env var in Railway).
 **Production does NOT have it.**
 
 **Impact:** Any email sent via Resend (appears to be admin notification emails) will fail silently in production.
