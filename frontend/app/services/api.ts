@@ -64,10 +64,10 @@ const getEnvironmentUrls = () => {
     default:
     // Production environment - Railway
     return {
-      BASE_URL: 'https://taist-mono-production.up.railway.app/mapi/',
-      Photo_URL: 'https://taist-mono-production.up.railway.app/assets/uploads/images/',
-      Static_URL: 'https://taist-mono-production.up.railway.app/assets/images/',
-      HTML_URL: 'https://taist-mono-production.up.railway.app/assets/uploads/html/',
+      BASE_URL: 'https://api.taist.app/mapi/',
+      Photo_URL: 'https://api.taist.app/assets/uploads/images/',
+      Static_URL: 'https://api.taist.app/assets/images/',
+      HTML_URL: 'https://api.taist.app/assets/uploads/html/',
     };
   }
 };
