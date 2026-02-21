@@ -50,7 +50,7 @@ const navSections: NavSection[] = [
   {
     section: "Food",
     items: [
-      { to: "/admin-new/menus", icon: UtensilsCrossed, label: "Menus" },
+      { to: "/admin-new/menus", icon: UtensilsCrossed, label: "Menu Items" },
       { to: "/admin-new/categories", icon: Layers, label: "Categories" },
     ],
   },

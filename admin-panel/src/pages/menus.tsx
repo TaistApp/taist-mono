@@ -178,14 +178,14 @@ export default function MenusPage() {
 
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-bold">Menus</h1>
+      <h1 className="mb-4 text-2xl font-bold">Menu Items</h1>
       {isLoading ? (
         <div className="text-gray-500">Loading...</div>
       ) : (
         <DataTable
           columns={columns}
           data={menus}
-          searchPlaceholder="Search menus..."
+          searchPlaceholder="Search menu items..."
         />
       )}
     </div>
