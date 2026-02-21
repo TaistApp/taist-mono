@@ -327,4 +327,21 @@ class OrderSmsService
         ];
     }
 
+    /**
+     * Format a user's name as "FirstName L." for SMS display.
+     */
+    private function formatUserName(?string $firstName, ?string $lastName, string $fallback): string
+    {
+        $first = trim($firstName ?? '');
+        $last = trim($lastName ?? '');
+
+        if ($first && $last) {
+            return $first . ' ' . strtoupper(substr($last, 0, 1)) . '.';
+        }
+        if ($first) {
+            return $first;
+        }
+        return $fallback;
+    }
+
 }
