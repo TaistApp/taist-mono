@@ -63,7 +63,7 @@ export default function LoginPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="admin@taist.com"
+                  placeholder="admin@taist.app"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
