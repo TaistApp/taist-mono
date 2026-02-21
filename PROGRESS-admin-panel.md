@@ -14,7 +14,7 @@ Plan: `docs/admin-panel-rewrite-plan.md`
 - `backend/routes/web.php` — SPA catch-all for `/admin-new/{any?}`
 - `backend/server.php` — handle SPA paths for `artisan serve` (PHP built-in server quirk: directory paths under document root bypass router)
 
-### Frontend (`admin-panel/`)
+### Frontend (`backend/admin-panel/`)
 - Vite + React 18 + TypeScript + Tailwind v4 + shadcn/ui
 - `src/lib/api.ts` — Axios with token interceptor
 - `src/lib/auth.tsx` — AuthProvider context + localStorage token

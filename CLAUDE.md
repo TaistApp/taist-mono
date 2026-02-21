@@ -13,6 +13,7 @@ A food marketplace connecting customers with local chefs — Laravel API + React
 ## Project Structure
 
 - `backend/` — Laravel 8 API (PHP)
+- `backend/admin-panel/` — Admin panel SPA (React + Vite + shadcn/ui), auto-built on Railway deploy via `railpack.json`
 - `frontend/` — React Native (Expo) mobile app
 - `docs/` — Project documentation
 
@@ -66,6 +67,7 @@ Reusable system for post-deploy checks. Full details: `docs/production-verificat
 | Verify staging | `./scripts/verify-production.sh staging` |
 | Create verify accounts | `cd backend && php artisan verify:accounts create` |
 | Cleanup verify accounts | `cd backend && php artisan verify:accounts cleanup` |
+| Build admin panel locally | `cd backend/admin-panel && npm run build` |
 
 ## Branching & Deployment
 
@@ -73,6 +75,7 @@ Reusable system for post-deploy checks. Full details: `docs/production-verificat
 - **`main` branch** → Railway production environment (auto-deploys on push)
 - Workflow: feature branches → PR to `staging` → test → PR from `staging` to `main`
 - Frontend (Expo/EAS) is deployed separately, not via Railway
+- **Admin panel** auto-builds on Railway deploy via `backend/railpack.json` — no need to commit built assets
 
 ## Local Development
 

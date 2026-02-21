@@ -4,12 +4,12 @@
 
 The current admin panel is a Laravel Blade + jQuery DataTables + Bootstrap 3 app that looks dated and is hard to maintain. We're rewriting it as a modern React + shadcn/ui + TypeScript SPA. The new panel will be built at `/admin-new` while the old panel stays fully functional at `/admin`. Swap happens only at the very end after full QA.
 
-**Zero risk to existing functionality** — the old admin panel is never modified. If anything goes wrong, delete `admin-panel/` and revert 2 small backend changes.
+**Zero risk to existing functionality** — the old admin panel is never modified. If anything goes wrong, delete `backend/admin-panel/` and revert 2 small backend changes.
 
 ## Architecture
 
 ```
-admin-panel/              ← New React SPA (Vite + React 18 + TS + Tailwind + shadcn/ui)
+backend/admin-panel/      ← New React SPA (Vite + React 18 + TS + Tailwind + shadcn/ui)
   src/
     pages/                ← One page per admin view
     components/ui/        ← shadcn/ui components
@@ -57,7 +57,7 @@ Everything else is NEW files:
 - Register routes in `RouteServiceProvider`
 - Add SPA catch-all in `web.php`
 
-**Frontend (`admin-panel/`):**
+**Frontend (`backend/admin-panel/`):**
 - Scaffold: Vite + React 18 + TypeScript + Tailwind + shadcn/ui
 - Core: `lib/api.ts` (Axios + token interceptor), `lib/auth.ts` (context + localStorage)
 - Layout: Sidebar with all nav links, app shell, auth guard
@@ -442,7 +442,7 @@ _Auth persistence:_
 18. Logout in one context → API calls return 401
 
 _Production build:_
-19. Run `npm run build` in `admin-panel/` → output to `backend/public/admin-new/`
+19. Run `npm run build` in `backend/admin-panel/` → output to `backend/public/admin-new/` (auto-built on Railway deploy via `railpack.json`)
 20. Serve via Laravel (`php artisan serve`) → navigate to `/admin-new/` → SPA loads from built assets
 21. Direct URL navigation (e.g., `/admin-new/chefs`) works (SPA catch-all serves index.html)
 22. All static assets (JS, CSS, images) load correctly (no 404s in network tab)
