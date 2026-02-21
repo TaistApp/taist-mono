@@ -99,6 +99,7 @@ export const StepPreferences: React.FC<StepPreferencesProps> = ({
           </Text>
         </View>
         <StyledSwitch
+          testID="signup.preferences.pushNotifications"
           label=""
           value={pushNotifications}
           onPress={requestNotificationPermission}
@@ -113,6 +114,7 @@ export const StepPreferences: React.FC<StepPreferencesProps> = ({
           </Text>
         </View>
         <StyledSwitch
+          testID="signup.preferences.locationServices"
           label=""
           value={locationServices}
           onPress={requestLocationPermission}
@@ -127,10 +129,11 @@ export const StepPreferences: React.FC<StepPreferencesProps> = ({
 
       <View style={styles.buttonContainer}>
         <StyledButton
+          testID="signup.preferences.continueButton"
           title="Continue"
           onPress={handleContinue}
         />
-        <Pressable onPress={onBack} style={styles.backButton}>
+        <Pressable testID="signup.preferences.backButton" onPress={onBack} style={styles.backButton}>
           <Text style={styles.backButtonText}>Back</Text>
         </Pressable>
       </View>

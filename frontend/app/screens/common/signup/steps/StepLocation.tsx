@@ -112,8 +112,9 @@ export const StepLocation: React.FC<StepLocationProps> = ({
       subtitle="We'll show you chefs available in your area"
     >
       <View style={styles.locationOptionContainer}>
-        <Pressable 
-          style={styles.locationButton} 
+        <Pressable
+          testID="signup.location.useMyLocation"
+          style={styles.locationButton}
           onPress={handleUseMyLocation}
           disabled={isGettingLocation}
         >
@@ -131,6 +132,7 @@ export const StepLocation: React.FC<StepLocationProps> = ({
       </View>
 
       <StyledTextInput
+        testID="signup.location.zipInput"
         label="ZIP Code"
         placeholder="Enter your ZIP code"
         value={userInfo.zip ?? ''}
@@ -148,10 +150,11 @@ export const StepLocation: React.FC<StepLocationProps> = ({
 
       <View style={styles.buttonContainer}>
         <StyledButton
+          testID="signup.location.continueButton"
           title="Continue"
           onPress={validateAndProceed}
         />
-        <Pressable onPress={onBack} style={styles.backButton}>
+        <Pressable testID="signup.location.backButton" onPress={onBack} style={styles.backButton}>
           <Text style={styles.backButtonText}>Back</Text>
         </Pressable>
       </View>

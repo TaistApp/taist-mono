@@ -52,6 +52,7 @@ export const StepChefBasicInfo: React.FC<StepChefBasicInfoProps> = ({
       subtitle="Your full name is only visible to you"
     >
       <StyledTextInput
+        testID="signup.chefBasicInfo.firstNameInput"
         label="First Name"
         placeholder="John"
         value={userInfo.first_name ?? ''}
@@ -61,6 +62,7 @@ export const StepChefBasicInfo: React.FC<StepChefBasicInfoProps> = ({
       />
 
       <StyledTextInput
+        testID="signup.chefBasicInfo.lastNameInput"
         label="Last Name"
         placeholder="Doe"
         value={userInfo.last_name ?? ''}
@@ -71,10 +73,11 @@ export const StepChefBasicInfo: React.FC<StepChefBasicInfoProps> = ({
 
       <View style={styles.buttonContainer}>
         <StyledButton
+          testID="signup.chefBasicInfo.continueButton"
           title="Continue"
           onPress={validateAndProceed}
         />
-        <Pressable onPress={onBack} style={styles.backButton}>
+        <Pressable testID="signup.chefBasicInfo.backButton" onPress={onBack} style={styles.backButton}>
           <Text style={styles.backButtonText}>Back</Text>
         </Pressable>
       </View>

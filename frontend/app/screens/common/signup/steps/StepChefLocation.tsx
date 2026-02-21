@@ -192,8 +192,9 @@ export const StepChefLocation: React.FC<StepChefLocationProps> = ({
       subtitle="We need your address for verification purposes"
     >
       <View style={styles.locationOptionContainer}>
-        <Pressable 
-          style={styles.locationButton} 
+        <Pressable
+          testID="signup.chefLocation.useMyLocation"
+          style={styles.locationButton}
           onPress={handleUseMyLocation}
           disabled={isGettingLocation}
         >
@@ -211,6 +212,7 @@ export const StepChefLocation: React.FC<StepChefLocationProps> = ({
       </View>
 
       <StyledTextInput
+        testID="signup.chefLocation.addressInput"
         label="Street Address"
         placeholder="123 Main Street"
         value={userInfo.address ?? ''}
@@ -219,6 +221,7 @@ export const StepChefLocation: React.FC<StepChefLocationProps> = ({
       />
 
       <StyledTextInput
+        testID="signup.chefLocation.cityInput"
         label="City"
         placeholder="City"
         value={userInfo.city ?? ''}
@@ -252,6 +255,7 @@ export const StepChefLocation: React.FC<StepChefLocationProps> = ({
       </View>
 
       <StyledTextInput
+        testID="signup.chefLocation.zipInput"
         label="ZIP Code"
         placeholder="12345"
         value={userInfo.zip ?? ''}
@@ -263,10 +267,11 @@ export const StepChefLocation: React.FC<StepChefLocationProps> = ({
 
       <View style={styles.buttonContainer}>
         <StyledButton
+          testID="signup.chefLocation.continueButton"
           title="Continue"
           onPress={validateAndProceed}
         />
-        <Pressable onPress={onBack} style={styles.backButton}>
+        <Pressable testID="signup.chefLocation.backButton" onPress={onBack} style={styles.backButton}>
           <Text style={styles.backButtonText}>Back</Text>
         </Pressable>
       </View>

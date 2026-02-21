@@ -34,6 +34,20 @@ appId: com.taist.app  # Android
 - tapOn: "Log In"
 ```
 
+**Alternative using testIDs** (more reliable):
+```yaml
+- tapOn:
+    id: "login.emailInput"
+- inputText: ${EMAIL}
+- tapOn:
+    id: "login.passwordInput"
+- inputText: ${PASSWORD}
+- tapOn:
+    id: "login.submitButton"
+```
+
+**All login screen testIDs:** `login.emailInput`, `login.passwordInput`, `login.togglePassword`, `login.forgotButton`, `login.submitButton`, `login.signupButton`
+
 **Test user credentials** are in `frontend/.maestro/test-users.env.yaml`.
 
 ## Switching Users
@@ -190,6 +204,115 @@ A version check API call to the local backend may produce a persistent error ban
 | Back navigation | `header.backButton` testID | `back` command or testID |
 | Date picker | Spinner (inline) | Dialog (modal) |
 | Keyboard dismiss | `hideKeyboard` | `hideKeyboard` or `back` |
+
+## Common Pitfalls
+
+### Scroll vs Swipe
+
+`scroll` scrolls down — it has **no direction property**. To scroll up or sideways, use `swipe`:
+
+```yaml
+# ✅ Correct: scroll down
+- scroll
+
+# ✅ Correct: scroll up (swipe finger downward)
+- swipe:
+    direction: DOWN
+    duration: 400
+
+# ✅ Correct: scroll a horizontal row (swipe left)
+- swipe:
+    start: 90%, 53%
+    end: 10%, 53%
+    duration: 300
+
+# ❌ WRONG: scroll does not accept direction
+- scroll:
+    direction: UP
+```
+
+### testID Naming
+
+testIDs use **dots**, not dashes or underscores:
+
+```yaml
+# ✅ Correct
+- tapOn:
+    id: "login.emailInput"
+
+# ❌ WRONG
+- tapOn:
+    id: "login-email-input"
+```
+
+### Accessibility Text vs Visible Text
+
+Accessibility text often differs from what you see on screen:
+- **Trailing spaces** are common: `"Active C. "` not `"Active C."`
+- **Merged children**: Parent accessibility text may concatenate all child texts
+- **Date pills** use compound text: `"Mon, 23"` not `"Mon"` or `"23"` separately
+
+**Always run `inspect_view_hierarchy` before writing flows** to see exact text/IDs.
+
+### MCP Tool Params vs YAML Properties
+
+Some parameters exist on the MCP `tap_on` tool but are **not valid in flow YAML**:
+
+```yaml
+# ❌ WRONG: use_fuzzy_matching is an MCP param, not YAML
+- tapOn:
+    text: "Active C."
+    use_fuzzy_matching: true
+
+# ✅ Correct: Maestro does fuzzy matching by default with tapOn text
+- tapOn: "Active C"
+```
+
+### Regex in tapOn
+
+When using `tapOn:` with a string, Maestro treats it as a regex. Dot (`.`) matches any character, which usually works in your favor. But be careful with special characters:
+
+```yaml
+# Matches "CHECKOUT - $18.00" (dot matches any char)
+- tapOn: "CHECKOUT - .*"
+
+# Matches "ADD TO ORDER - $18.00"
+- tapOn: "ADD TO ORDER - .*"
+```
+
+## Signup Screen testIDs
+
+Steps 1–2 have testIDs. Steps 3+ (profile, location, preferences) are **missing testIDs** — target by placeholder text for now.
+
+| Step | Element | testID |
+|------|---------|--------|
+| 1 (type) | Customer button | `signup.customerButton` |
+| 1 (type) | Chef button | `signup.chefButton` |
+| 2 (credentials) | Email input | `signup.emailInput` |
+| 2 (credentials) | Password input | `signup.passwordInput` |
+| 2 (credentials) | Continue button | `signup.continueButton` |
+| 2 (credentials) | Login link | `signup.loginLink` |
+| 3 (customer location) | ZIP input | `signup.location.zipInput` |
+| 3 (customer location) | Use location button | `signup.location.useMyLocation` |
+| 3 (customer location) | Continue/Back | `signup.location.continueButton` / `.backButton` |
+| 3 (customer phone) | Phone input | `signup.profile.phoneInput` |
+| 3 (customer phone) | Continue/Back | `signup.profile.continueButton` / `.backButton` |
+| 3 (customer phone) | Verify code input | `signup.profile.verifyCodeInput` |
+| 3 (customer phone) | Verify/Resend buttons | `signup.profile.verifyButton` / `.resendButton` |
+| 3 (chef name) | First/Last name | `signup.chefBasicInfo.firstNameInput` / `.lastNameInput` |
+| 3 (chef name) | Continue/Back | `signup.chefBasicInfo.continueButton` / `.backButton` |
+| 3 (chef phone) | Phone input | `signup.chefPhone.phoneInput` |
+| 3 (chef phone) | Continue/Back | `signup.chefPhone.continueButton` / `.backButton` |
+| 3 (chef phone) | Verify code input | `signup.chefPhone.verifyCodeInput` |
+| 3 (chef phone) | Verify/Resend buttons | `signup.chefPhone.verifyButton` / `.resendButton` |
+| 3 (chef birthday) | Birthday input | `signup.chefBirthday.birthdayInput` |
+| 3 (chef birthday) | Continue/Back | `signup.chefBirthday.continueButton` / `.backButton` |
+| 3 (chef photo) | Continue/Back | `signup.chefPhoto.continueButton` / `.backButton` |
+| 3 (chef location) | Address/City/ZIP | `signup.chefLocation.addressInput` / `.cityInput` / `.zipInput` |
+| 3 (chef location) | Use location button | `signup.chefLocation.useMyLocation` |
+| 3 (chef location) | Continue/Back | `signup.chefLocation.continueButton` / `.backButton` |
+| 3 (preferences) | Push/Location switches | `signup.preferences.pushNotifications` / `.locationServices` |
+| 3 (preferences) | Continue/Back | `signup.preferences.continueButton` / `.backButton` |
 
 ## File Organization
 
