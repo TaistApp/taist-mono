@@ -74,7 +74,7 @@ const DrawerModal: React.FC<DrawerModalProps> = ({ visible, onClose }) => {
       onClose();
       setTimeout(() => {
         WebBrowser.openBrowserAsync(`${HTML_URL}${page}.html`);
-      }, 200);
+      }, 500);
     });
   };
 
