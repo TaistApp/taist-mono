@@ -3,6 +3,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import api from "@/lib/api";
 import { DataTable } from "@/components/data-table/data-table";
 import { DataTableColumnHeader } from "@/components/data-table/column-header";
+import { ExpandableText } from "@/components/expandable-text";
 
 interface Review {
   id: number;
@@ -59,11 +60,7 @@ const columns: ColumnDef<Review>[] = [
     cell: ({ row }) => {
       const text = row.original.review;
       if (!text) return <span className="text-gray-400">—</span>;
-      return (
-        <span className="text-xs" title={text}>
-          {text.length > 60 ? text.slice(0, 60) + "..." : text}
-        </span>
-      );
+      return <ExpandableText text={text} className="max-w-[320px]" />;
     },
     enableSorting: false,
   },

@@ -4,6 +4,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import api from "@/lib/api";
 import { DataTable } from "@/components/data-table/data-table";
 import { DataTableColumnHeader } from "@/components/data-table/column-header";
+import { ExpandableText } from "@/components/expandable-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -70,11 +71,7 @@ const columns: ColumnDef<Menu>[] = [
     cell: ({ row }) => {
       const desc = row.original.description;
       if (!desc) return <span className="text-gray-400">—</span>;
-      return (
-        <span className="text-xs" title={desc}>
-          {desc.length > 60 ? desc.slice(0, 60) + "..." : desc}
-        </span>
-      );
+      return <ExpandableText text={desc} className="max-w-[320px]" />;
     },
     enableSorting: false,
   },

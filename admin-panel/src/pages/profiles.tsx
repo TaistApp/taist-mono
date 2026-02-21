@@ -4,6 +4,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import api from "@/lib/api";
 import { DataTable } from "@/components/data-table/data-table";
 import { DataTableColumnHeader } from "@/components/data-table/column-header";
+import { ExpandableText } from "@/components/expandable-text";
 import { Button } from "@/components/ui/button";
 
 interface Profile {
@@ -55,11 +56,7 @@ const columns: ColumnDef<Profile>[] = [
     cell: ({ row }) => {
       const bio = row.original.bio;
       if (!bio) return <span className="text-gray-400">—</span>;
-      return (
-        <span className="text-xs" title={bio}>
-          {bio.length > 60 ? bio.slice(0, 60) + "..." : bio}
-        </span>
-      );
+      return <ExpandableText text={bio} className="max-w-[320px]" />;
     },
     enableSorting: false,
   },

@@ -3,6 +3,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import api from "@/lib/api";
 import { DataTable } from "@/components/data-table/data-table";
 import { DataTableColumnHeader } from "@/components/data-table/column-header";
+import { ExpandableText } from "@/components/expandable-text";
 
 interface Chat {
   id: number;
@@ -78,14 +79,9 @@ const columns: ColumnDef<Chat>[] = [
   {
     accessorKey: "message",
     header: "Message",
-    cell: ({ row }) => {
-      const msg = row.original.message;
-      return (
-        <span className="text-xs" title={msg}>
-          {msg.length > 60 ? msg.slice(0, 60) + "..." : msg}
-        </span>
-      );
-    },
+    cell: ({ row }) => (
+      <ExpandableText text={row.original.message} className="max-w-[320px]" />
+    ),
     enableSorting: false,
   },
   {

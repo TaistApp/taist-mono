@@ -4,6 +4,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import api from "@/lib/api";
 import { DataTable } from "@/components/data-table/data-table";
 import { DataTableColumnHeader } from "@/components/data-table/column-header";
+import { ExpandableText } from "@/components/expandable-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -198,11 +199,11 @@ const columns: ColumnDef<Order>[] = [
             - {o.cancelled_by.name}
           </div>
           {o.cancellation_reason && (
-            <div className="text-gray-500" title={o.cancellation_reason}>
-              {o.cancellation_reason.length > 40
-                ? o.cancellation_reason.slice(0, 40) + "..."
-                : o.cancellation_reason}
-            </div>
+            <ExpandableText
+              text={o.cancellation_reason}
+              maxLength={60}
+              className="text-gray-500"
+            />
           )}
         </div>
       );
@@ -240,9 +241,11 @@ const columns: ColumnDef<Order>[] = [
         <div className="text-xs">
           <div>{r.rating}/5</div>
           {r.text && (
-            <div className="text-gray-500" title={r.text}>
-              {r.text.length > 30 ? r.text.slice(0, 30) + "..." : r.text}
-            </div>
+            <ExpandableText
+              text={r.text}
+              maxLength={60}
+              className="text-gray-500"
+            />
           )}
         </div>
       );
