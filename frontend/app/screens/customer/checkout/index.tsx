@@ -80,6 +80,9 @@ const Checkout = () => {
   const currentTimeslotRequestRef = useRef<string | null>(null);
   // Track whether we've applied the pre-selected time from chef detail
   const hasAppliedPreselection = useRef(false);
+  // Ref for auto-scrolling time pills to pre-selected time
+  const timeScrollRef = useRef<ScrollView>(null);
+  const timePillOffsetsRef = useRef<Record<string, number>>({});
 
   // Discount code state
   const [discountCode, setDiscountCode] = useState<string>('');
@@ -265,6 +268,13 @@ const Checkout = () => {
           const match = timeslots.find((t: any) => t.h === preH && t.m === preM);
           if (match) {
             onChangeTimeId(match.id);
+            // Auto-scroll to the selected time pill after render
+            setTimeout(() => {
+              const offset = timePillOffsetsRef.current[match.id];
+              if (offset !== undefined) {
+                timeScrollRef.current?.scrollTo({ x: offset - 16, animated: true });
+              }
+            }, 300);
           }
         }
       } else {
@@ -623,6 +633,7 @@ const Checkout = () => {
               </Text>
             ) : (
               <ScrollView
+                ref={timeScrollRef}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.timePillRow}
@@ -638,6 +649,9 @@ const Checkout = () => {
                       key={`time_${idx}`}
                       style={[styles.timePill, isSelected && styles.timePillSelected]}
                       onPress={() => onChangeTimeId(item.id)}
+                      onLayout={(e) => {
+                        timePillOffsetsRef.current[item.id] = e.nativeEvent.layout.x;
+                      }}
                     >
                       <Text
                         style={[
