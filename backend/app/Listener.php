@@ -157,11 +157,18 @@ class Listener extends Authenticatable
      */
     private function hasScheduleForDateTime($dateTime, $time)
     {
-        // Handle date string (YYYY-MM-DD), Unix timestamp, or datetime string
-        // Use strtotime for all cases — for "YYYY-MM-DD" it creates midnight of that date
-        // which gives the correct day-of-week regardless of server timezone
-        $timestamp = is_numeric($dateTime) ? (int)$dateTime : strtotime($dateTime);
-        $dayOfWeek = strtolower(date('l', $timestamp));
+        // Extract day-of-week from date string directly — never go through Unix timestamps
+        // because the server runs in UTC and date('l', $timestamp) gives the wrong day
+        // for evening US orders (e.g. Sunday 7 PM EST = Monday 00:00 UTC)
+        if (is_string($dateTime) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateTime)) {
+            $dt = \DateTime::createFromFormat('Y-m-d', $dateTime);
+            $dayOfWeek = strtolower($dt->format('l'));
+        } else {
+            // Legacy fallback — should not be reached after timezone fix
+            \Log::warning("[TIMESLOTS] hasScheduleForDateTime received non-date-string: " . var_export($dateTime, true));
+            $timestamp = is_numeric($dateTime) ? (int)$dateTime : strtotime($dateTime);
+            $dayOfWeek = strtolower(date('l', $timestamp));
+        }
         // Database column is misspelled as "saterday" - map to match
         if ($dayOfWeek === 'saturday') {
             $dayOfWeek = 'saterday';
