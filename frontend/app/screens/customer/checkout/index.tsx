@@ -414,6 +414,8 @@ const Checkout = () => {
 
   const handleCheckoutProcess = async (day: Moment) => {
     const order_datetime = day.toDate().getTime() / 1000;
+    const order_date_string = moment(DAY).format('YYYY-MM-DD');
+    const order_time_string = day.format('HH:mm');
 
     dispatch(showLoading());
     var newOrders: Array<IOrder> = [];
@@ -454,6 +456,8 @@ const Checkout = () => {
         ...o,
         address: self.address,
         order_date: order_datetime,
+        order_date_string,
+        order_time_string,
         discount_code: (i === 0 && appliedDiscount) ? appliedDiscount.code : undefined,
       };
       

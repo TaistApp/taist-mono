@@ -2461,13 +2461,15 @@ Write only the review text:";
             'customer_id' => $request->customer_user_id,
             'menu_id' => $request->menu_id,
             'order_date' => $request->order_date,
+            'order_date_string' => $request->order_date_string,
+            'order_time_string' => $request->order_time_string,
             'total_price' => $request->total_price,
         ]);
 
         if ($this->_checktaistApiKey($request->header('apiKey')) === false)
             return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
 
-        // ===== TMA-011: Validate 3-hour minimum window =====
+        // ===== TMA-011: Validate minimum window =====
         $orderDate = $request->order_date;
         // Handle both Unix timestamp (number) and date string formats
         $orderTimestamp = is_numeric($orderDate) ? (int)$orderDate : strtotime($orderDate);
@@ -2481,10 +2483,15 @@ Write only the review text:";
             ]);
         }
 
+        // Use explicit date/time strings from frontend if provided (timezone-safe)
+        // Falls back to parsing Unix timestamp (legacy, subject to UTC conversion bugs)
+        $orderDateString = $request->input('order_date_string');
+        $orderTimeString = $request->input('order_time_string');
+
         $currentTimestamp = time();
 
-        // 3-hour rule only applies to same-day orders
-        $orderDateOnly = date('Y-m-d', $orderTimestamp);
+        // Use string date for same-day comparison if available, else fall back to UTC
+        $orderDateOnly = $orderDateString ?: date('Y-m-d', $orderTimestamp);
         $todayDateOnly = date('Y-m-d', $currentTimestamp);
         $isSameDay = ($orderDateOnly === $todayDateOnly);
 
@@ -2522,16 +2529,19 @@ Write only the review text:";
         // Get client timezone to match timeslots API logic
         $clientTimezone = $request->input('timezone');
 
-        // Use the override-aware availability check
-        if (!$chef->isAvailableForOrder($orderDate, $clientTimezone)) {
-            $orderTime = date('H:i', $orderTimestamp);
-            $dayOfWeek = date('l', $orderTimestamp);
-            $clientToday = \App\Helpers\TimezoneHelper::getTodayInTimezone($clientTimezone);
+        // Use date+time strings for availability check (timezone-safe)
+        // Falls back to legacy timestamp-based check if strings not provided
+        $isAvailable = ($orderDateString && $orderTimeString)
+            ? $chef->isAvailableForOrder($orderDateString, $orderTimeString, $clientTimezone)
+            : $chef->isAvailableForOrder($orderDate, null, $clientTimezone);
+
+        if (!$isAvailable) {
+            $orderTime = $orderTimeString ?: date('H:i', $orderTimestamp);
+            $dayOfWeek = date('l', strtotime($orderDateOnly));
             \Log::warning("[CHEF_UNAVAILABLE] Chef {$chef->id} not available for order. " .
                 "Requested: {$orderDateOnly} ({$dayOfWeek}) at {$orderTime}, " .
-                "Today (client TZ): {$clientToday}, " .
-                "Today (UTC): {$todayDateOnly}, " .
-                "Client TZ: " . ($clientTimezone ?: 'null') . ", " .
+                "order_date_string: " . ($orderDateString ?: 'null') . ", " .
+                "order_time_string: " . ($orderTimeString ?: 'null') . ", " .
                 "Raw orderDate: {$orderDate}");
             return response()->json([
                 'success' => 0,
@@ -2607,6 +2617,8 @@ Write only the review text:";
             'addons' => isset($request->addons) ? $request->addons : '',
             'address' => $request->address,
             'order_date' => $request->order_date,
+            'order_date_new' => $orderDateString ?: date('Y-m-d', $orderTimestamp),
+            'order_time' => $orderTimeString ?: date('H:i', $orderTimestamp),
             'status' => isset($request->status) ? $request->status : 1,
             'notes' => isset($request->notes) ? $request->notes : '',
             // Discount fields
