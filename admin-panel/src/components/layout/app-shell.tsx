@@ -13,7 +13,7 @@ export default function AppShell() {
           collapsed={collapsed}
           onToggleCollapse={() => setCollapsed(!collapsed)}
         />
-        <main className="flex-1 overflow-y-auto p-6 pt-14 lg:pt-6">
+        <main className="flex-1 overflow-y-auto p-3 pt-14 sm:p-6 lg:pt-6">
           <Outlet />
         </main>
       </div>
