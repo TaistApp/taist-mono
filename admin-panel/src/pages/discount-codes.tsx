@@ -232,7 +232,7 @@ export default function DiscountCodesPage() {
       cell: ({ row }) =>
         row.original.discount_type === "percentage"
           ? `${row.original.discount_value}%`
-          : `$${row.original.discount_value.toFixed(2)}`,
+          : `$${Number(row.original.discount_value).toFixed(2)}`,
       sortingFn: "basic",
     },
     {
