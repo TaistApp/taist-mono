@@ -71,6 +71,7 @@
       "favicon": "./assets/images/icon.png"
     },
     "plugins": [
+      "./plugins/withNotificationColorFix.js",
       [
         "react-native-edge-to-edge",
         {
