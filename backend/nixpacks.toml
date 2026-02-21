@@ -1,3 +1,0 @@
-[phases.admin]
-dependsOn = ["install"]
-cmds = ["cd ../admin-panel && npm ci && npm run build"]

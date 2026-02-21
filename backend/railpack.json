@@ -1,0 +1,11 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "steps": {
+    "build": {
+      "commands": [
+        "...",
+        "cd ../admin-panel && npm ci && npm run build"
+      ]
+    }
+  }
+}
