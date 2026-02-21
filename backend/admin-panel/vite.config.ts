@@ -12,7 +12,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: "../backend/public/admin-new",
+    outDir: "../public/admin-new",
     emptyOutDir: true,
     rollupOptions: {
       output: {
