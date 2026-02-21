@@ -137,7 +137,7 @@ Core system documentation covering data flow and system design.
 
 | Document | Description |
 |----------|-------------|
-| [Version Management](operations/VERSION-MANAGEMENT.md) | Version numbering guide |
+| [Version Bump Guide](../frontend/VERSION-BUMP-GUIDE.md) | How to bump app versions (single source of truth) |
 | [Google Maps Setup](setup/GOOGLE-MAPS-API-SETUP.md) | Google Maps API configuration |
 | [Admin User Creation](setup/ADMIN-USER-CREATION.md) | Creating admin users |
 | [Quick Admin Setup](setup/QUICK-ADMIN-SETUP.md) | Quick admin setup |
