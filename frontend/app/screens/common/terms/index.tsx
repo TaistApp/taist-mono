@@ -1,5 +1,5 @@
 import {useEffect} from 'react';
-import {SafeAreaView, ActivityIndicator, View} from 'react-native';
+import {SafeAreaView, ActivityIndicator, View, InteractionManager} from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import {useNavigation} from '@react-navigation/native';
 import {styles} from './styles';
@@ -9,11 +9,14 @@ const Terms = () => {
   const navigation = useNavigation();
 
   useEffect(() => {
-    const openBrowser = async () => {
-      await WebBrowser.openBrowserAsync(`${HTML_URL}terms.html`);
-      navigation.goBack();
-    };
-    openBrowser();
+    const task = InteractionManager.runAfterInteractions(async () => {
+      try {
+        await WebBrowser.openBrowserAsync(`${HTML_URL}terms.html`);
+      } finally {
+        navigation.goBack();
+      }
+    });
+    return () => task.cancel();
   }, [navigation]);
 
   return (

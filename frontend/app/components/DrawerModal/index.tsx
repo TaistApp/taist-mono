@@ -1,10 +1,11 @@
 import { faAngleLeft } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { useSegments } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Animated, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useAppSelector } from '../../hooks/useRedux';
-import { RemoveUserAPI } from '../../services/api';
+import { HTML_URL, RemoveUserAPI } from '../../services/api';
 import { store } from '../../store';
 import { navigate } from '../../utils/navigation';
 import { ClearStorage } from '../../utils/storage';
@@ -60,9 +61,26 @@ const DrawerModal: React.FC<DrawerModalProps> = ({ visible, onClose }) => {
     });
   };
 
+  const handleOpenLegal = (page: 'privacy' | 'terms') => {
+    // Close drawer, wait for modal to fully dismiss, then open browser directly.
+    // Opening via an intermediate screen fails because SFSafariViewController
+    // can't present while the RN Modal is still dismissing.
+    Animated.timing(slideAnim, {
+      toValue: -300,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setModalVisible(false);
+      onClose();
+      setTimeout(() => {
+        WebBrowser.openBrowserAsync(`${HTML_URL}${page}.html`);
+      }, 200);
+    });
+  };
+
   const handleGotoScreen = (screenName: string) => {
     handleClose(); // Close the drawer with animation first
-    
+
     // Add a small delay to ensure smooth transition
     setTimeout(() => {
       // Use Expo Router for navigation based on screen name
@@ -74,7 +92,7 @@ const DrawerModal: React.FC<DrawerModalProps> = ({ visible, onClose }) => {
           } else if (isInCustomerContext) {
             // For customer, navigate to customer account tab
             navigate.toCustomer.account();
-            
+
           } else {
             // Fallback to common account
             const userType = user?.user_type === 2 ? 'chef' : 'customer';
@@ -92,12 +110,6 @@ const DrawerModal: React.FC<DrawerModalProps> = ({ visible, onClose }) => {
           break;
         case 'ContactUs':
           navigate.toCommon.contactUs();
-          break;
-        case 'Privacy':
-          navigate.toCommon.privacy();
-          break;
-        case 'Terms':
-          navigate.toCommon.terms();
           break;
         default:
           console.warn(`Navigation for screen ${screenName} not implemented`);
@@ -150,11 +162,13 @@ const DrawerModal: React.FC<DrawerModalProps> = ({ visible, onClose }) => {
       animationType="none"
       transparent={true}
       onRequestClose={handleClose}>
-      <TouchableOpacity 
-        style={styles.overlay} 
-        activeOpacity={1} 
+      <TouchableOpacity
+        style={styles.overlay}
+        activeOpacity={1}
+        accessible={false}
         onPress={handleClose}>
-        <Animated.View 
+        <Animated.View
+          accessible={false}
           style={[
             styles.drawer,
             {
@@ -220,14 +234,14 @@ const DrawerModal: React.FC<DrawerModalProps> = ({ visible, onClose }) => {
             
             <TouchableOpacity
               testID="drawer.privacyPolicy"
-              onPress={() => handleGotoScreen('Privacy')}
+              onPress={() => handleOpenLegal('privacy')}
               style={styles.drawerItem}>
               <Text style={styles.drawerItemText}>PRIVACY POLICY</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               testID="drawer.termsAndConditions"
-              onPress={() => handleGotoScreen('Terms')}
+              onPress={() => handleOpenLegal('terms')}
               style={styles.drawerItem}>
               <Text style={styles.drawerItemText}>TERMS AND CONDITIONS</Text>
             </TouchableOpacity>
