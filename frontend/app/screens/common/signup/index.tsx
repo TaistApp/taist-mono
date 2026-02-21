@@ -237,7 +237,7 @@ const Signup = () => {
                 Choose from people in your area to craft delicious dishes out of
                 your kitchen.
               </Text>
-              <Pressable style={styles.button} onPress={() => handleUserType(1)}>
+              <Pressable testID="signup.customerButton" style={styles.button} onPress={() => handleUserType(1)}>
                 <Text style={styles.buttonText}>I am a customer</Text>
               </Pressable>
             </View>
@@ -249,7 +249,7 @@ const Signup = () => {
                 Be your own boss and create something special for people right
                 from their kitchen.
               </Text>
-              <Pressable style={styles.button} onPress={() => handleUserType(2)}>
+              <Pressable testID="signup.chefButton" style={styles.button} onPress={() => handleUserType(2)}>
                 <Text style={styles.buttonText}>I want to be a chef</Text>
               </Pressable>
             </View>
@@ -268,6 +268,7 @@ const Signup = () => {
               <View style={styles.inputWrapper}>
                 <Text style={styles.inputLabel}>Email</Text>
                 <TextInput
+                  testID="signup.emailInput"
                   placeholder="Enter your email"
                   placeholderTextColor={'#999999'}
                   mode="outlined"
@@ -286,6 +287,7 @@ const Signup = () => {
               <View style={styles.inputWrapper}>
                 <Text style={styles.inputLabel}>Password</Text>
                 <TextInput
+                  testID="signup.passwordInput"
                   ref={passwordInputRef}
                   placeholder="Enter your password"
                   placeholderTextColor={'#999999'}
@@ -299,6 +301,7 @@ const Signup = () => {
                   onSubmitEditing={handleEmailPasswordSubmit}
                   right={
                     <TextInput.Icon
+                      testID="signup.togglePassword"
                       icon={showPassword ? 'eye-off' : 'eye'}
                       onPress={() => setShowPassword(!showPassword)}
                     />
@@ -308,10 +311,11 @@ const Signup = () => {
             </View>
           </View>
           <View style={styles.buttonContainer}>
-              <Pressable style={styles.signupButton} onPress={handleEmailPasswordSubmit}>
+              <Pressable testID="signup.continueButton" style={styles.signupButton} onPress={handleEmailPasswordSubmit}>
                 <Text style={styles.signupButtonText}>Continue</Text>
             </Pressable>
             <Pressable
+              testID="signup.loginLink"
               style={styles.loginLink}
               onPress={() => navigate.toCommon.login()}>
               <Text style={styles.loginLinkText}>Already have an account? Log in</Text>

@@ -374,6 +374,7 @@ useFocusEffect(
                 {tabs.map((tab, idx) => {
                   return (
                     <StyledTabButton
+                      testID={`chefHome.tab.${idx}`}
                       title={tab.label}
                       style={styles.tab}
                       titleStyle={styles.tabText}
@@ -392,6 +393,7 @@ useFocusEffect(
                     users.find(x => x.id == order.customer_user_id) ?? {};
                   return (
                     <ChefOrderCard
+                      testID={`chefHome.orderCard.${idx}`}
                       info={order}
                       customer={customer}
                       onPress={() => handleOrderDetail(order, customer)}

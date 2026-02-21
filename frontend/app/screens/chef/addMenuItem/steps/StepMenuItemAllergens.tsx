@@ -62,6 +62,7 @@ export const StepMenuItemAllergens: React.FC<StepMenuItemAllergensProps> = ({
           return (
             <View key={`allergy_${idx}`} style={styles.allergenItem}>
               <StyledSwitch
+                testID={`menuWizard.allergen.${idx}`}
                 label={allergy.name ?? ''}
                 value={isSelected}
                 onPress={() => {
@@ -97,10 +98,11 @@ export const StepMenuItemAllergens: React.FC<StepMenuItemAllergensProps> = ({
 
       <View style={styles.buttonContainer}>
         <StyledButton
+          testID="menuWizard.continueButton"
           title="Continue"
           onPress={validateAndProceed}
         />
-        <Pressable onPress={onBack} style={styles.backButton}>
+        <Pressable testID="menuWizard.backButton" onPress={onBack} style={styles.backButton}>
           <Text style={styles.backButtonText}>Back</Text>
         </Pressable>
       </View>

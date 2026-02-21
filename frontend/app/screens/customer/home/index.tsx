@@ -231,7 +231,8 @@ const Home = () => {
           {!isInArea && (
             <View style={{ width: '100%', alignItems: 'center' }}>
               {/* Current Location Display - TMA-013 */}
-              <Pressable 
+              <Pressable
+                testID="customerHome.locationButton"
                 style={styles.locationDisplay}
                 onPress={() => navigate.toCustomer.account({ scrollToAddress: true })}
               >
@@ -256,7 +257,8 @@ const Home = () => {
           {isInArea && (
             <View style={{ width: '100%', gap: Spacing.sm }}>
               {/* Current Location Display - TMA-013 */}
-              <Pressable 
+              <Pressable
+                testID="customerHome.locationButton"
                 style={styles.locationDisplay}
                 onPress={() => navigate.toCustomer.account({ scrollToAddress: true })}
               >
@@ -289,6 +291,7 @@ const Home = () => {
                 {timeSlots.map((item) => {
                   return (
                     <StyledTabButton
+                      testID={`customerHome.timeSlot.${item.id}`}
                       title={item.label}
                       disabled={timeSlotId != item.id}
                       onPress={() => handleTimeSlotChange(item.id)}
@@ -301,6 +304,7 @@ const Home = () => {
               <Text style={styles.sectionLabel}>Cuisine Type</Text>
               <View style={styles.wrapContainer}>
                 <StyledTabButton
+                  testID="customerHome.categoryFilter.all"
                   title={'All'}
                   disabled={0 != categoryId}
                   onPress={() => handleCategoryChange(0)}
@@ -309,6 +313,7 @@ const Home = () => {
                 {categories.map((item) => {
                   return (
                     <StyledTabButton
+                      testID={`customerHome.categoryFilter.${item.id}`}
                       title={item.name}
                       disabled={item.id != categoryId}
                       onPress={() => handleCategoryChange(item.id ?? 0)}
@@ -318,9 +323,10 @@ const Home = () => {
                 })}
               </View>
               <View style={styles.chefCardContainer}>
-                {filteredChefs.map((item) => {
+                {filteredChefs.map((item, index) => {
                   return (
                     <ChefCard
+                      testID={`customerHome.chefCard.${index}`}
                       chefInfo={item}
                       reviews={item.reviews}
                       menus={item.menus}

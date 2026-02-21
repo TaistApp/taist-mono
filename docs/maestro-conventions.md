@@ -10,7 +10,7 @@ Patterns, workarounds, and best practices for writing Maestro E2E flows against 
 {screen}.{section}.{element}    → account.address.cityInput
 ```
 
-**Screen names:** `landing`, `login`, `signup`, `forgotPassword`, `customerHome`, `chefDetail`, `customerOrders`, `account`, `chefHome`, `chefOrders`, `chefMenu`, `menuWizard`, `chefProfile`, `chefEarnings`, `chatInbox`, `chatDetail`, `drawer`, `onboarding`
+**Screen names:** `landing`, `login`, `signup`, `forgotPassword`, `customerHome`, `chefDetail`, `customerOrders`, `account`, `chefHome`, `chefOrders`, `chefMenu`, `menuWizard`, `chefProfile`, `chefEarnings`, `chatInbox`, `chatDetail`, `drawer`, `onboarding`, `reportIssue`
 
 ## Element Identification Strategy
 
@@ -111,7 +111,19 @@ Available drawer testIDs:
     id: "header.chatButton"           # Open inbox
 - tapOn:
     id: "header.notificationsButton"  # Open notifications
-- tapOn: "Report issue"               # Report issue (has accessibilityLabel)
+- tapOn:
+    id: "header.reportIssue"          # Report issue (bug icon)
+```
+
+## Report Issue Screen
+
+```yaml
+- tapOn:
+    id: "reportIssue.subjectInput"      # Subject text input
+- tapOn:
+    id: "reportIssue.descriptionInput"  # Description text input
+- tapOn:
+    id: "reportIssue.submitButton"      # Submit button
 ```
 
 ## Trailing Spaces

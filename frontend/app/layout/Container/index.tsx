@@ -129,6 +129,7 @@ const Container = ({
             <View style={styles.rightActions}>
               {(isInChefContext || isInCustomerContext) && user?.id ? (
                 <TouchableOpacity
+                  testID="header.reportIssue"
                   onPress={handleReportIssuePress}
                   style={styles.button}
                   accessibilityLabel="Report issue"
@@ -174,6 +175,7 @@ const Container = ({
             </TouchableOpacity>
             {(isInChefContext || isInCustomerContext) && user?.id ? (
               <TouchableOpacity
+                testID="header.reportIssue"
                 onPress={handleReportIssuePress}
                 style={styles.button}
                 accessibilityLabel="Report issue"

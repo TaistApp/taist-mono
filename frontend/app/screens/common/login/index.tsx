@@ -90,6 +90,7 @@ const Login = () => {
           <Text style={styles.inputLabel}>Email</Text>
           {/* @ts-ignore - TextInput from @react-native-material/core has different props */}
           <TextInput
+            testID="login.emailInput"
             style={styles.formFields}
             inputStyle={styles.formInputFields}
             placeholder="Enter your email"
@@ -113,6 +114,7 @@ const Login = () => {
         <View style={styles.inputWrapper}>
           <Text style={styles.inputLabel}>Password</Text>
           <TextInput
+            testID="login.passwordInput"
             // @ts-expect-error - TextInput from @react-native-material/core doesn't have ref in types but works at runtime
             ref={passwordInputRef as any}
             style={styles.formFields}
@@ -130,6 +132,7 @@ const Login = () => {
             blurOnSubmit={true}
             trailing={props => (
               <IconButton
+                testID="login.togglePassword"
                 icon={props => (
                   <Image
                     style={{
@@ -156,14 +159,14 @@ const Login = () => {
 
         {/* Forgot Password */}
         <View style={styles.forgotContainer}>
-          <Pressable style={styles.forgotButton} onPress={handleForgot}>
+          <Pressable testID="login.forgotButton" style={styles.forgotButton} onPress={handleForgot}>
             <Text style={styles.forgotText}>Forgot Password?</Text>
           </Pressable>
         </View>
       </View>
 
       {/* Login Button */}
-      <Pressable style={styles.loginButton} onPress={handleLogin}>
+      <Pressable testID="login.submitButton" style={styles.loginButton} onPress={handleLogin}>
         <Text style={styles.loginButtonText}>Log In</Text>
       </Pressable>
 
@@ -177,7 +180,7 @@ const Login = () => {
       {/* Sign Up Link */}
       <View style={styles.signupContainer}>
         <Text style={styles.signupText}>Don't have an account?</Text>
-        <Pressable style={styles.signupButton} onPress={() => navigate.toCommon.signup()}>
+        <Pressable testID="login.signupButton" style={styles.signupButton} onPress={() => navigate.toCommon.signup()}>
           <Text style={styles.signupButtonText}>Sign Up</Text>
         </Pressable>
       </View>

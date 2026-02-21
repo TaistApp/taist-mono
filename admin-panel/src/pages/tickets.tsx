@@ -162,6 +162,18 @@ const columns: ColumnDef<Contact>[] = [
             const label = contextLabels[key] || key;
             let display: React.ReactNode = value;
             if (key === "issue_type") display = formatIssueType(value);
+            if (key === "client_timestamp") {
+              const d = new Date(value);
+              display = isNaN(d.getTime())
+                ? value
+                : d.toLocaleString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                  });
+            }
             if (key === "screenshot_url")
               display = (
                 <a

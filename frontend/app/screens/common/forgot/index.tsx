@@ -99,6 +99,7 @@ const Forgot = () => {
             <View>
               {/* @ts-ignore - TextInput from @react-native-material/core has different props */}
               <TextInput
+                testID="forgotPassword.emailInput"
                 style={styles.formFields}
                 inputStyle={styles.formInputFields}
                 placeholder="Email "
@@ -118,6 +119,7 @@ const Forgot = () => {
             <View>
               {/* TextInput from @react-native-material/core has different props than RN TextInput */}
               <TextInput
+                testID="forgotPassword.codeInput"
                 // @ts-expect-error - ref prop not in types but works at runtime
                 ref={codeInputRef as any}
                 style={styles.formFields}
@@ -137,6 +139,7 @@ const Forgot = () => {
                 blurOnSubmit={false}
               />
               <TextInput
+                testID="forgotPassword.passwordInput"
                 // @ts-expect-error - ref prop not in types but works at runtime
                 ref={passwordInputRef as any}
                 style={styles.formFields}
@@ -156,6 +159,7 @@ const Forgot = () => {
                 blurOnSubmit={false}
               />
               <TextInput
+                testID="forgotPassword.confirmPasswordInput"
                 // @ts-expect-error - ref prop not in types but works at runtime
                 ref={confirmPasswordInputRef as any}
                 style={styles.formFields}
@@ -177,13 +181,14 @@ const Forgot = () => {
         </View>
         <View style={styles.vcenter}>
           <Pressable
+            testID="forgotPassword.submitButton"
             style={styles.button}
             onPress={serverCode == '' ? handleRequest : handleReset}>
             <Text style={styles.buttonText}>
               {serverCode == '' ? 'Request ' : 'Reset '}
             </Text>
           </Pressable>
-          <Pressable style={styles.button2} onPress={handleLogin}>
+          <Pressable testID="forgotPassword.backButton" style={styles.button2} onPress={handleLogin}>
             <Text style={styles.buttonText2}>Login </Text>
           </Pressable>
         </View>

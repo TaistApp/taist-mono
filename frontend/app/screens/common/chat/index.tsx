@@ -124,6 +124,7 @@ const Chat = () => {
           </ScrollView>
           <View style={styles.bottomContainer}>
             <TextInput
+              testID="chatDetail.messageInput"
               ref={refTextInput}
               placeholder="Message..."
               value={message}
@@ -133,6 +134,7 @@ const Chat = () => {
               returnKeyLabel={'Send'}
             />
             <TouchableOpacity
+              testID="chatDetail.sendButton"
               style={styles.btnFly}
               onPress={() => handleSendMessage(message)}>
               <FontAwesomeIcon icon={faPaperPlane} size={20} color="#ffffff" />

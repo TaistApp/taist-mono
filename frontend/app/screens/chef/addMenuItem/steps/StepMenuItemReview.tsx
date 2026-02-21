@@ -166,6 +166,7 @@ export const StepMenuItemReview: React.FC<StepMenuItemReviewProps> = ({
         {/* Display Toggle */}
         <View style={styles.reviewSection}>
           <StyledSwitch
+            testID="menuWizard.displaySwitch"
             label="Display this item on menu?"
             value={!!displayItem}
             onPress={() => {
@@ -177,10 +178,11 @@ export const StepMenuItemReview: React.FC<StepMenuItemReviewProps> = ({
 
       <View style={styles.buttonContainer}>
         <StyledButton
+          testID="menuWizard.saveButton"
           title="SAVE MENU ITEM"
           onPress={onComplete}
         />
-        <Pressable onPress={onBack} style={styles.backButton}>
+        <Pressable testID="menuWizard.backButton" onPress={onBack} style={styles.backButton}>
           <Text style={styles.backButtonText}>Back to Edit</Text>
         </Pressable>
       </View>

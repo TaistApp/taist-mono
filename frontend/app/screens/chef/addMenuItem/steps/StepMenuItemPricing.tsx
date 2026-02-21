@@ -88,6 +88,7 @@ export const StepMenuItemPricing: React.FC<StepMenuItemPricingProps> = ({
         <View style={styles.sliderContainer}>
           <Text style={styles.sliderLabel}>1</Text>
           <Slider
+            testID="menuWizard.servingSlider"
             style={styles.slider}
             minimumValue={1}
             maximumValue={10}
@@ -111,6 +112,7 @@ export const StepMenuItemPricing: React.FC<StepMenuItemPricingProps> = ({
           Choose the price you want to charge for the item.
         </Text>
         <StyledTextInput
+          testID="menuWizard.priceInput"
           label="Price Per Item"
           placeholder="0.00"
           value={price}
@@ -133,10 +135,11 @@ export const StepMenuItemPricing: React.FC<StepMenuItemPricingProps> = ({
 
       <View style={styles.buttonContainer}>
         <StyledButton
+          testID="menuWizard.continueButton"
           title="Continue"
           onPress={validateAndProceed}
         />
-        <Pressable onPress={onBack} style={styles.backButton}>
+        <Pressable testID="menuWizard.backButton" onPress={onBack} style={styles.backButton}>
           <Text style={styles.backButtonText}>Back</Text>
         </Pressable>
       </View>

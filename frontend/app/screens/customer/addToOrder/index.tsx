@@ -122,12 +122,14 @@ const AddToOrder = () => {
             <Text style={styles.orderQuantityLabel}>Quantity: </Text>
             <View style={styles.orderQuantityAction}>
               <Pressable
+                testID="addToOrder.quantityMinus"
                 style={styles.orderQuantityButton}
                 onPress={() => handleQuantityMinus()}>
                 <Text style={styles.orderQuantityButtonText}>-</Text>
               </Pressable>
-              <Text style={styles.orderQuantityValue}>{quantity}</Text>
+              <Text testID="addToOrder.quantityValue" style={styles.orderQuantityValue}>{quantity}</Text>
               <Pressable
+                testID="addToOrder.quantityPlus"
                 style={styles.orderQuantityButton}
                 onPress={() => handleQuantityPlus()}>
                 <Text style={styles.orderQuantityButtonText}>+</Text>
@@ -168,7 +170,7 @@ const AddToOrder = () => {
             />
           </View>
           <View style={styles.vcenter}>
-            <Pressable style={styles.button} onPress={() => handleAddToOrder()}>
+            <Pressable testID="addToOrder.addCartButton" style={styles.button} onPress={() => handleAddToOrder()}>
               <Text style={styles.buttonText}>{`ADD TO ORDER - $${(
                 quantity * (orderMenu.price ?? 0) +
                 price_customizations

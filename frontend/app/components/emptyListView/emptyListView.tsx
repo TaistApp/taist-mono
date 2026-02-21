@@ -2,6 +2,7 @@ import {Image, ImageSourcePropType, Text, View} from 'react-native';
 import styles from './styles';
 
 type Props = {
+  testID?: string;
   text?: string;
   img?: ImageSourcePropType;
   title?: string;
@@ -10,7 +11,7 @@ type Props = {
 
 const EmptyListView = (props: Props) => {
   return (
-    <View style={styles.container}>
+    <View testID={props.testID} style={styles.container}>
       {props.img && (
         <Image source={props.img} style={styles.image} resizeMode="contain" />
       )}

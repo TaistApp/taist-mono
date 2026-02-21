@@ -63,6 +63,7 @@ export const StepMenuItemName: React.FC<StepMenuItemNameProps> = ({
       totalSteps={8}
     >
       <StyledTextInput
+        testID="menuWizard.nameInput"
         label="Menu Item Name"
         placeholder="e.g., Grandma's Lasagna"
         value={menuItemData.title ?? ''}
@@ -84,6 +85,7 @@ export const StepMenuItemName: React.FC<StepMenuItemNameProps> = ({
 
       <View style={styles.buttonContainer}>
         <StyledButton
+          testID="menuWizard.continueButton"
           title={isGeneratingDescription ? "Generating..." : "Continue"}
           onPress={validateAndProceed}
           disabled={isGeneratingDescription}
@@ -94,7 +96,7 @@ export const StepMenuItemName: React.FC<StepMenuItemNameProps> = ({
             <Text style={styles.loadingText}>Creating AI description...</Text>
           </View>
         )}
-        <Pressable onPress={onBack} style={styles.backButton}>
+        <Pressable testID="menuWizard.backButton" onPress={onBack} style={styles.backButton}>
           <Text style={styles.backButtonText}>Back</Text>
         </Pressable>
       </View>

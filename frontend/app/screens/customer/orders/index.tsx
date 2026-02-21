@@ -123,6 +123,7 @@ const onRefresh = async () => {
             {tabs.map((item, idx) => {
               return (
                 <StyledTabButton
+                  testID={`customerOrders.statusTab.${idx}`}
                   title={item.label}
                   disabled={item.id != tabId}
                   titleStyle={styles.tabText}
@@ -139,6 +140,7 @@ const onRefresh = async () => {
               const chefInfo = users.find(x => x.id == item.chef_user_id) ?? {};
               return (
                 <OrderCard
+                  testID={`customerOrders.orderCard.${index}`}
                   chefInfo={chefInfo}
                   orderInfo={item}
                   onPress={() => handleOrderDetail(item, chefInfo)}

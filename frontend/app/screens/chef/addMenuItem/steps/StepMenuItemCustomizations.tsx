@@ -103,6 +103,7 @@ export const StepMenuItemCustomizations: React.FC<StepMenuItemCustomizationsProp
         )}
 
         <StyledButton
+          testID="menuWizard.addCustomizationButton"
           title="+ ADD-ON"
           onPress={handleAddCustomization}
           style={styles.addButton}
@@ -112,6 +113,7 @@ export const StepMenuItemCustomizations: React.FC<StepMenuItemCustomizationsProp
 
       <View style={styles.buttonContainer}>
         <StyledButton
+          testID="menuWizard.continueButton"
           title={customizations.length > 0 ? 'Continue' : 'Skip This Step'}
           onPress={customizations.length > 0 ? handleContinue : handleSkipStep}
         />
@@ -120,7 +122,7 @@ export const StepMenuItemCustomizations: React.FC<StepMenuItemCustomizationsProp
             <Text style={styles.skipButtonText}>Skip & Clear Add-ons</Text>
           </Pressable>
         )}
-        <Pressable onPress={onBack} style={styles.backButton}>
+        <Pressable testID="menuWizard.backButton" onPress={onBack} style={styles.backButton}>
           <Text style={styles.backButtonText}>Back</Text>
         </Pressable>
       </View>

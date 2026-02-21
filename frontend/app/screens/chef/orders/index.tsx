@@ -101,10 +101,11 @@ const Orders = () => {
     navigate.toChef.orderDetail(orderInfo, customerInfo);
   };
 
-  const tab = ({ tabId, selectedTabId, tabs, onPress }: any) => {
+  const tab = ({ tabId, selectedTabId, tabs, onPress, testID }: any) => {
     var thisTab = tabs.find((tt: any) => tt.id == tabId);
     return (
       <TouchableOpacity
+        testID={testID}
         key={`tab_${tabId}`}
         style={tabId === selectedTabId ? styles.tab : styles.tab_disabled}
         onPress={onPress}>
@@ -157,6 +158,7 @@ const Orders = () => {
           <View style={styles.tabContainer}>
             {tabs.map((item, idx) => {
               return tab({
+                testID: `chefOrders.statusTab.${idx}`,
                 tabId: item.id,
                 selectedTabId: tabId,
                 tabs: tabs,
@@ -173,6 +175,7 @@ const Orders = () => {
                 users.find(x => x.id == order.customer_user_id) ?? {};
               return (
                 <ChefOrderCard
+                  testID={`chefOrders.orderCard.${idx}`}
                   info={order}
                   customer={customer}
                   onPress={() => handleOrderDetail(order, customer)}

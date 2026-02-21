@@ -187,7 +187,7 @@ const ChefDetail = () => {
           </View>
 
           {reviews.length > 0 && (
-            <View style={styles.chefReviewContainer}>
+            <View testID="chefDetail.reviewsSection" style={styles.chefReviewContainer}>
               <Text style={styles.chefCardReviewHeading}>Reviews</Text>
               {reviews.map((item, index) => {
                 return (
@@ -240,6 +240,7 @@ const ChefDetail = () => {
               {filteredMenus.map((item, index) => {
                 return (
                   <ChefMenuItem
+                    testID={`chefDetail.menuItem.${index}`}
                     item={item}
                     onPress={() => handleGoAddToOrder(item)}
                     key={`menuItem_${index}`}
@@ -251,13 +252,14 @@ const ChefDetail = () => {
         </ScrollView>
         {price_checkout > 0 && (
           <View style={{width: '100%', padding: 10, gap: 10}}>
-            <TouchableOpacity style={GlobalStyles.btn} onPress={handleCheckout}>
+            <TouchableOpacity testID="chefDetail.checkoutButton" style={GlobalStyles.btn} onPress={handleCheckout}>
               <Text
                 style={
                   GlobalStyles.btnTxt
                 }>{`CHECKOUT - $${price_checkout.toFixed(2)} `}</Text>
             </TouchableOpacity>
             <TouchableOpacity
+              testID="chefDetail.clearCartButton"
               style={GlobalStyles.btn}
               onPress={handleClearCart}>
               <Text style={GlobalStyles.btnTxt}>{`CLEAR CART `}</Text>
