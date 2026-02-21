@@ -9,7 +9,12 @@ const { withAndroidManifest } = require('expo/config-plugins');
  */
 module.exports = function withNotificationColorFix(config) {
   return withAndroidManifest(config, (config) => {
-    const mainApplication = config.modResults.manifest.application?.[0];
+    const manifest = config.modResults.manifest;
+
+    // Ensure xmlns:tools is declared on the <manifest> element
+    manifest.$['xmlns:tools'] = 'http://schemas.android.com/tools';
+
+    const mainApplication = manifest.application?.[0];
     if (!mainApplication) return config;
 
     const metaData = mainApplication['meta-data'] || [];
