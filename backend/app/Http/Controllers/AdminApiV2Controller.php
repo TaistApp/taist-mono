@@ -17,7 +17,12 @@ use App\Models\Availabilities;
 use App\Models\Zipcodes;
 use App\Models\DiscountCodes;
 use App\Models\DiscountCodeUsage;
+use App\Notification;
 use DB;
+use Illuminate\Support\Facades\Log;
+use Kreait\Laravel\Firebase\Facades\Firebase;
+use Kreait\Firebase\Messaging\CloudMessage;
+use Kreait\Firebase\Exception\FirebaseException;
 
 class AdminApiV2Controller extends Controller
 {
@@ -406,6 +411,7 @@ class AdminApiV2Controller extends Controller
                 'o.cancellation_reason', 'o.cancelled_at', 'o.cancellation_type',
                 'o.refund_amount', 'o.refund_percentage',
                 'o.refund_processed_at', 'o.refund_stripe_id',
+                'o.is_auto_closed',
                 'c.first_name as cancelled_by_first_name',
                 'c.last_name as cancelled_by_last_name',
                 'c.email as cancelled_by_email',
@@ -441,6 +447,7 @@ class AdminApiV2Controller extends Controller
                 'cancelled_at' => null,
                 'cancellation_type' => null,
                 'cancellation_reason' => null,
+                'is_auto_closed' => false,
                 'refund_amount' => null,
                 'refund_percentage' => null,
                 'refund_processed_at' => null,
@@ -466,6 +473,7 @@ class AdminApiV2Controller extends Controller
                 $row['refund_percentage'] = $o->refund_percentage;
                 $row['refund_processed_at'] = $o->refund_processed_at;
                 $row['refund_stripe_id'] = $o->refund_stripe_id;
+                $row['is_auto_closed'] = (bool)$o->is_auto_closed;
             }
 
             return $row;
@@ -887,16 +895,84 @@ class AdminApiV2Controller extends Controller
     }
 
     /**
-     * Update zipcodes (notification logic kept in existing AdminController).
+     * Update zipcodes and notify affected customers about new service areas.
      */
     public function zipcodesUpdate(Request $request)
     {
         $request->validate(['zipcodes' => 'required|string']);
         $record = app(Zipcodes::class)->first();
-        if ($record) {
-            $record->update(['zipcodes' => $request->zipcodes, 'updated_at' => time()]);
+        if (!$record) {
+            return response()->json(['success' => false, 'error' => 'No zipcodes record found'], 404);
         }
-        return response()->json(['success' => true]);
+
+        $oldZipcodes = array_filter(array_map('trim', explode(',', $record->zipcodes)));
+        $newZipcodes = array_filter(array_map('trim', explode(',', $request->zipcodes)));
+        $addedZipcodes = array_diff($newZipcodes, $oldZipcodes);
+
+        $record->update(['zipcodes' => $request->zipcodes, 'updated_at' => time()]);
+
+        $notified = 0;
+        if (!empty($addedZipcodes)) {
+            $notified = $this->notifyUsersAboutNewZipcodes($addedZipcodes);
+        }
+
+        return response()->json(['success' => true, 'notified_users' => $notified]);
+    }
+
+    private function notifyUsersAboutNewZipcodes($newZipcodes)
+    {
+        try {
+            $messaging = Firebase::messaging();
+
+            $affectedUsers = app(Listener::class)
+                ->where('user_type', 1)
+                ->whereIn('zip', $newZipcodes)
+                ->whereNotNull('fcm_token')
+                ->get();
+
+            if ($affectedUsers->isEmpty()) {
+                Log::info("No users found in new zip codes: " . implode(', ', $newZipcodes));
+                return 0;
+            }
+
+            $message = "Great news! Taist is now available in your area. Check out local chefs now!";
+
+            foreach ($affectedUsers as $user) {
+                try {
+                    $fcmMessage = CloudMessage::fromArray([
+                        'token' => $user->fcm_token,
+                        'notification' => [
+                            'title' => 'Taist Now Available in Your Area!',
+                            'body' => $message,
+                        ],
+                        'data' => [
+                            'type' => 'zipcode_update',
+                            'role' => 'user',
+                        ]
+                    ]);
+
+                    $messaging->send($fcmMessage);
+
+                    Notification::create([
+                        'title' => 'Service Area Expansion',
+                        'body' => $message,
+                        'image' => 'N/A',
+                        'fcm_token' => $user->fcm_token,
+                        'user_id' => $user->id,
+                        'navigation_id' => 0,
+                        'role' => 'user',
+                    ]);
+                } catch (FirebaseException $e) {
+                    Log::error("Failed to send zip code notification to user {$user->id}: " . $e->getMessage());
+                }
+            }
+
+            Log::info("Notified " . count($affectedUsers) . " users about new zip codes: " . implode(', ', $newZipcodes));
+            return count($affectedUsers);
+        } catch (\Exception $e) {
+            Log::error("Error in notifyUsersAboutNewZipcodes: " . $e->getMessage());
+            return 0;
+        }
     }
 
     /**

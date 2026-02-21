@@ -83,6 +83,8 @@ export interface ChefRow {
   city: string;
   state: string;
   zip: string;
+  latitude?: string;
+  longitude?: string;
   photo: string;
   created_at: number;
   weekly_availability?: string[];

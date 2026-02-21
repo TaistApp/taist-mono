@@ -42,6 +42,7 @@ interface Order {
   refund_percentage: number | null;
   refund_processed_at: string | null;
   refund_stripe_id: string | null;
+  is_auto_closed: boolean;
   review: { rating: number; text: string | null; tip_amount: number } | null;
   created_at: number;
 }

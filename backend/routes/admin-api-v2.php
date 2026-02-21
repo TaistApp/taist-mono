@@ -51,4 +51,5 @@ Route::group(['middleware' => ['auth:adminapi']], function () {
     Route::get('adminapi/change_category_status', 'AdminapiController@changeCategoryStatus');
     Route::post('adminapi/delete_stripe_accounts', 'AdminapiController@deleteStripeAccounts');
     Route::post('adminapi/orders/{id}/cancel', 'AdminapiController@adminCancelOrder');
+    Route::post('adminapi/create-authentic-review', 'AdminapiController@createAuthenticReview');
 });

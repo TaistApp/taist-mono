@@ -71,6 +71,7 @@ Every page tested for real functionality. "Verify in DB" items confirm the actio
 ### Chef Detail Drawer
 - [x] Click row → detail drawer slides open from right ✅
 - [x] Shows contact info, status badge, address, photo ✅
+- [x] Coordinates (latitude/longitude) displayed when available ✅ (added in data gap fix)
 - [x] Editable bio textarea with Save button ✅
 - [x] Availability schedule (Mon-Sun) ✅
 - [x] Min Order / Max Distance shown ✅
@@ -172,6 +173,7 @@ Every page tested for real functionality. "Verify in DB" items confirm the actio
 - [x] Chat section: messages filtered by order_id, rendered as conversation ✅
 - [x] Review section: shows review inline or "No review yet" ✅
 - [x] Transaction section: shows transaction or "No transactions recorded" ✅
+- [x] Cancellation section shows cancellation_type and is_auto_closed badge ✅ (added in data gap fix)
 - [x] Cancel Order action available in drawer ✅
 
 ### Cancel Order (SKIPPED — Real Stripe Refund)
@@ -301,6 +303,7 @@ Every page tested for real functionality. "Verify in DB" items confirm the actio
 - [x] Reload page → "00000" still present (persisted) ✅
 - [x] **Cleanup:** Remove "00000" and save → "Service areas updated" toast ✅
 - [x] **DB:** Confirmed "00000" is gone, original zipcodes restored ✅
+- [x] V2 zipcodesUpdate now sends FCM notifications to customers in newly added zipcodes ✅ (ported from old AdminController)
 
 ---
 

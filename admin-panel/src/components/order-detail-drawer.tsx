@@ -30,6 +30,7 @@ interface Order {
   refund_percentage: number | null;
   refund_processed_at: string | null;
   refund_stripe_id: string | null;
+  is_auto_closed: boolean;
   review: { rating: number; text: string | null; tip_amount: number } | null;
   created_at: number;
 }
@@ -258,9 +259,21 @@ export default function OrderDetailDrawer({
                     — {order.cancelled_by.name}
                   </span>
                 </div>
+                {order.cancellation_type && (
+                  <div className="mt-1 text-gray-600">
+                    Type: <span className="capitalize">{order.cancellation_type}</span>
+                  </div>
+                )}
                 {order.cancellation_reason && (
                   <div className="mt-1 text-gray-600">
                     Reason: {order.cancellation_reason}
+                  </div>
+                )}
+                {order.is_auto_closed && (
+                  <div className="mt-1">
+                    <Badge variant="outline" className="bg-gray-500/15 text-gray-700 border-gray-500/20">
+                      Auto-closed
+                    </Badge>
                   </div>
                 )}
                 {order.refund_amount != null && (

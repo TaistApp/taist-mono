@@ -120,6 +120,12 @@ export default function ChefDetailDrawer({
                   .join(", ")}
               </div>
             )}
+            {chef.latitude && chef.longitude && (
+              <div className="text-sm">
+                <span className="text-gray-500">Coordinates:</span>{" "}
+                {chef.latitude}, {chef.longitude}
+              </div>
+            )}
             {chef.photo && (
               <img
                 src={`/assets/uploads/images/${chef.photo}`}
