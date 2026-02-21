@@ -1,6 +1,6 @@
 # Sprint 2 SOW - Implementation Status
 
-Last updated: February 18, 2026
+Last updated: February 20, 2026
 Source of scope: `docs/sprint2-sow.md`
 
 ## SOW2 Scope (Complete List)
@@ -9,7 +9,7 @@ Source of scope: `docs/sprint2-sow.md`
 |---|---|---|---:|---|
 | 1 | TMA-063 | Weekly Order Reminder Notifications | 3h | Implemented, verification complete (staging data validation pending) |
 | 2 | TMA-061 | Chef Availability on Current Day | 4h | Implemented, verification complete (staging behavior validation pending) |
-| 3 | TMA-037 | Order Time Blockout Logic | 6h | Not started |
+| 3 | TMA-037 | Order Time Blockout Logic | 6h | Completed, verified on simulator |
 | 4 | TMA-054 | In-App Bug & Issue Reporting | 4h | Implemented in code, pending trusted Maestro + manual smoke verification |
 | 5 | TMA-055 | SMS Notifications for Chat Messages | 2h | Implemented, backend verification complete (staging SMS delivery pending) |
 | 6 | TMA-036 | Privacy Policy & Terms of Service Pages | 1h | Completed |
@@ -361,6 +361,61 @@ Evidence to attach in handoff:
 - Screenshots for steps 2-7
 - Pass/fail per required confirmation item above
 - Any mismatch with exact screen/API payload details
+
+## Implemented Fix: TMA-037 (Order Time Blockout + Demand Signaling + Chef Detail Availability)
+
+Full implementation plan: `docs/tma-037-implementation-plan.md`
+
+### What We Implemented
+
+Three sub-features shipped together:
+
+1. **Demand Signaling ("Popular" Badge)**
+   - Backend: CRC32 hash-based deterministic ~40% badge assignment per day
+   - Frontend: Orange badge overlay on chef profile pic + thin orange card border
+   - `backend/app/Http/Controllers/MapiController.php` (`getSearchChefs`)
+   - `frontend/app/screens/customer/home/components/chefCard.tsx`
+
+2. **Arrival Time Blockout Logic**
+   - Backend endpoint `getAvailableTimeslots` filters out past times with 3-hour minimum buffer
+   - Checks overrides vs weekly schedule, filters cancelled days
+   - `backend/app/Http/Controllers/MapiController.php`
+
+3. **Chef Detail Availability Section**
+   - New pill-based date/time picker on chef detail page (30-day range)
+   - Auto-scrolls to availability section on page load
+   - Pre-selects date/time and passes to checkout
+   - `frontend/app/screens/customer/chefDetail/components/availabilitySection.tsx`
+   - `frontend/app/screens/customer/chefDetail/index.tsx`
+
+4. **Checkout UI Overhaul (Pill-Based)**
+   - Replaced `CustomCalendar` week-view + `StyledTabButton` time selection with horizontal pill-based design matching chef detail
+   - 30-day scrollable date pills with working-day filtering
+   - Rounded time pills with loading/empty states
+   - Deleted `checkout/components/customCalendar.tsx`
+   - `frontend/app/screens/customer/checkout/index.tsx`
+   - `frontend/app/screens/customer/checkout/styles.ts`
+
+5. **Home Screen Calendar Polish**
+   - Replaced hardcoded hex colors with `AppColors.*` theme constants
+   - Changed selected-day styling from white+border to orange-fill+white-text (matches pill design)
+   - `frontend/app/screens/customer/home/components/customCalendar.tsx`
+
+### Verification Completed
+
+1. Simulator verification (Maestro MCP):
+   - Chef cards show "Popular" badge on ~40% of chefs
+   - Chef detail auto-scrolls to availability, date pills load timeslots
+   - Checkout pill UI: date selection loads timeslots, time selection updates estimated time
+   - Home calendar: orange-fill selected state renders correctly
+2. Backend: existing unit tests pass (availability override + SMS suites)
+3. No logic changes to order submission flow — checkout state management preserved
+
+### Commits
+
+- `d16347f` — TMA-037: Order time blockout, demand signaling, chef detail availability (25 files)
+- `0ce693e` — Checkout pill UI replacement + customCalendar deletion
+- `52e44ad` — Home calendar theme constants + orange-fill selected state
 
 ## SOW2 Tasks Ranked by Ease of Implementation
 
