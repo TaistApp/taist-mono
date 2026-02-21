@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
+import { AppColors } from '../../../../../constants/theme';
 
 interface CustomCalendarProps {
   selectedDate: moment.Moment;
@@ -180,7 +181,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#f5f5f5', // Light gray card background
+    backgroundColor: AppColors.surface,
     paddingVertical: 16,
     paddingHorizontal: 12,
     borderRadius: 12,
@@ -198,19 +199,19 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   monthYearText: {
-    color: '#1a1a1a', // Dark text
+    color: AppColors.text,
     fontSize: 16,
     fontWeight: '700',
     textAlign: 'center',
   },
   todayButton: {
-    backgroundColor: '#fa4616',
+    backgroundColor: AppColors.primary,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
   },
   todayButtonText: {
-    color: '#ffffff',
+    color: AppColors.textOnPrimary,
     fontSize: 11,
     fontWeight: '600',
   },
@@ -218,7 +219,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   navButtonText: {
-    color: '#fa4616', // Orange arrows
+    color: AppColors.primary,
     fontSize: 20,
     fontWeight: 'bold',
   },
@@ -237,32 +238,30 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   selectedDayContainer: {
-    backgroundColor: '#ffffff', // White background when selected
-    borderWidth: 1,
-    borderColor: '#fa4616', // Red border
+    backgroundColor: AppColors.primary,
   },
   disabledDayContainer: {
-    opacity: 0.4,
+    opacity: 0.35,
   },
   dayName: {
-    color: '#666666', // Gray text
+    color: AppColors.textSecondary,
     fontSize: 11,
     fontWeight: '600',
     marginBottom: 4,
   },
   selectedDayName: {
-    color: '#fa4616', // Red text when selected
+    color: AppColors.textOnPrimary,
   },
   dayNumber: {
-    color: '#1a1a1a', // Dark text
+    color: AppColors.text,
     fontSize: 18,
     fontWeight: 'bold',
   },
   selectedDayNumber: {
-    color: '#fa4616', // Red text when selected
+    color: AppColors.textOnPrimary,
   },
   disabledText: {
-    color: '#cccccc', // Light gray for disabled
+    color: AppColors.disabledText,
   },
 });
 
