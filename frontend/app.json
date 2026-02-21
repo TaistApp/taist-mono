@@ -11,10 +11,12 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "org.taist.taist",
-      "buildNumber": "12",
+      "buildNumber": "13",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "UIBackgroundModes": [
+          "remote-notification",
+          "location",
           "remote-notification",
           "location"
         ],
@@ -27,7 +29,8 @@
         },
         "NSPhotoLibraryAddUsageDescription": "Taist saves photos to your photo library when you choose to download images from messages or order confirmations. For example, saving a receipt image shared by a customer.",
         "NSPhotoLibraryUsageDescription": "Taist accesses your photo library so you can select an existing photo for your chef profile picture or upload photos of dishes you offer. For example, choosing a professional headshot as your profile image or selecting food photos to showcase your menu.",
-        "NSUserNotificationsUsageDescription": "This app uses notifications to alert you about order updates and new messages."
+        "NSUserNotificationsUsageDescription": "This app uses notifications to alert you about order updates and new messages.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -127,7 +130,11 @@
           "ios": {
             "useFrameworks": "static",
             "privacyManifestAggregationEnabled": false,
-            "forceStaticLinking": ["RNFBApp", "RNFBCrashlytics", "RNFBMessaging"]
+            "forceStaticLinking": [
+              "RNFBApp",
+              "RNFBCrashlytics",
+              "RNFBMessaging"
+            ]
           },
           "android": {
             "enableProguardInReleaseBuilds": true,
@@ -137,7 +144,8 @@
                 "**/libc++_shared.so"
               ]
             },
-            "extraProguardRules": "-keep class com.swmansion.reanimated.** { *; }\n-keep class com.facebook.react.turbomodule.** { *; }\n-dontwarn com.stripe.android.pushProvisioning.**\n-keep class com.stripe.android.** { *; }\n-keep class com.reactnativestripesdk.** { *; }"
+            "extraProguardRules": "-keep class com.swmansion.reanimated.** { *; }\n-keep class com.facebook.react.turbomodule.** { *; }\n-dontwarn com.stripe.android.pushProvisioning.**\n-keep class com.stripe.android.** { *; }\n-keep class com.reactnativestripesdk.** { *; }",
+            "enableMinifyInReleaseBuilds": true
           }
         }
       ],
