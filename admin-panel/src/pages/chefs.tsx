@@ -356,7 +356,7 @@ const pendingExtraColumns: ColumnDef<ChefRow>[] = [
 
 // ---------- Tab types ----------
 
-type TabFilter = "all" | "pending" | "active" | "rejected" | "banned";
+type TabFilter = "all" | "pending" | "active" | "rejected";
 
 // ---------- Page component ----------
 
@@ -419,8 +419,6 @@ export default function ChefsPage() {
         return chefRows.filter((c) => c.verified === 1);
       case "rejected":
         return chefRows.filter((c) => c.verified === 2);
-      case "banned":
-        return chefRows.filter((c) => c.verified === 3);
       case "all":
       default:
         return chefRows;
@@ -449,7 +447,6 @@ export default function ChefsPage() {
     const labels: Record<number, string> = {
       1: "Active",
       2: "Rejected",
-      3: "Banned",
     };
     setConfirmDialog({ open: true, action: labels[status], ids });
   };
@@ -471,7 +468,6 @@ export default function ChefsPage() {
       const statusMap: Record<string, number> = {
         Active: 1,
         Rejected: 2,
-        Banned: 3,
       };
 
       if (action === "delete_stripe") {
@@ -520,7 +516,6 @@ export default function ChefsPage() {
     { label: "Pending", value: "pending", count: pendingCount },
     { label: "Active", value: "active", count: activeCount },
     { label: "Rejected", value: "rejected" },
-    { label: "Banned", value: "banned" },
   ];
 
   // Context-aware action buttons
@@ -543,16 +538,12 @@ export default function ChefsPage() {
             <Button size="sm" variant="outline" onClick={() => handleStatusChange(2)}>
               Rejected
             </Button>
-            <Button size="sm" variant="outline" onClick={() => handleStatusChange(3)}>
-              Banned
-            </Button>
             <Button size="sm" variant="outline" onClick={handleDeleteStripe}>
               Delete Stripe
             </Button>
           </>
         );
       case "rejected":
-      case "banned":
         return (
           <Button size="sm" variant="outline" onClick={() => handleStatusChange(1)}>
             Activate

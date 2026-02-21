@@ -203,7 +203,6 @@ export default function CustomersPage() {
       const statusMap: Record<string, number> = {
         Active: 1,
         Rejected: 2,
-        Banned: 3,
       };
       await api.get("/adminapi/change_chef_status", {
         params: { ids: ids.join(","), status: statusMap[action] },
@@ -251,13 +250,6 @@ export default function CustomersPage() {
         onClick={() => handleStatusChange("Rejected")}
       >
         Rejected
-      </Button>
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={() => handleStatusChange("Banned")}
-      >
-        Banned
       </Button>
       <Button size="sm" variant="outline" onClick={handleExport}>
         <Download className="mr-2 h-4 w-4" />
