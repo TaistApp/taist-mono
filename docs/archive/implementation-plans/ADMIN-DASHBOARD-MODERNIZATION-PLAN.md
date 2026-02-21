@@ -195,7 +195,7 @@ public function chefs(Request $request) {
    - All edit pages ✓
 4. Commit changes to git
 5. Deploy to Railway staging
-6. Test on Railway: `https://taist-mono-staging.up.railway.app/admin`
+6. Test on Railway: `https://api-staging.taist.app/admin`
 7. If all tests pass, archive old config file
 
 **Test Checklist:**

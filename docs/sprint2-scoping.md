@@ -314,7 +314,7 @@ Set up Stripe webhooks so the app receives real-time notifications when transact
 | `backend/config/services.php` | **EDIT** — Add Stripe webhook secret |
 
 ### Implementation Approach
-1. **Register webhook** in Stripe dashboard pointing to `https://taist-mono-production.up.railway.app/stripe/webhook`
+1. **Register webhook** in Stripe dashboard pointing to `https://api.taist.app/stripe/webhook`
 2. **Create handler**: Verify webhook signature, parse event type, handle `payment_intent.succeeded`, `charge.refunded`, `payout.paid`, etc.
 3. **Log events**: Store in a `stripe_events` table or just log for now.
 4. **Notifications**: Push notification to chef when payout lands, admin notification on failed payments.

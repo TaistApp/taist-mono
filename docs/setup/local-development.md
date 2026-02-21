@@ -167,8 +167,8 @@ The frontend supports three environments:
 | Environment | Backend URL | Usage |
 |------------|-------------|-------|
 | **local** | http://localhost:8005 | Development on your machine |
-| **staging** | https://taist-mono-staging.up.railway.app | Testing before production |
-| **production** | https://taist-mono-production.up.railway.app | Live application |
+| **staging** | https://api-staging.taist.app | Testing before production |
+| **production** | https://api.taist.app | Live application |
 
 ### Switch Environments
 
@@ -200,9 +200,9 @@ const APP_ENV = process.env.APP_ENV || 'local';
 if (APP_ENV === 'local') {
   BASE_URL = 'http://localhost:8005/mapi/';
 } else if (APP_ENV === 'staging') {
-  BASE_URL = 'https://taist-mono-staging.up.railway.app/mapi/';
+  BASE_URL = 'https://api-staging.taist.app/mapi/';
 } else {
-  BASE_URL = 'https://taist-mono-production.up.railway.app/mapi/';
+  BASE_URL = 'https://api.taist.app/mapi/';
 }
 ```
 

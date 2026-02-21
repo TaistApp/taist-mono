@@ -165,11 +165,22 @@ whois taist.app
 
 ## DNS Configuration
 
-### Current Setup (Railway Domains)
+### Active Custom Domains
+
+| Environment | Custom Domain | Railway Backup Domain |
+|-------------|--------------|----------------------|
+| Production  | `api.taist.app` | `taist-mono-production.up.railway.app` |
+| Staging     | `api-staging.taist.app` | `taist-mono-staging.up.railway.app` |
+
+> **Note:** The Railway-provided `*.up.railway.app` domains are auto-generated backup URLs.
+> They still work but all code and config should use the custom domains above.
+> If the custom domain has DNS issues, the Railway backup URL can be used temporarily.
+
+### DNS Records
 
 ```
-taist-mono-staging.up.railway.app → Railway staging
-taist-mono-production.up.railway.app → Railway production
+api-staging.taist.app → CNAME → (Railway-provided target)
+api.taist.app         → CNAME → (Railway-provided target)
 ```
 
 ### New Setup (Your Domains)
@@ -215,15 +226,15 @@ TTL: Auto
 const getEnvironmentUrls = () => {
   if (APP_ENV === 'staging' || APP_ENV === 'development') {
     return {
-      BASE_URL: 'https://taist-mono-staging.up.railway.app/mapi/',
-      Photo_URL: 'https://taist-mono-staging.up.railway.app/assets/uploads/images/',
-      HTML_URL: 'https://taist-mono-staging.up.railway.app/assets/uploads/html/',
+      BASE_URL: 'https://api-staging.taist.app/mapi/',
+      Photo_URL: 'https://api-staging.taist.app/assets/uploads/images/',
+      HTML_URL: 'https://api-staging.taist.app/assets/uploads/html/',
     };
   } else {
     return {
-      BASE_URL: 'https://taist-mono-production.up.railway.app/mapi/',
-      Photo_URL: 'https://taist-mono-production.up.railway.app/assets/uploads/images/',
-      HTML_URL: 'https://taist-mono-production.up.railway.app/assets/uploads/html/',
+      BASE_URL: 'https://api.taist.app/mapi/',
+      Photo_URL: 'https://api.taist.app/assets/uploads/images/',
+      HTML_URL: 'https://api.taist.app/assets/uploads/html/',
     };
   }
 };
@@ -317,7 +328,7 @@ Configure Railway to respond to BOTH domains temporarily:
 
 In Railway → Production → Settings → Networking:
 - Add domain: `api.taist.app` (NEW)
-- Add domain: `taist-mono-production.up.railway.app` (current)
+- Add domain: `api.taist.app` (current)
 
 After transition period:
 - Remove old domain
@@ -373,7 +384,7 @@ We're moving away from CodeUpscale infrastructure to
 our own domains and Railway platform.
 
 What's Changing:
-- Current: taist-mono-production.up.railway.app
+- Current: api.taist.app
 - New: api.taist.app
 
 Timeline:

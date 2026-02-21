@@ -53,7 +53,7 @@ Railway volumes contain all uploaded files (user photos, appliance icons, logos,
 api.taist.app → yxcmpbi3.up.railway.app → 151.101.2.15 (Railway edge)
 ```
 
-Cloudflare is **not** in the path for `api.taist.app`. It was only used for the old `taist.codeupscale.com` domain. The frontend already points to `api.taist.app` for production and `taist-mono-staging.up.railway.app` for staging.
+Cloudflare is **not** in the path for `api.taist.app`. It was only used for the old `taist.codeupscale.com` domain. The frontend already points to `api.taist.app` for production and `api-staging.taist.app` for staging.
 
 **When AWS is shut down:** The old `taist.codeupscale.com` domain will stop working, but nothing in the app references it anymore. No action needed.
 
@@ -125,7 +125,7 @@ EC2 production `.env` at `/var/www/html/.env` is bare-bones (old standalone code
 | Variable | EC2 Value | Railway Production |
 |----------|-----------|-------------------|
 | `APP_ENV` | `local` (misconfigured) | `production` |
-| `APP_URL` | `http://localhost` (misconfigured) | `https://taist-mono-production.up.railway.app` |
+| `APP_URL` | `http://localhost` (misconfigured) | `https://api.taist.app` |
 | `DB_DATABASE` | `db_taist` on localhost | `railway` on Railway internal MySQL |
 | `MAIL_HOST` | AWS SES | `smtp.resend.com` (updated Feb 20) |
 | `STRIPE` | **Missing from .env** | Live keys present |

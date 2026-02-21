@@ -22,7 +22,7 @@ This means every backend-generated URL in production — Stripe onboarding retur
 
 **Fix:** Change Railway production env var:
 ```
-APP_URL = https://taist-mono-production.up.railway.app
+APP_URL = https://api.taist.app
 ```
 (Or the final canonical domain once decided.)
 
@@ -42,16 +42,16 @@ The mobile app opens these via in-app browser (`WebBrowser.openBrowserAsync`):
 - `frontend/app/screens/common/terms/index.tsx:13` → `${HTML_URL}terms.html`
 
 **Verified 404s (February 20, 2026):**
-- `https://taist-mono-production.up.railway.app/assets/uploads/html/privacy.html` → 404 (Laravel "Not Found")
-- `https://taist-mono-production.up.railway.app/assets/uploads/html/terms.html` → 404 (Laravel "Not Found")
-- `https://taist-mono-staging.up.railway.app/assets/uploads/html/privacy.html` → 404
-- `https://taist-mono-staging.up.railway.app/assets/uploads/html/terms.html` → 404
+- `https://api.taist.app/assets/uploads/html/privacy.html` → 404 (Laravel "Not Found")
+- `https://api.taist.app/assets/uploads/html/terms.html` → 404 (Laravel "Not Found")
+- `https://api-staging.taist.app/assets/uploads/html/privacy.html` → 404
+- `https://api-staging.taist.app/assets/uploads/html/terms.html` → 404
 
 **Verified 200s (volume images work fine):**
-- `https://taist-mono-production.up.railway.app/assets/uploads/images/user_photo_1722428782.jpg` → 200
-- `https://taist-mono-production.up.railway.app/assets/uploads/images/stove.png` → 200
-- `https://taist-mono-production.up.railway.app/assets/uploads/images/logo.png` → 200
-- `https://taist-mono-production.up.railway.app/assets/uploads/images/stripe_guide.jpeg` → 200
+- `https://api.taist.app/assets/uploads/images/user_photo_1722428782.jpg` → 200
+- `https://api.taist.app/assets/uploads/images/stove.png` → 200
+- `https://api.taist.app/assets/uploads/images/logo.png` → 200
+- `https://api.taist.app/assets/uploads/images/stripe_guide.jpeg` → 200
 
 **Fix (implemented Feb 19):** Added Laravel `Route::view` routes that serve Blade views at the same URL paths. This eliminates the volume dependency entirely — the pages deploy with the app code.
 
@@ -73,7 +73,7 @@ The mobile app opens these via in-app browser (`WebBrowser.openBrowserAsync`):
 The `scheduler` service (with zero production deployments) is the unused one — `supportive-recreation` is doing the work.
 
 **~~Remaining nits on `supportive-recreation`:~~ — FIXED (Feb 19)**
-- `APP_URL` updated to `https://taist-mono-production.up.railway.app`
+- `APP_URL` updated to `https://api.taist.app`
 - `FIREBASE_CREDENTIALS` set to actual JSON (copied from production `taist-mono`)
 
 ---
@@ -132,8 +132,8 @@ The Codex checklist (Phase A) said this was completed Feb 18 — this audit inde
 ### Frontend API URLs point to Railway
 
 `frontend/app/services/api.ts` correctly uses:
-- **Staging:** `https://taist-mono-staging.up.railway.app/mapi/`
-- **Production:** `https://taist-mono-production.up.railway.app/mapi/`
+- **Staging:** `https://api-staging.taist.app/mapi/`
+- **Production:** `https://api.taist.app/mapi/`
 - **Local:** `http://localhost:8005/mapi/`
 
 All image, HTML, and static asset URLs also point to Railway.
@@ -145,8 +145,8 @@ All image, HTML, and static asset URLs also point to Railway.
 ### Railway API is live and healthy
 
 Verified February 20, 2026:
-- `https://taist-mono-staging.up.railway.app/mapi/get-version` → HTTP 200, `server: railway-edge`, PHP 8.2.30
-- `https://taist-mono-production.up.railway.app/mapi/get-version` → HTTP 200, `server: railway-edge`, PHP 8.2.30, returns version 29.0.0
+- `https://api-staging.taist.app/mapi/get-version` → HTTP 200, `server: railway-edge`, PHP 8.2.30
+- `https://api.taist.app/mapi/get-version` → HTTP 200, `server: railway-edge`, PHP 8.2.30, returns version 29.0.0
 
 ### Railway volumes are populated (images work)
 
@@ -165,7 +165,7 @@ Stripe (test), Twilio, Firebase, Resend, SafeScreener (sandbox), Google Maps, Op
 Production `taist-mono` service has:
 Stripe (live), Twilio, Firebase, SafeScreener (production JWT), Google Maps, OpenAI, SMTP (AWS SES).
 **Missing:** `RESEND_API_KEY` (see Warning 1). `ADMIN_TIMEZONE` now set (Feb 19).
-**~~Wrong:~~ `APP_URL`** — fixed Feb 19, now `https://taist-mono-production.up.railway.app`. Custom domain `api.taist.app` also configured on Railway.
+**~~Wrong:~~ `APP_URL`** — fixed Feb 19, now `https://api.taist.app`. Custom domain `api.taist.app` also configured on Railway.
 
 ---
 
@@ -175,7 +175,7 @@ Stripe (live), Twilio, Firebase, SafeScreener (production JWT), Google Maps, Ope
 
 | # | Task | Detail | Status |
 |---|------|--------|--------|
-| 1a | Fix production `APP_URL` | Change from `https://taist.codeupscale.com` to `https://taist-mono-production.up.railway.app` in Railway env | **DONE** (Feb 19) |
+| 1a | Fix production `APP_URL` | Change from `https://taist.codeupscale.com` to `https://api.taist.app` in Railway env | **DONE** (Feb 19) |
 | 1b | Serve legal pages via Laravel routes | Added `Route::view` routes in `web.php` for `/assets/uploads/html/privacy.html` and `terms.html`, backed by Blade views in `resources/views/legal/`. Pages deploy with the app — no volume dependency. Needs deploy to Railway. | **CODE DONE** — deploy pending |
 | 1c | Deploy production scheduler | Production scheduler runs as `supportive-recreation` service (cron `*/5 * * * *`, full env vars, active deployments from `main`). | **DONE** (was already running) |
 | 1d | Set production `RESEND_API_KEY` | Get production Resend API key and set it in Railway production env | NOT DONE |
@@ -185,12 +185,12 @@ Stripe (live), Twilio, Firebase, SafeScreener (production JWT), Google Maps, Ope
 
 ```bash
 # Verify APP_URL is correct
-curl -sS https://taist-mono-production.up.railway.app/mapi/get-version
+curl -sS https://api.taist.app/mapi/get-version
 
 # Verify uploaded files are accessible
-curl -sSI https://taist-mono-production.up.railway.app/assets/uploads/html/privacy.html | head -5
-curl -sSI https://taist-mono-production.up.railway.app/assets/uploads/html/terms.html | head -5
-curl -sSI https://taist-mono-staging.up.railway.app/assets/uploads/html/privacy.html | head -5
+curl -sSI https://api.taist.app/assets/uploads/html/privacy.html | head -5
+curl -sSI https://api.taist.app/assets/uploads/html/terms.html | head -5
+curl -sSI https://api-staging.taist.app/assets/uploads/html/privacy.html | head -5
 
 # Verify scheduler is running in production (check Railway dashboard logs for scheduler service)
 # Should see "Running scheduled command" entries every 5 minutes
@@ -199,7 +199,7 @@ curl -sSI https://taist-mono-staging.up.railway.app/assets/uploads/html/privacy.
 ### Phase 3: Domain Decision
 
 - [x] Decide canonical production API domain — custom domain `api.taist.app` is configured on Railway (`RAILWAY_PUBLIC_DOMAIN=api.taist.app`)
-- [ ] Update `APP_URL` to `https://api.taist.app` (currently still `https://taist-mono-production.up.railway.app`)
+- [ ] Update `APP_URL` to `https://api.taist.app` (currently still `https://api.taist.app`)
 - [ ] Update frontend `api.ts` to use `https://api.taist.app/mapi/` for production
 - [ ] Update `supportive-recreation` `APP_URL` to match
 
@@ -229,10 +229,10 @@ curl -sSI https://taist-mono-staging.up.railway.app/assets/uploads/html/privacy.
 
 | URL | Status | Server |
 |-----|--------|--------|
-| `https://taist-mono-staging.up.railway.app/mapi/get-version` | 200 | `railway-edge`, PHP 8.2.30 |
-| `https://taist-mono-production.up.railway.app/mapi/get-version` | 200 | `railway-edge`, PHP 8.2.30 |
-| `https://taist-mono-production.up.railway.app/assets/uploads/images/user_photo_*.jpg` | 200 | railway-edge (volume images work) |
-| `https://taist-mono-production.up.railway.app/assets/uploads/images/stove.png` | 200 | railway-edge |
-| `https://taist-mono-production.up.railway.app/assets/uploads/html/privacy.html` | **404** | railway-edge (html/ subdir missing from volume) |
-| `https://taist-mono-production.up.railway.app/assets/uploads/html/terms.html` | **404** | railway-edge (html/ subdir missing from volume) |
-| `https://taist-mono-production.up.railway.app/assets/images/logo-2.png` | 200 | railway-edge (static, not volume) |
+| `https://api-staging.taist.app/mapi/get-version` | 200 | `railway-edge`, PHP 8.2.30 |
+| `https://api.taist.app/mapi/get-version` | 200 | `railway-edge`, PHP 8.2.30 |
+| `https://api.taist.app/assets/uploads/images/user_photo_*.jpg` | 200 | railway-edge (volume images work) |
+| `https://api.taist.app/assets/uploads/images/stove.png` | 200 | railway-edge |
+| `https://api.taist.app/assets/uploads/html/privacy.html` | **404** | railway-edge (html/ subdir missing from volume) |
+| `https://api.taist.app/assets/uploads/html/terms.html` | **404** | railway-edge (html/ subdir missing from volume) |
+| `https://api.taist.app/assets/images/logo-2.png` | 200 | railway-edge (static, not volume) |
