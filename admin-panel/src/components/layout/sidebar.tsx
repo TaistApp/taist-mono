@@ -16,6 +16,8 @@ import {
   KeyRound,
   Menu,
   X,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ChangePasswordDialog from "./change-password-dialog";
@@ -79,7 +81,12 @@ const navSections: NavSection[] = [
   },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  collapsed: boolean;
+  onToggleCollapse: () => void;
+}
+
+export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
   const { user, logout } = useAuth();
   const [pwDialogOpen, setPwDialogOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -88,27 +95,49 @@ export default function Sidebar() {
 
   const sidebarContent = (
     <>
-      <div className="border-b border-white/10 p-4">
-        <h1 className="text-lg font-bold text-white">Taist Admin</h1>
-        {user && (
-          <p className="text-sm text-gray-400 truncate">{user.email}</p>
+      <div className="border-b border-white/10 p-4 flex items-center justify-between">
+        {!collapsed && (
+          <div className="min-w-0">
+            <h1 className="text-lg font-bold text-white">Taist Admin</h1>
+            {user && (
+              <p className="text-sm text-gray-400 truncate">{user.email}</p>
+            )}
+          </div>
         )}
+        <button
+          className="hidden lg:flex shrink-0 rounded-md p-1.5 text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
+          onClick={onToggleCollapse}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? (
+            <PanelLeftOpen className="h-4 w-4" />
+          ) : (
+            <PanelLeftClose className="h-4 w-4" />
+          )}
+        </button>
       </div>
 
       <nav className="flex-1 overflow-y-auto p-2">
         {navSections.map((group, gi) => (
           <div key={group.section} className={gi > 0 ? "mt-4" : ""}>
-            <div className="px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-gray-500">
-              {group.section}
-            </div>
+            {!collapsed && (
+              <div className="px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-gray-500">
+                {group.section}
+              </div>
+            )}
             {group.items.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 end={item.to === "/admin-new/"}
                 onClick={handleNavClick}
+                title={collapsed ? item.label : undefined}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  `flex items-center rounded-lg text-sm font-medium transition-colors ${
+                    collapsed
+                      ? "justify-center px-2 py-2"
+                      : "gap-3 px-3 py-2"
+                  } ${
                     isActive
                       ? "bg-white/10 text-white"
                       : "text-gray-400 hover:bg-white/5 hover:text-white"
@@ -116,7 +145,7 @@ export default function Sidebar() {
                 }
               >
                 <item.icon className="h-4 w-4 shrink-0" />
-                {item.label}
+                {!collapsed && item.label}
               </NavLink>
             ))}
           </div>
@@ -126,19 +155,25 @@ export default function Sidebar() {
       <div className="border-t border-white/10 p-2 space-y-1">
         <Button
           variant="ghost"
-          className="w-full justify-start gap-3 text-gray-400 hover:text-white hover:bg-white/5"
+          title={collapsed ? "Change Password" : undefined}
+          className={`w-full text-gray-400 hover:text-white hover:bg-white/5 ${
+            collapsed ? "justify-center px-2" : "justify-start gap-3"
+          }`}
           onClick={() => setPwDialogOpen(true)}
         >
-          <KeyRound className="h-4 w-4" />
-          Change Password
+          <KeyRound className="h-4 w-4 shrink-0" />
+          {!collapsed && "Change Password"}
         </Button>
         <Button
           variant="ghost"
-          className="w-full justify-start gap-3 text-gray-400 hover:text-white hover:bg-white/5"
+          title={collapsed ? "Logout" : undefined}
+          className={`w-full text-gray-400 hover:text-white hover:bg-white/5 ${
+            collapsed ? "justify-center px-2" : "justify-start gap-3"
+          }`}
           onClick={logout}
         >
-          <LogOut className="h-4 w-4" />
-          Logout
+          <LogOut className="h-4 w-4 shrink-0" />
+          {!collapsed && "Logout"}
         </Button>
       </div>
 
@@ -165,7 +200,7 @@ export default function Sidebar() {
         />
       )}
 
-      {/* Mobile sidebar (slides in) */}
+      {/* Mobile sidebar (slides in, always expanded) */}
       <aside
         className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-gray-900 transition-transform duration-200 lg:hidden ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
@@ -174,8 +209,12 @@ export default function Sidebar() {
         {sidebarContent}
       </aside>
 
-      {/* Desktop sidebar (always visible) */}
-      <aside className="hidden h-screen w-64 flex-col bg-gray-900 lg:flex">
+      {/* Desktop sidebar */}
+      <aside
+        className={`hidden h-screen flex-col bg-gray-900 lg:flex transition-[width] duration-200 ${
+          collapsed ? "w-16" : "w-64"
+        }`}
+      >
         {sidebarContent}
       </aside>
     </>
