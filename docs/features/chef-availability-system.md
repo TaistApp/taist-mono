@@ -298,25 +298,53 @@ Taist: You're scheduled [Day], [Time Range] tomorrow. If plans changed, open the
 Core availability check used by order creation and chef search.
 
 ```php
-public function isAvailableForOrder($orderDate)
+public function isAvailableForOrder($orderDate, $orderTimeStr = null, $timezone = null)
 {
-    $orderDateOnly = date('Y-m-d', $orderTimestamp);
-    $orderTime = date('H:i', $orderTimestamp);
-    $today = date('Y-m-d');
+    // Preferred: pass date string (YYYY-MM-DD) + time string (HH:mm)
+    // This avoids UTC timezone bugs with Unix timestamps on the server
+    if ($orderTimeStr && preg_match('/^\d{4}-\d{2}-\d{2}$/', $orderDate)) {
+        $orderDateOnly = $orderDate;
+        $orderTime = $orderTimeStr;
+    } else {
+        // Legacy fallback: Unix timestamp (subject to UTC conversion)
+        $orderTimestamp = is_numeric($orderDate) ? (int)$orderDate : strtotime($orderDate);
+        $orderDateOnly = date('Y-m-d', $orderTimestamp);
+        $orderTime = date('H:i', $orderTimestamp);
+    }
 
     // Check for override first
     $override = AvailabilityOverride::forChef($this->id)
-        ->forDate($orderDateOnly)
-        ->first();
+        ->forDate($orderDateOnly)->first();
 
     if ($override) {
         return $override->isAvailableAt($orderTime);
     }
 
     // No override - fall back to weekly schedule
-    return $this->hasScheduleForDateTime($orderTimestamp, $orderTime);
+    return $this->hasScheduleForDateTime($orderDateOnly, $orderTime);
 }
 ```
+
+---
+
+## Timestamp Convention (IMPORTANT)
+
+**All availability and order time logic uses HH:mm strings and YYYY-MM-DD date strings, NOT Unix timestamps.**
+
+The Railway server runs in UTC. If you convert a Unix timestamp to a date/time using PHP's `date()`, evening US orders (e.g. 7 PM EST) will resolve to the **next day** in UTC (midnight). This caused a production bug where Sunday evening orders failed because the backend checked Monday's schedule.
+
+**Rules:**
+- Frontend sends `order_date_string` (YYYY-MM-DD) and `order_time_string` (HH:mm) alongside the legacy `order_date` (Unix timestamp)
+- Backend uses the string fields for availability checks and stores them in `order_date_new` and `order_time` columns
+- The Unix `order_date` is kept for backward compatibility (receipts, refund timing)
+- Never call `date('l', $unixTimestamp)` or `date('Y-m-d', $unixTimestamp)` for availability/scheduling logic — use the string fields instead
+
+**Database columns on tbl_orders:**
+| Column | Type | Purpose |
+|--------|------|---------|
+| `order_date` | bigint | Legacy Unix timestamp (kept for receipts/refunds) |
+| `order_date_new` | date | YYYY-MM-DD date string (used for availability, blockout) |
+| `order_time` | varchar(5) | HH:mm time string (used for availability, blockout) |
 
 ---
 

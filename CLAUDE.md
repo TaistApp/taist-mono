@@ -36,6 +36,10 @@ A food marketplace connecting customers with local chefs — Laravel API + React
 - User types: `1` = customer, `2` = chef
 - Verified states: `0` = pending, `1` = active, `2` = denied, `3` = banned
 
+## Timestamp Convention (CRITICAL)
+
+**Railway runs in UTC.** Never use `date('l', $timestamp)` or `date('Y-m-d', $timestamp)` for availability or scheduling — evening US orders resolve to the wrong day. Use `order_date_string` (YYYY-MM-DD) and `order_time_string` (HH:mm) string fields instead. Full details: `docs/features/chef-availability-system.md` (Timestamp Convention section).
+
 ## Maestro E2E Testing
 
 **Never seed in production.** Full details: `docs/maestro-test-users.md` | Conventions: `docs/maestro-conventions.md`

@@ -428,6 +428,42 @@ Easiest to hardest:
 5. `TMA-054` In-App Bug & Issue Reporting
 6. `TMA-037` Order Time Blockout Logic
 
+## Bugfix: Order Creation Timezone Bug (February 21, 2026)
+
+### Problem
+
+Evening US orders (e.g. Sunday 7 PM EST) failed with "This chef is not available at the requested time" even when the chef had availability for that day and time.
+
+**Root cause:** The frontend sent `order_date` as a Unix timestamp. The backend (Railway, UTC) called `date('l', $timestamp)` to get the day-of-week, which resolved Sunday 7 PM EST (UTC-5) to Monday 00:00 UTC — checking Monday's schedule instead of Sunday's.
+
+### What We Fixed
+
+1. **Frontend** (`frontend/app/screens/customer/checkout/index.tsx`):
+   - Now sends `order_date_string` (YYYY-MM-DD) and `order_time_string` (HH:mm) alongside the Unix timestamp
+   - These are derived from the already-selected `DAY` and `time` values, no timezone conversion needed
+
+2. **Backend** (`backend/app/Listener.php`):
+   - `isAvailableForOrder()` now accepts date+time strings and uses them directly for availability checks
+   - Falls back to legacy timestamp parsing if strings not provided
+
+3. **Backend** (`backend/app/Http/Controllers/MapiController.php`):
+   - `createOrder` reads the new string fields and uses them for availability validation
+   - Populates `order_date_new` and `order_time` columns on the order record (these existed but were never populated)
+
+4. **Backend** (`backend/app/Services/OrderSmsService.php`):
+   - Added missing `formatUserName()` method that was causing a 500 error on all order creation
+
+### Verification
+
+- Confirmed bug on staging: Sunday 7 PM order → "chef not available" (before fix)
+- Confirmed fix on staging: Sunday 7 PM order → `success: 1` with correct `order_date_new=2026-02-22`, `order_time=19:00` (after fix)
+- All existing unit tests pass (32 availability tests, 57 assertions)
+
+### Commits
+
+- `db3cb13` — Fix timezone bug in order creation availability check
+- `dcaabb2` — Fix missing formatUserName method in OrderSmsService
+
 ## TMA-064 Google Play Account Deletion URL Compliance (February 18, 2026)
 
 Issue:
