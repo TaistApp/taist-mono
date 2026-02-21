@@ -104,27 +104,15 @@ Every page tested for real functionality. "Verify in DB" items confirm the actio
 
 ---
 
-## Pendings
+## ~~Pendings~~ (REMOVED — absorbed into Chefs page as Pending tab, Phase 9)
 
-### Table Display
-- [x] Table loads with 3 pending chef applications (is_pending=1) — matches DB ✅
-- [x] All expected columns present ✅
+> Standalone page removed. Pending chefs now appear as a tab filter on the Chefs page.
+> Original test results preserved below for reference.
 
-### Activate Pending Chef
-- [x] Selected CHEF0000113 (maestro+chef-pending@test.com) ✅
-- [x] Select → "Activate" → confirm → toast "Chef(s) activated", chef removed from list ✅
-- [x] **DB:** `SELECT verified, is_pending FROM tbl_users WHERE id=113` → verified=1, is_pending=0 ✅
-
-### Reject Pending Chef
-- [x] Selected CHEF0000212 (billgroble27@gmail.com / Steve Johnson) ✅
-- [x] Select → "Reject" → confirm → toast "Chef(s) rejected", chef removed from list ✅
-- [x] **DB:** `SELECT verified, is_pending FROM tbl_users WHERE id=212` → verified=2, is_pending=0 ✅
-
-### Cleanup
-- [x] **DB:** Restored both chefs to original pending state ✅
-
-### Export
-- [ ] Click Export → downloads `Taist - Pending Chefs.xlsx`
+### Activate/Reject (historical — now done from Chefs → Pending tab)
+- [x] Activate pending chef → verified=1, is_pending=0 ✅
+- [x] Reject pending chef → verified=2, is_pending=0 ✅
+- [x] **DB:** Both verified and restored ✅
 
 ---
 
@@ -167,14 +155,24 @@ Every page tested for real functionality. "Verify in DB" items confirm the actio
 
 ---
 
-## Orders
+## Orders (gains detail drawer — Phase 9 reorganization)
 
 ### Table Display
 - [x] Table loads with 5 orders — matches DB count ✅
 - [x] All expected columns present (Order ID, Customer, Chef, Menu Item, Qty, Total, Order Date, Status, Cancellation, Refund, Review, Created) ✅
 - [x] Status badges correct: Completed (3), Accepted (1), Requested (1) ✅
+- [x] Status badges vibrant (emerald/blue/amber/violet/red) ✅
 - [x] **DB:** Totals match: $55, $30, $67.50, $22.50, $45 ✅
 - [x] Filter buttons present: All / Requested / Accepted / Completed / Cancelled ✅
+
+### Order Detail Drawer (NEW — absorbs Chats, Reviews, Transactions)
+- [x] Click row → detail drawer slides open from right ✅
+- [x] Shows order info: status badge, dates, total, customer/chef info ✅
+- [x] Shows menu item, quantity, notes ✅
+- [x] Chat section: messages filtered by order_id, rendered as conversation ✅
+- [x] Review section: shows review inline or "No review yet" ✅
+- [x] Transaction section: shows transaction or "No transactions recorded" ✅
+- [x] Cancel Order action available in drawer ✅
 
 ### Cancel Order (SKIPPED — Real Stripe Refund)
 - [ ] **NOT TESTED** — Cancel Order triggers a real Stripe refund. Test only with a dedicated test order.
@@ -198,11 +196,12 @@ Every page tested for real functionality. "Verify in DB" items confirm the actio
 
 ---
 
-## Contacts
+## Tickets (renamed from Contacts — Phase 9 reorganization)
 
 ### Table Display
 - [x] Table loads with 4 support tickets from `tbl_tickets` — matches DB ✅
 - [x] Issue Context structured data renders (Issue Type, Platform, Device, etc.) ✅
+- [x] Page heading says "Tickets" (not "Contacts") ✅
 
 ### Filter Buttons
 - [x] In Review badge shows count (4) ✅
@@ -231,7 +230,7 @@ Every page tested for real functionality. "Verify in DB" items confirm the actio
 
 ---
 
-## Menu Edit
+## Menu Edit (gains inline customizations — Phase 9 reorganization)
 
 - [x] Page loads with current title ("Authentic Chicken Tacos (3 pack)") and description pre-filled ✅
 - [x] Edit title to "TEST EDIT TITLE" → Save → toast "Menu updated", redirected to list ✅
@@ -240,87 +239,67 @@ Every page tested for real functionality. "Verify in DB" items confirm the actio
 - [x] **Cleanup:** Edit title back to "Authentic Chicken Tacos (3 pack)" → Save → toast "Menu updated" ✅
 - [x] **DB:** Confirmed title restored in DB ✅
 
+### Inline Customizations (NEW — absorbs standalone Customizations page)
+- [x] Customizations sub-table visible below title/description form ✅
+- [x] Shows customizations filtered by this menu's ID ✅
+- [x] Each row: name, upcharge price, Edit button ✅
+- [x] Edit opens inline form or dialog (not page navigation) ✅
+- [x] Save calls PUT /customizations/:id ✅
+
 ---
 
-## Customizations
+## ~~Customizations~~ (REMOVED — absorbed into Menu Edit, Phase 9)
 
-### Table Display
+> Standalone page removed. Customizations now appear inline in the Menu Edit page.
+> Original test results preserved below for reference.
+
+### Table Display (historical)
 - [x] Table loads with 8 customization options from `tbl_customizations` ✅
-- [ ] Search filters work
 
-### Edit Navigation
-- [x] Click "Edit" on CUST0000157 → navigates to /admin-new/customizations/157/edit ✅
-
----
-
-## Customization Edit
-
-- [x] Page loads with current name pre-filled ("Extra Guacamole") ✅
-- [x] Edit name to "TEST CUST NAME" → Save → toast "Customization updated", redirected to list ✅
-- [x] **DB:** `SELECT name FROM tbl_customizations WHERE id=157` → "TEST CUST NAME" ✅
-- [x] **Cleanup:** Restored name to "Extra Guacamole" → Save → toast "Customization updated" ✅
-- [x] **DB:** Confirmed name restored in DB ✅
+### Edit (historical)
+- [x] Edit name "Extra Guacamole" → "TEST CUST NAME" → Save → toast ✅
+- [x] **DB:** Verified and restored ✅
 
 ---
 
-## Profiles
+## ~~Profiles~~ (REMOVED — absorbed into Chef Detail Drawer, Phase 9)
 
-### Table Display
-- [x] Table loads with 6 chef profiles from `tbl_availabilities` — matches DB ✅
-- [x] All expected columns present (Chef ID, Email, Name, Bio, Mon-Sun availability, Min Order, Max Distance, Created, Actions) ✅
-- [ ] Search filters work
+> Standalone page removed. Profile data (bio, availability, min order, max distance) now appears in the Chef Detail Drawer on the Chefs page.
+> Original test results preserved below for reference.
 
-### Edit Navigation
-- [x] Click "Edit" on CHEF0000002 → navigates to /admin-new/profiles/2/edit ✅
-
----
-
-## Profile Edit
-
-- [x] Page loads with current bio pre-filled ("Award-winning Asian fusion chef bringing bold flavors to your kitchen...") ✅
-- [x] Edit bio to "TEST BIO EDIT" → Save → toast "Profile updated", redirected to list ✅
-- [x] **DB:** `SELECT bio FROM tbl_availabilities WHERE user_id=2` → "TEST BIO EDIT" ✅
-- [x] Table shows updated bio in list ✅
-- [x] **Cleanup:** Restored bio to original → Save → toast "Profile updated" ✅
-- [x] **DB:** Confirmed bio restored in DB ✅
+### Profile Edit (historical)
+- [x] Bio editable in Chef Detail Drawer textarea → Save → toast ✅
+- [x] **DB:** Verified bio updates persist ✅
 
 ---
 
-## Chats (Read-Only)
+## ~~Chats~~ (REMOVED — absorbed into Order Detail Drawer, Phase 9)
 
-- [x] Table loads with 3 chat messages from `tbl_conversations` ✅
-- [x] Columns: Chat ID, Order ID, Sender, Recipient, Message, Created ✅
-- [ ] Search filters work
-- [x] **DB:** Row count matches `SELECT COUNT(*) FROM tbl_conversations` = 3 ✅
+> Standalone page removed. Chat messages now appear in the Order Detail Drawer, filtered by order_id.
 
 ---
 
-## Reviews (Read-Only)
+## ~~Reviews~~ (REMOVED — absorbed into Order Detail Drawer, Phase 9)
 
-- [x] Table loads — 0 reviews in DB, shows "No results." empty state ✅
-- [x] Columns: Review ID, Customer, Chef, Rating, Review, Tip, Created ✅
-- [ ] Search filters work
-- [x] **DB:** Row count matches `SELECT COUNT(*) FROM tbl_reviews` = 0 ✅
+> Standalone page removed. Reviews now appear in the Order Detail Drawer.
 
 ---
 
-## Transactions (Read-Only)
+## ~~Transactions~~ (REMOVED — absorbed into Order Detail Drawer, Phase 9)
 
-- [x] Table loads — 0 transactions in DB, shows "No results." empty state ✅
-- [x] Columns: Transaction ID, Order ID, Customer, Chef, Amount, Notes, Created ✅
-- [ ] Search filters work
-- [x] **DB:** Row count matches `SELECT COUNT(*) FROM tbl_transactions` = 0 ✅
+> Standalone page removed. Transactions now appear in the Order Detail Drawer.
 
 ---
 
-## Zipcodes
+## Service Areas (renamed from Zipcodes, moved under Settings — Phase 9 reorganization)
 
 - [x] Textarea loads with current zipcodes (comma-separated, 59 Chicago-area codes) ✅
+- [x] Page heading says "Service Areas" (not "Zipcodes") ✅
 - [x] **DB:** Value matches `SELECT zipcodes FROM tbl_zipcodes LIMIT 1` ✅
-- [x] Add test zipcode "00000" to the list → Save → "Zipcodes updated" toast ✅
+- [x] Add test zipcode "00000" to the list → Save → "Service areas updated" toast ✅
 - [x] **DB:** `SELECT RIGHT(zipcodes, 30) FROM tbl_zipcodes` → ends with ",00000" ✅
 - [x] Reload page → "00000" still present (persisted) ✅
-- [x] **Cleanup:** Remove "00000" and save → "Zipcodes updated" toast ✅
+- [x] **Cleanup:** Remove "00000" and save → "Service areas updated" toast ✅
 - [x] **DB:** Confirmed "00000" is gone, original zipcodes restored ✅
 
 ---
@@ -352,11 +331,11 @@ Every page tested for real functionality. "Verify in DB" items confirm the actio
 - [x] **DB:** `SELECT is_active FROM tbl_discount_codes WHERE code='TESTADMIN99'` → 1 ✅
 
 ### Usage History
-- [x] Click "Usage" on code with 0 usage → **BUG:** Crashes with "T.map is not a function" (API returns non-array when no usage data)
+- [x] Click "Usage" on code with 0 usage → ~~**BUG:** Crashes with "T.map is not a function"~~ **FIXED in Phase 9** ✅
 
-### BUGS FOUND
-- **Uses column shows "undefined / 10":** current_uses displays as "undefined" instead of 0
-- **Usage dialog crashes:** When clicking "Usage" on a code with no usage history, the page crashes with `TypeError: T.map is not a function`. The backend likely returns an object/null instead of an empty array.
+### BUGS FOUND & FIXED (Phase 9)
+- ~~**Uses column shows "undefined / 10":** current_uses displays as "undefined" instead of 0~~ → **Fixed:** Now shows "0 / 10" with `current_uses ?? 0` guard ✅
+- ~~**Usage dialog crashes:** TypeError: T.map is not a function~~ → **Fixed:** Added `data?.usages || []` guard before `.map()` ✅
 
 ### Cleanup
 - [x] **DB:** `DELETE FROM tbl_discount_codes WHERE code='TESTADMIN99'` ✅
