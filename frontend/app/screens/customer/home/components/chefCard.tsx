@@ -10,6 +10,7 @@ import { styles } from '../styles';
 import ChefMenuItem from './chefMenuItem';
 
 type Props = {
+  testID?: string;
   chefInfo: IUser;
   reviews: Array<IReview>;
   menus: Array<IMenu>;
@@ -20,6 +21,7 @@ type Props = {
 const STAR_STYLE = { marginHorizontal: 0 };
 
 const ChefCard = ({
+  testID,
   chefInfo,
   reviews,
   menus,
@@ -47,6 +49,8 @@ const ChefCard = ({
   return (
     <View style={[styles.chefCard, chefInfo.is_hot && styles.chefCardHot]}>
       <TouchableOpacity
+        testID={testID}
+        accessible={false}
         style={styles.chefCardMain}
         onPress={handleChefPress}>
         <View style={{position: 'relative', overflow: 'visible'}}>
@@ -79,6 +83,7 @@ const ChefCard = ({
           )}
         </View>
         <TouchableOpacity
+          testID={testID ? `${testID}.toggleMenu` : undefined}
           onPress={handleToggleMenu}
           style={{
             padding: 20,
@@ -117,6 +122,7 @@ const ChefCard = ({
 // This avoids deep comparison while ensuring meaningful changes trigger re-renders
 const arePropsEqual = (prevProps: Props, nextProps: Props): boolean => {
   return (
+    prevProps.testID === nextProps.testID &&
     prevProps.chefInfo.id === nextProps.chefInfo.id &&
     prevProps.chefInfo.is_hot === nextProps.chefInfo.is_hot &&
     prevProps.reviews.length === nextProps.reviews.length &&

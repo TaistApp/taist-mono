@@ -739,6 +739,8 @@ const Checkout = () => {
           <View style={styles.checkoutBlock}>
             <Text style={styles.checkoutSubheading}>Payment Information</Text>
             <TouchableOpacity
+              testID="checkout.paymentMethodSelector"
+              accessible={false}
               onPress={handleCreditCard}
               style={styles.checkoutPaymentItemWrapper}>
               <View>
@@ -791,6 +793,7 @@ const Checkout = () => {
           <View style={styles.checkoutBlock}>
             <View style={styles.switchWrapper}>
               <StyledSwitch
+                testID="checkout.applianceSwitch"
                 label={`I have the following appliances available for the Chef: ${getAppliances().join(
                   ', ',
                 )}`}
@@ -802,6 +805,7 @@ const Checkout = () => {
           </View>
           <View style={styles.vcenter}>
             <TouchableOpacity
+              testID="checkout.placeOrderButton"
               style={appliance ? GlobalStyles.btn : GlobalStyles.btnDisabled}
               onPress={() => handleCheckout()}
               disabled={!appliance}>

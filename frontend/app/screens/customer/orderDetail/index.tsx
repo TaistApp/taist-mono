@@ -293,6 +293,7 @@ console.log("order detail useeffect....");
 
           {orderInfo?.status == 3 && (
             <TouchableOpacity
+              accessible={false}
               style={{
                 width: '100%',
                 backgroundColor: '#fa4616',
@@ -428,6 +429,7 @@ console.log("order detail useeffect....");
               <Text style={styles.title}>Review your Experience</Text>
               <View style={[styles.card, { rowGap: 0 }]}>
                 <TextInput
+                  testID="customerOrderDetail.reviewInput"
                   multiline
                   placeholder="Type a message"
                   value={reviewText}
@@ -493,7 +495,7 @@ console.log("order detail useeffect....");
                   </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity style={styles.btnPayment}>
+                <TouchableOpacity accessible={false} style={styles.btnPayment}>
                   <View style={{ rowGap: 5 }}>
                     <Text style={[styles.text, { fontSize: 18, letterSpacing: 0.5 }]}>
                       Payment Method
@@ -513,6 +515,7 @@ console.log("order detail useeffect....");
                 </TouchableOpacity>
 
                 <FAB
+                  testID="customerOrderDetail.submitReviewButton"
                   style={styles.btnSubmit}
                   variant="extended"
                   color="#000000"
@@ -527,11 +530,11 @@ console.log("order detail useeffect....");
         </ScrollView>
 
         <View style={styles.btnContainer}>
-          <TouchableOpacity style={styles.btn} onPress={handleCall}>
+          <TouchableOpacity testID="customerOrderDetail.callButton" style={styles.btn} onPress={handleCall}>
             <FontAwesomeIcon icon={faPhone} color="#ffffff" size={20} />
             <Text style={styles.btnText}>Call</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.btn} onPress={handleChat}>
+          <TouchableOpacity testID="customerOrderDetail.chatButton" style={styles.btn} onPress={handleChat}>
             <FontAwesomeIcon icon={faComment} color="#ffffff" size={20} />
             <Text style={styles.btnText}>Chat</Text>
           </TouchableOpacity>
@@ -541,7 +544,7 @@ console.log("order detail useeffect....");
             (orderInfo?.status == 1 ||
               orderInfo?.status == 2 ||
               orderInfo?.status == 7) && (
-              <TouchableOpacity style={styles.btn} onPress={handleCancel}>
+              <TouchableOpacity testID="customerOrderDetail.cancelButton" style={styles.btn} onPress={handleCancel}>
                 <FontAwesomeIcon icon={faXmark} color="#ffffff" size={20} />
                 <Text style={styles.btnText}>Cancel</Text>
               </TouchableOpacity>

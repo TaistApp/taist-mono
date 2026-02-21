@@ -6,6 +6,7 @@ import { GetOrderString } from '../../../../utils/functions';
 import { styles } from '../styles';
 
 type Props = {
+  testID?: string;
   info: IOrder;
   customer: IUser;
   onPress: () => void;
@@ -21,7 +22,7 @@ const ChefOrderCard = (props: Props) => {
   const orderStatus = props.info?.status ?? 0;
   
   return (
-    <TouchableOpacity onPress={props.onPress} style={styles.orderCard}>
+    <TouchableOpacity testID={props.testID} accessible={false} onPress={props.onPress} style={styles.orderCard}>
       <View style={styles.orderCardMain}>
         <StyledProfileImage url={props.customer?.photo} size={80} />
         <View style={styles.orderCardInfo}>

@@ -6,13 +6,14 @@ import { getFormattedDate, getFormattedDateTime } from '../../../../utils/valida
 import { styles } from '../styles';
 
 type Props = {
+  testID?: string;
   orderInfo: IOrder;
   chefInfo: IUser;
   onPress: () => void;
 };
 const OrderCard = (props: Props) => {
   return (
-    <TouchableOpacity onPress={() => props.onPress()} style={styles.orderCard}>
+    <TouchableOpacity testID={props.testID} accessible={false} onPress={() => props.onPress()} style={styles.orderCard}>
       <View style={styles.orderCardMain}>
         <View>
             <Image

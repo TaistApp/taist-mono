@@ -264,7 +264,7 @@ const OrderDetail = () => {
           />
 
           <View style={styles.card}>
-            <TouchableOpacity style={styles.cardMainTappable} onPress={handleMap} activeOpacity={0.7}>
+            <TouchableOpacity accessible={false} style={styles.cardMainTappable} onPress={handleMap} activeOpacity={0.7}>
               <FontAwesomeIcon
                 icon={faLocationDot}
                 color="#fa4616"
@@ -279,7 +279,7 @@ const OrderDetail = () => {
             {orderInfo?.status !== 1 && (
               <>
                 <View style={styles.line} />
-                <TouchableOpacity style={styles.cardMainTappable} onPress={handleCall} activeOpacity={0.7}>
+                <TouchableOpacity accessible={false} style={styles.cardMainTappable} onPress={handleCall} activeOpacity={0.7}>
                   <FontAwesomeIcon icon={faPhone} color="#fa4616" size={20} />
                   <View style={{ flex: 1, rowGap: 5 }}>
                     <Text style={styles.text}>{customerInfo?.phone ?? ''}</Text>
@@ -473,6 +473,7 @@ const OrderDetail = () => {
                   <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
                     {orderInfo?.status == 1 && (
                       <StyledButton
+                        testID="chefOrderDetail.acceptButton"
                         title={'ACCEPT ORDER'}
                         onPress={() => {
                           handleStatus(2);
@@ -483,6 +484,7 @@ const OrderDetail = () => {
                     )}
                     {orderInfo?.status == 2 && (
                       <StyledButton
+                        testID="chefOrderDetail.onMyWayButton"
                         title={'ON MY WAY'}
                         onPress={() => {
                           handleStatus(7);
@@ -493,6 +495,7 @@ const OrderDetail = () => {
                     )}
                     {orderInfo.status == 7 && (
                       <StyledButton
+                        testID="chefOrderDetail.completedButton"
                         title={'ORDER COMPLETED'}
                         onPress={() => {
                           handleStatus(3);
@@ -503,6 +506,7 @@ const OrderDetail = () => {
                     )}
                     {(orderInfo.status == 2 || orderInfo.status == 7) && (
                       <StyledButton
+                        testID="chefOrderDetail.cancelButton"
                         title={'CANCEL ORDER'}
                         onPress={() => {
                           handleStatus(5);
@@ -513,6 +517,7 @@ const OrderDetail = () => {
                     )}
                     {orderInfo.status == 1 && (
                       <StyledButton
+                        testID="chefOrderDetail.rejectButton"
                         title={'REJECT ORDER'}
                         onPress={() => {
                           handleStatus(5);
@@ -554,16 +559,16 @@ const OrderDetail = () => {
         </ScrollView>
         <View style={styles.btnContainer}>
           {orderInfo?.status !== 1 && (
-            <TouchableOpacity style={styles.btn} onPress={handleCall}>
+            <TouchableOpacity testID="chefOrderDetail.callButton" style={styles.btn} onPress={handleCall}>
               <FontAwesomeIcon icon={faPhone} color="#ffffff" size={20} />
               <Text style={styles.btnText}>Call</Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={styles.btn} onPress={handleChat}>
+          <TouchableOpacity testID="chefOrderDetail.chatButton" style={styles.btn} onPress={handleChat}>
             <FontAwesomeIcon icon={faComment} color="#ffffff" size={20} />
             <Text style={styles.btnText}>Chat</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.btn} onPress={handleMap}>
+          <TouchableOpacity testID="chefOrderDetail.mapButton" style={styles.btn} onPress={handleMap}>
             <FontAwesomeIcon icon={faMap} color="#ffffff" size={20} />
             <Text style={styles.btnText}>Map</Text>
           </TouchableOpacity>

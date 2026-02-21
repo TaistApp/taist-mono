@@ -6,15 +6,16 @@ import {GetOrderString, getImageURL} from '../../../../utils/functions';
 import StyledProfileImage from '../../../../components/styledProfileImage';
 
 type Props = {
+  testID?: string;
   lastMsg: IMessage;
   user?: IUser;
   self?: IUser;
   openChat: () => void;
 };
 
-const InboxRecord = ({lastMsg, user, self, openChat}: Props) => {
+const InboxRecord = ({testID, lastMsg, user, self, openChat}: Props) => {
   return (
-    <TouchableOpacity style={styles.container} onPress={openChat}>
+    <TouchableOpacity testID={testID} accessible={false} style={styles.container} onPress={openChat}>
       <View>
         <StyledProfileImage url={getImageURL(user?.photo)} size={70} />
       </View>
