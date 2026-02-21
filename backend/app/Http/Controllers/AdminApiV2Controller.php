@@ -372,8 +372,11 @@ class AdminApiV2Controller extends Controller
      */
     public function orders()
     {
-        // Check if cancellation columns exist (added in a later migration)
-        $hasCancellationCols = \Schema::hasColumn('tbl_orders', 'cancelled_by_user_id');
+        // Check if cancellation columns exist (added in a later migration) — cached per process
+        static $hasCancellationCols = null;
+        if ($hasCancellationCols === null) {
+            $hasCancellationCols = \Schema::hasColumn('tbl_orders', 'cancelled_by_user_id');
+        }
 
         $query = DB::table('tbl_orders as o')
             ->leftJoin('tbl_users as f', 'o.customer_user_id', '=', 'f.id')

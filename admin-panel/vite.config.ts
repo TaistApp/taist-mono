@@ -14,5 +14,14 @@ export default defineConfig({
   build: {
     outDir: "../backend/public/admin-new",
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ["react", "react-dom", "react-router-dom"],
+          query: ["@tanstack/react-query", "@tanstack/react-table"],
+          xlsx: ["xlsx"],
+        },
+      },
+    },
   },
 });
