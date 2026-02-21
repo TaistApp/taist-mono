@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Download } from "lucide-react";
+import { Download, Trash2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import ChefDetailDrawer from "@/components/chef-detail-drawer";
 
@@ -460,6 +460,15 @@ export default function ChefsPage() {
     setConfirmDialog({ open: true, action: "delete_stripe", ids });
   };
 
+  const handleDelete = () => {
+    const ids = getSelectedIds();
+    if (!ids.length) {
+      toast.error("Select at least one chef");
+      return;
+    }
+    setConfirmDialog({ open: true, action: "delete", ids });
+  };
+
   const confirmAction = async () => {
     const { action, ids } = confirmDialog;
     setConfirmDialog({ open: false, action: "", ids: [] });
@@ -475,6 +484,11 @@ export default function ChefsPage() {
           ids: ids.join(","),
         });
         toast.success("Stripe accounts deleted");
+      } else if (action === "delete") {
+        await api.get("/adminapi/change_chef_status", {
+          params: { ids: ids.join(","), status: 4 },
+        });
+        toast.success(`${ids.length} chef(s) permanently deleted`);
       } else {
         await api.get("/adminapi/change_chef_status", {
           params: { ids: ids.join(","), status: statusMap[action] },
@@ -530,6 +544,10 @@ export default function ChefsPage() {
             <Button size="sm" variant="outline" onClick={() => handleStatusChange(2)}>
               Reject
             </Button>
+            <Button size="sm" variant="destructive" onClick={handleDelete}>
+              <Trash2 className="mr-1 h-4 w-4" />
+              Delete
+            </Button>
           </>
         );
       case "active":
@@ -541,13 +559,23 @@ export default function ChefsPage() {
             <Button size="sm" variant="outline" onClick={handleDeleteStripe}>
               Delete Stripe
             </Button>
+            <Button size="sm" variant="destructive" onClick={handleDelete}>
+              <Trash2 className="mr-1 h-4 w-4" />
+              Delete
+            </Button>
           </>
         );
       case "rejected":
         return (
-          <Button size="sm" variant="outline" onClick={() => handleStatusChange(1)}>
-            Activate
-          </Button>
+          <>
+            <Button size="sm" variant="outline" onClick={() => handleStatusChange(1)}>
+              Activate
+            </Button>
+            <Button size="sm" variant="destructive" onClick={handleDelete}>
+              <Trash2 className="mr-1 h-4 w-4" />
+              Delete
+            </Button>
+          </>
         );
       default:
         return (
@@ -560,6 +588,10 @@ export default function ChefsPage() {
             </Button>
             <Button size="sm" variant="outline" onClick={handleDeleteStripe}>
               Delete Stripe
+            </Button>
+            <Button size="sm" variant="destructive" onClick={handleDelete}>
+              <Trash2 className="mr-1 h-4 w-4" />
+              Delete
             </Button>
           </>
         );
@@ -624,9 +656,11 @@ export default function ChefsPage() {
           <DialogHeader>
             <DialogTitle>Confirm Action</DialogTitle>
             <DialogDescription>
-              {confirmDialog.action === "delete_stripe"
-                ? `Delete Stripe accounts for ${confirmDialog.ids.length} selected chef(s)?`
-                : `Change status to "${confirmDialog.action}" for ${confirmDialog.ids.length} selected chef(s)?`}
+              {confirmDialog.action === "delete"
+                ? `Permanently delete ${confirmDialog.ids.length} selected chef(s)? This cannot be undone.`
+                : confirmDialog.action === "delete_stripe"
+                  ? `Delete Stripe accounts for ${confirmDialog.ids.length} selected chef(s)?`
+                  : `Change status to "${confirmDialog.action}" for ${confirmDialog.ids.length} selected chef(s)?`}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -638,7 +672,12 @@ export default function ChefsPage() {
             >
               Cancel
             </Button>
-            <Button onClick={confirmAction}>Confirm</Button>
+            <Button
+              variant={confirmDialog.action === "delete" ? "destructive" : "default"}
+              onClick={confirmAction}
+            >
+              {confirmDialog.action === "delete" ? "Delete Permanently" : "Confirm"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

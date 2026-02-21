@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Download } from "lucide-react";
+import { Download, Trash2 } from "lucide-react";
 import * as XLSX from "xlsx";
 
 interface Customer {
@@ -195,19 +195,35 @@ export default function CustomersPage() {
     setConfirmDialog({ open: true, action, ids });
   };
 
+  const handleDelete = () => {
+    const ids = getSelectedIds();
+    if (!ids.length) {
+      toast.error("Select at least one customer");
+      return;
+    }
+    setConfirmDialog({ open: true, action: "delete", ids });
+  };
+
   const confirmAction = async () => {
     const { action, ids } = confirmDialog;
     setConfirmDialog({ open: false, action: "", ids: [] });
 
     try {
-      const statusMap: Record<string, number> = {
-        Active: 1,
-        Rejected: 2,
-      };
-      await api.get("/adminapi/change_chef_status", {
-        params: { ids: ids.join(","), status: statusMap[action] },
-      });
-      toast.success(`Status changed to ${action}`);
+      if (action === "delete") {
+        await api.get("/adminapi/change_chef_status", {
+          params: { ids: ids.join(","), status: 4 },
+        });
+        toast.success(`${ids.length} customer(s) permanently deleted`);
+      } else {
+        const statusMap: Record<string, number> = {
+          Active: 1,
+          Rejected: 2,
+        };
+        await api.get("/adminapi/change_chef_status", {
+          params: { ids: ids.join(","), status: statusMap[action] },
+        });
+        toast.success(`Status changed to ${action}`);
+      }
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch {
@@ -251,6 +267,10 @@ export default function CustomersPage() {
       >
         Rejected
       </Button>
+      <Button size="sm" variant="destructive" onClick={handleDelete}>
+        <Trash2 className="mr-1 h-4 w-4" />
+        Delete
+      </Button>
       <Button size="sm" variant="outline" onClick={handleExport}>
         <Download className="mr-2 h-4 w-4" />
         Export
@@ -284,8 +304,9 @@ export default function CustomersPage() {
           <DialogHeader>
             <DialogTitle>Confirm Action</DialogTitle>
             <DialogDescription>
-              Change status to "{confirmDialog.action}" for{" "}
-              {confirmDialog.ids.length} selected customer(s)?
+              {confirmDialog.action === "delete"
+                ? `Permanently delete ${confirmDialog.ids.length} selected customer(s)? This cannot be undone.`
+                : `Change status to "${confirmDialog.action}" for ${confirmDialog.ids.length} selected customer(s)?`}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -297,7 +318,12 @@ export default function CustomersPage() {
             >
               Cancel
             </Button>
-            <Button onClick={confirmAction}>Confirm</Button>
+            <Button
+              variant={confirmDialog.action === "delete" ? "destructive" : "default"}
+              onClick={confirmAction}
+            >
+              {confirmDialog.action === "delete" ? "Delete Permanently" : "Confirm"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
