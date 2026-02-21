@@ -18,6 +18,10 @@
           "remote-notification",
           "location",
           "remote-notification",
+          "location",
+          "remote-notification",
+          "location",
+          "remote-notification",
           "location"
         ],
         "NSCameraUsageDescription": "Taist uses your camera to take a profile photo that represents you as a chef, and to photograph your dishes. For example, you can snap a photo of your signature meal to display on your chef profile for customers to see.",
@@ -192,6 +196,12 @@
         "projectId": "0bad62e8-4a7c-46bd-9d4c-931018151fae"
       }
     },
-    "owner": "bgroble"
+    "owner": "bgroble",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/0bad62e8-4a7c-46bd-9d4c-931018151fae"
+    }
   }
 }
