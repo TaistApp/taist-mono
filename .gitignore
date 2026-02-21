@@ -78,11 +78,6 @@ coverage/
 firebase_credentials.json
 google-services.json
 GoogleService-Info.plist
-# Exception: Firebase configs needed for EAS builds
-!frontend/GoogleService-Info.plist
-!frontend/ios/Taist/GoogleService-Info.plist
-!frontend/google-services.json
-!frontend/android/app/google-services.json
 key.properties
 
 # Config files with secrets

@@ -179,8 +179,7 @@
       [
         "expo-maps",
         {
-          "enableGoogleMaps": true,
-          "googleMapsApiKey": "AIzaSyDpFdDqF3zhC0WvFTBoav3N0-S5qWFlHAw"
+          "enableGoogleMaps": true
         }
       ]
     ],

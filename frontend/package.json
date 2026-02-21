@@ -28,7 +28,8 @@
     "dev:chef-profile": "adb reverse tcp:8081 tcp:8081 2>/dev/null; APP_ENV=staging DEV_SCREEN=\"/screens/chef/(tabs)/profile\" DEV_USER_TYPE=chef expo start",
     "dev:customer-home": "adb reverse tcp:8081 tcp:8081 2>/dev/null; APP_ENV=staging DEV_SCREEN=\"/screens/customer/(tabs)/(home)\" DEV_USER_TYPE=customer expo start",
     "dev:customer-orders": "adb reverse tcp:8081 tcp:8081 2>/dev/null; APP_ENV=staging DEV_SCREEN=\"/screens/customer/(tabs)/orders\" DEV_USER_TYPE=customer expo start",
-    "dev:login": "adb reverse tcp:8081 tcp:8081 2>/dev/null; APP_ENV=staging DEV_SCREEN=/screens/common/login expo start"
+    "dev:login": "adb reverse tcp:8081 tcp:8081 2>/dev/null; APP_ENV=staging DEV_SCREEN=/screens/common/login expo start",
+    "eas-build-pre-install": "./scripts/eas-build-pre-install.sh"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
