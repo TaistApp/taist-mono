@@ -51,7 +51,7 @@ const ReportIssue = () => {
       || 'unknown';
   }, []);
 
-  const deviceModel = Device.modelName || 'unknown';
+  const deviceModel = [Device.brand, Device.modelName].filter(Boolean).join(' ') || 'unknown';
   const osVersion = `${Platform.OS} ${String(Platform.Version)}`;
   const appEnv = Constants.expoConfig?.extra?.APP_ENV || 'production';
 
