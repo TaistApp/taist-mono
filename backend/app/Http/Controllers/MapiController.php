@@ -4180,15 +4180,11 @@ Write only the review text:";
 
         if (!$user) return response()->json(['success' => 0, 'error' => "No user info with the ID."]);
 
-        $phoneNumber = str_replace('-', '', $request->phone);
-        $phoneNumber = str_replace('(', '', $phoneNumber);
-        $phoneNumber = str_replace(')', '', $phoneNumber);
+        $phoneNumber = preg_replace('/[^0-9]/', '', $request->phone);
 
         $phoneNumber = "(" . substr($phoneNumber,  0,  3) . ") " . substr($phoneNumber,  3,  3) . "-" . substr($phoneNumber,  6,  4);
 
-        $ssn = str_replace('-', '', $request->ssn);
-        $ssn = str_replace('(', '', $ssn);
-        $ssn = str_replace(')', '', $ssn);
+        $ssn = preg_replace('/[^0-9]/', '', $request->ssn);
 
         $ssn = substr($ssn,  0,  3) . "-" . substr($ssn,  3,  2) . "-" . substr($ssn,  5,  4);
 
@@ -4504,8 +4500,20 @@ Write only the review text:";
                 ->first();
 
             if ($existingPayment && !empty($existingPayment->stripe_account_id)) {
-                // Use existing Stripe account - just create a new account link
+                // Use existing Stripe account - update it with business URL so
+                // the statement descriptor "TAIST" passes Stripe's validation
+                // (descriptor must match business name or URL)
                 $accountId = $existingPayment->stripe_account_id;
+                $stripe->accounts->update($accountId, [
+                    'business_profile' => [
+                        'url' => 'https://taist.app',
+                    ],
+                    'settings' => [
+                        'payments' => [
+                            'statement_descriptor' => 'TAIST',
+                        ],
+                    ],
+                ]);
             } else {
                 // Create new Stripe account
                 $account = $stripe->accounts->create([
@@ -4543,6 +4551,7 @@ Write only the review text:";
                     // Pre-fill business profile to skip "Business name" and "website URL" questions
                     'business_profile' => [
                         'name' => trim($user->first_name . ' ' . $user->last_name),
+                        'url' => 'https://taist.app',
                         'product_description' => 'Independent contractor chef providing services through Taist',
                         'mcc' => '5812', // Restaurants/eating places
                     ],
@@ -4569,7 +4578,7 @@ Write only the review text:";
                 'return_url' => $baseUrl . '/stripe/complete',
                 'type' => 'account_onboarding',
                 'collection_options' => [
-                    'fields' => 'eventually_due',
+                    'fields' => 'currently_due',
                     'future_requirements' => 'include',
                 ],
             ]);
