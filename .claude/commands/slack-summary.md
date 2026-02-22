@@ -13,145 +13,168 @@ The user's argument controls the time range:
 | `3d` | Last 3 days of messages |
 | Any `Nd` format | Last N days of messages |
 
-## Steps
+## Phase 1: Gather Data (Main Context)
 
-### 1. Load Previous Summary
+Run these steps sequentially in the main context to collect all raw data before spawning subagents.
 
-Check for the most recent summary file in `docs/slack-summaries/`. Files are named `YYYY-MM-DD.md`. Read the latest one if it exists — you'll use it in step 5 to identify what's new vs. ongoing vs. resolved.
+### 1. Load Previous Summary + Discover Channels (parallel)
 
-### 2. Discover All Channels
+Do both in parallel:
 
-Call `channels_list` with `channel_types: "public_channel,private_channel"` and `limit: 200` to dynamically get all channels the bot can access.
+**Previous summary:** Check for the most recent summary file in `docs/slack-summaries/`. Files are named `YYYY-MM-DD.md`. Read the latest one if it exists.
+
+**Channel discovery:** Call `channels_list` with `channel_types: "public_channel,private_channel"` and `limit: 200`.
 
 Also include these known channels that may not appear in the listing:
 - `C0AG74NANAH` (#payments)
+- `C0AGB51FJMC` (#ios-builds)
 
-Skip channels that are clearly inactive or irrelevant (e.g., #random) unless they have recent messages.
+Skip #random unless it has recent messages.
 
-### 3. Fetch Messages from All Channels
+### 2. Fetch Messages from All Channels (parallel)
 
-For each discovered channel, call `conversations_history` with the `limit` parameter based on the user's time range argument (e.g., `1d`, `7d`, `3d`).
+For each discovered channel, call `conversations_history` with the `limit` parameter based on the user's time range argument (e.g., `1d`, `7d`, `3d`). Note: `12h` is not supported — use `1d` and filter manually.
 
 Fetch all channels in parallel. If a channel fetch fails, skip it and note it.
 
-### 4. Fetch Thread Replies for Active Discussions
+### 3. Download Full Message JSON via Slack API
 
-For messages that appear to have substantive thread activity, fetch replies using `conversations_replies` to get full context.
+The Slack MCP tool strips file attachments from its output. To get image URLs, fetch the raw JSON for channels that had activity:
 
-Limit to the 5 most active/recent threads per channel to avoid excessive API calls.
+```bash
+TOKEN=$(python3 -c "import json; print(json.load(open('$(git rev-parse --show-toplevel)/.mcp.json'))['mcpServers']['slack']['env']['SLACK_MCP_XOXB_TOKEN'])")
+curl -s -H "Authorization: Bearer $TOKEN" "https://slack.com/api/conversations.history?channel=CHANNEL_ID&limit=20" -o /tmp/slack-CHANNELNAME.json
+```
 
-### 5. Determine Environment Context & Cross-Reference Code
+Then extract file URLs:
+```bash
+python3 -c "
+import json
+data = json.load(open('/tmp/slack-CHANNELNAME.json'))
+for m in data.get('messages', []):
+    files = m.get('files', [])
+    if files:
+        ts = m.get('ts', '')
+        text = m.get('text', '')[:80]
+        print(f'MSG ts={ts} text=\"{text}\"')
+        for f in files:
+            print(f'  FILE: {f.get(\"name\",\"\")} | url={f.get(\"url_private\",\"\")}')
+"
+```
 
-**Important:** Most Slack discussion is about staging/TestFlight testing, NOT production. Before cross-referencing code, figure out which environment each issue applies to.
+### 4. Download All Images
 
-#### 5a. Identify environment per issue
+Download every image attachment to `/tmp/slack-images/`:
 
-Look for cues in Slack messages:
-- "TestFlight", "staging", "test build", "APK" → **staging** (testers using `staging` branch builds)
-- "production", "live", "users reporting", "App Store" → **production** (real users on `main` branch)
-- If ambiguous, assume **staging** — that's where most testing happens
+```bash
+mkdir -p /tmp/slack-images
+TOKEN=$(python3 -c "import json; print(json.load(open('$(git rev-parse --show-toplevel)/.mcp.json'))['mcpServers']['slack']['env']['SLACK_MCP_XOXB_TOKEN'])")
+curl -s -H "Authorization: Bearer $TOKEN" "IMAGE_URL" -o /tmp/slack-images/DESCRIPTIVE_NAME.ext
+```
 
-#### 5b. Check the right branch diffs
+Use descriptive filenames based on the message context (e.g., `background-check-error.png`, `missing-profile-pic.jpg`).
 
-Our deploy model: `staging` branch → Railway staging + TestFlight/APK previews, `main` branch → Railway production + App Store.
+### 5. Build Issue List
 
-Run these git commands:
-- `git log --oneline staging --since="X days ago"` — what's been deployed to staging
-- `git log --oneline main --since="X days ago"` — what's been deployed to production
-- `git diff main..staging --stat` — what's in staging but NOT yet in production (pending prod deploy)
+Before spawning subagents, compile a numbered list of every distinct issue/topic found in the messages. For each, note:
+- Issue number and short title
+- Channel and message timestamp
+- Reporter name
+- Brief description from message text
+- Whether it has screenshots (and their file paths in `/tmp/slack-images/`)
 
-This tells you:
-- If a fix is on `staging` but not `main`, it's fixed for testers but NOT for production users yet
-- If a fix is on both, it's fully deployed
-- If a fix is on neither, it's not started
+Save this list to `/tmp/slack-issue-list.md` — subagents will read it.
 
-#### 5c. Cross-reference each issue against code
+---
 
-For each bug/feature request found in Slack:
+## Phase 2: Parallel Analysis (Subagents)
 
-**Git history** — Search commit messages for keywords related to the issue. Check which branch(es) the fix is on.
+Spawn **3 subagents in parallel** using the Task tool. Each reads `/tmp/slack-issue-list.md` and does independent analysis. All subagents should write their results to files.
 
-**Codebase search** — Use Grep/Glob to verify the fix actually exists in code (commit messages can be misleading).
+### Subagent A: Screenshot Analysis
 
-#### 5d. Mark each item's actual status
+**Type:** `general-purpose`
 
-- `[FIXED IN STAGING]` — fix exists on `staging` branch, testers can verify on next TestFlight/APK
-- `[FIXED IN PROD]` — fix deployed to both `staging` and `main`
-- `[IN PROGRESS]` — partial fix or WIP changes found
-- `[NOT STARTED]` — no code changes found related to this issue
-- `[NEEDS VERIFICATION]` — fix deployed but no confirmation from reporter yet
+**Prompt:** Read `/tmp/slack-issue-list.md` for the list of issues. For each issue that has screenshots, use the Read tool to view the image files in `/tmp/slack-images/`. For each screenshot, describe:
+- What screen/flow is shown
+- Any error messages or toasts visible
+- UI bugs (layout issues, missing elements, wrong data)
+- Device type (Android vs iOS) from status bar
+- How the screenshot relates to the reported issue
 
-This prevents reporting things as "open" when they've already been handled in code, and clarifies whether fixes have reached production or just staging.
+Write your findings to `/tmp/slack-analysis-screenshots.md` with one section per issue number.
 
-### 6. Compare with Previous Summary
+### Subagent B: Git & Code Cross-Reference
 
-If a previous summary exists, compare to identify:
+**Type:** `general-purpose`
 
-- **New items**: Issues/topics that weren't in the previous summary
+**Prompt:** Read `/tmp/slack-issue-list.md` for the list of issues. For each bug or feature request:
+
+1. **Git history** — Search commit messages for keywords. Check which branch(es) any fix is on:
+   - `git log --oneline staging --since="X days ago" --grep="KEYWORD"`
+   - `git log --oneline main --since="X days ago" --grep="KEYWORD"`
+   - `git diff main..staging --stat` (run once for overall picture)
+
+2. **Codebase search** — Use Grep/Glob to verify fixes exist in code.
+
+3. **Environment context** — Most discussion is about staging/TestFlight. Look for cues:
+   - "TestFlight", "staging", "test build", "APK" → **staging**
+   - "production", "live", "users reporting" → **production**
+   - If ambiguous, assume **staging**
+
+4. **Mark each item's status:**
+   - `[FIXED IN STAGING]` — fix on `staging` but not `main`
+   - `[FIXED IN PROD]` — fix on both `staging` and `main`
+   - `[IN PROGRESS]` — partial fix or WIP
+   - `[NOT STARTED]` — no related code changes
+   - `[NEEDS VERIFICATION]` — fix deployed but unconfirmed
+
+Write findings to `/tmp/slack-analysis-code.md` with one section per issue number. Include file paths, line numbers, and relevant commit hashes.
+
+### Subagent C: Previous Summary Comparison
+
+**Type:** `general-purpose`
+
+**Prompt:** Read `/tmp/slack-issue-list.md` for the current issues. Read the previous summary at `docs/slack-summaries/YYYY-MM-DD.md` (the most recent one). Compare and categorize:
+
+- **New items**: Issues not in the previous summary
 - **Updated items**: Ongoing topics with new activity or status changes
-- **Resolved items**: Things from the previous summary that appear to be resolved or no longer active
-- **Unchanged items**: Ongoing work with no new activity (briefly mention, don't repeat details)
+- **Resolved items**: Previous items that appear resolved or no longer active
+- **Unchanged items**: Ongoing work with no new activity
 
-### 7. Analyze & Prioritize
+Write findings to `/tmp/slack-analysis-comparison.md`.
 
-Organize findings into this structure:
+---
 
-#### Priority Levels
+## Phase 3: Compile & Present (Main Context)
+
+After all 3 subagents complete, read their output files and compile the final summary.
+
+### 6. Merge Subagent Results
+
+Read:
+- `/tmp/slack-analysis-screenshots.md`
+- `/tmp/slack-analysis-code.md`
+- `/tmp/slack-analysis-comparison.md`
+
+Combine into a unified view per issue: screenshot observations + code status + new/ongoing tag.
+
+### 7. Prioritize
+
+Assign priority levels:
 - **P0 — Blocking / Urgent**: Production issues, broken builds, blockers preventing work
 - **P1 — Important**: Bugs, feature requests with deadlines, questions needing answers
 - **P2 — Normal**: Feature discussions, planning, general updates
 - **P3 — FYI**: Status updates, completed work, informational posts
 
-#### For Each Issue/Topic Found:
-- **Priority** (P0-P3)
-- **Channel** where it was discussed
-- **Status tag**: `[NEW]`, `[UPDATED]`, `[ONGOING]`, or `[RESOLVED]`
-- **Summary** (1-2 sentences)
-- **Key participants** (use display names)
-- **Status** (open question, resolved, in progress, needs response)
-- **Action items** if any (and who they're for)
-
-### 8. Present the Summary & Propose Replies
-
-Present the summary first (format below), then show a list of proposed Slack replies:
-
-```
-### Proposed Slack Replies
-| # | Thread | Reply |
-|---|--------|-------|
-| 1 | Dayne: "Chef not available..." | "Fixed in current build" |
-| 2 | Daryl: "Unable to open..." | "Fixed in current build" |
-...
-
-Send these replies? (You can edit/remove any before confirming)
-```
-
-**Wait for user approval before sending any replies.** The user may want to edit wording, skip certain replies, or add context.
-
-Once approved, reply to each thread using `conversations_add_message` with the channel ID and message's `thread_ts`.
-
-Keep replies extremely short, and **tag the original poster** using `<@USERID>` format:
-- `[FIXED IN STAGING]` → "<@U09N5L0PS7P> Fixed in current build"
-- `[FIXED IN PROD]` → "<@U09MTL5R6CX> Fixed and deployed to production"
-- `[IN PROGRESS]` → "<@U09N5L0PS7P> Working on this"
-- `[NEEDS VERIFICATION]` → "<@U09N5L0PS7P> Fix deployed, can you verify?"
-
-User IDs for tagging: Dayne (`<@U09N5L0PS7P>`), Daryl (`<@U09MTL5R6CX>`)
-
-Rules:
-- **Always tag the person who posted the original message** so they get notified
-- Reply **in the thread** (use `thread_ts`), not as a new channel message
-- Only reply to messages that don't already have a fix confirmation in the thread
-- Skip items that the reporter already confirmed as working
-- Skip items that are just FYI/discussion (no fix needed)
-- Track which threads you replied to in the saved summary under "### Slack Replies Sent"
-
-### 9. Present the Summary
+### 8. Present the Summary
 
 Format the output as:
 
 ```
 ## Slack Summary — [date range] ([today's date])
+
+> Environment context line (e.g., "All discussion is staging. X commits on main...")
 
 ### Changes Since Last Summary ([previous summary date])
 - X new items, Y updated, Z resolved
@@ -160,7 +183,7 @@ Format the output as:
 (items or "None")
 
 ### P1 — Important
-(items with [NEW]/[UPDATED]/[ONGOING] tags)
+(items with [NEW]/[UPDATED]/[ONGOING] tags and code status)
 
 ### P2 — Normal
 (items)
@@ -173,7 +196,7 @@ Format the output as:
 
 ---
 
-### Action Items for You
+### Action Items for Billy
 - [ ] Item 1 (from #channel) [NEW]
 - [ ] Item 2 (from #channel) [ONGOING]
 
@@ -181,17 +204,26 @@ Format the output as:
 - Question (from @person in #channel)
 ```
 
-Specifically call out anything directed at or mentioning Billy (`U09N5L27YQM`) in the "Action Items for You" section.
+For each issue include:
+- **Priority** (P0-P3)
+- **Channel** where it was discussed
+- **Status tag**: `[NEW]`, `[UPDATED]`, `[ONGOING]`, or `[RESOLVED]`
+- **Code status**: `[FIXED IN STAGING]`, `[NOT STARTED]`, etc.
+- **Summary** (1-2 sentences)
+- **Key participants** (display names)
+- **Screenshot observations** if applicable
 
-### 10. Save Summary to Disk
+Specifically call out anything directed at or mentioning Billy (`U09N5L27YQM`) in the "Action Items" section.
 
-Save the full summary to `docs/slack-summaries/YYYY-MM-DD.md` (using today's date). If a file for today already exists, overwrite it.
+### 9. Save Summary to Disk
 
-Create the `docs/slack-summaries/` directory if it doesn't exist. Add `docs/slack-summaries/` to `.gitignore` if not already there — these are local working files, not for the repo.
+Save the full summary to `docs/slack-summaries/YYYY-MM-DD.md` (today's date). Overwrite if exists.
+
+Create `docs/slack-summaries/` if it doesn't exist. It should already be in `.gitignore`.
 
 ## Important Notes
 
-- The Slack MCP bot can only see channels it has access to — if a channel fetch fails, skip it and note it
+- The Slack MCP bot can only see channels it has access to — if a channel fetch fails, skip it
 - User IDs for reference: Billy (`U09N5L27YQM`), Daryl (`U09MTL5R6CX`), Dayne (`U09N5L0PS7P`)
 - Don't include bot messages or automated notifications unless they indicate a real issue (e.g., build failure)
 - If there are no messages in a channel for the time range, skip it silently
