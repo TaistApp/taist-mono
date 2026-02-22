@@ -2,7 +2,7 @@ import { Text, TouchableOpacity, View } from 'react-native';
 import StyledProfileImage from '../../../../components/styledProfileImage';
 import { IOrder, IUser } from '../../../../types/index';
 import { OrderStatus } from '../../../../types/status';
-import { GetOrderString } from '../../../../utils/functions';
+import { GetOrderString, getImageURL } from '../../../../utils/functions';
 import { styles } from '../styles';
 
 type Props = {
@@ -24,7 +24,7 @@ const ChefOrderCard = (props: Props) => {
   return (
     <TouchableOpacity testID={props.testID} accessible={false} onPress={props.onPress} style={styles.orderCard}>
       <View style={styles.orderCardMain}>
-        <StyledProfileImage url={props.customer?.photo} size={80} />
+        <StyledProfileImage url={getImageURL(props.customer?.photo)} size={80} />
         <View style={styles.orderCardInfo}>
           <Text style={styles.orderCardTitle}>
             {customerName}

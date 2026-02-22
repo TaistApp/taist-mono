@@ -399,7 +399,12 @@ class MapiController extends Controller
         }
 
         $photo = '';
+        $photoExpected = isset($request->user_type) && $request->user_type == 2; // Chefs must have a photo
         if (isset($_FILES['photo']) && $_FILES['photo']['name']) {
+            if ($_FILES['photo']['error'] !== UPLOAD_ERR_OK) {
+                Log::error('Photo upload failed during registration', ['error_code' => $_FILES['photo']['error'], 'email' => $request->email]);
+                return response()->json(['success' => 0, 'error' => 'Photo upload failed. Please try again.']);
+            }
             $aname = explode(".", $_FILES['photo']['name']);
             $ext = strtolower($aname[count($aname) - 1]);
             $ext = $_FILES['photo']['type'] == 'image/png' ? 'png' : 'jpg';
@@ -408,8 +413,14 @@ class MapiController extends Controller
             if (!is_dir($uploadDir)) {
                 mkdir($uploadDir, 0755, true);
             }
-            move_uploaded_file($_FILES["photo"]["tmp_name"], $uploadDir . $photo);
+            if (!move_uploaded_file($_FILES["photo"]["tmp_name"], $uploadDir . $photo)) {
+                Log::error('move_uploaded_file failed during registration', ['dest' => $uploadDir . $photo, 'email' => $request->email]);
+                return response()->json(['success' => 0, 'error' => 'Photo could not be saved. Please try again.']);
+            }
             $this->resizeImage($photo, $ext == 'png');
+        } elseif ($photoExpected) {
+            Log::warning('Chef registration without photo', ['email' => $request->email, 'files_keys' => array_keys($_FILES)]);
+            return response()->json(['success' => 0, 'error' => 'Profile photo is required for chef accounts.']);
         }
 
         $api_token = $this->_generateToken();
@@ -3199,6 +3210,10 @@ Write only the review text:";
 
         $photo = $request->photo;
         if (isset($_FILES['photo']) && $_FILES['photo']['name']) {
+            if ($_FILES['photo']['error'] !== UPLOAD_ERR_OK) {
+                Log::error('Photo upload failed during user update', ['error_code' => $_FILES['photo']['error'], 'user_id' => $id]);
+                return response()->json(['success' => 0, 'error' => 'Photo upload failed. Please try again.']);
+            }
             $aname = explode(".", $_FILES['photo']['name']);
             $ext = strtolower($aname[count($aname) - 1]);
             $ext = $_FILES['photo']['type'] == 'image/png' ? 'png' : 'jpg';
@@ -3207,7 +3222,10 @@ Write only the review text:";
             if (!is_dir($uploadDir)) {
                 mkdir($uploadDir, 0755, true);
             }
-            move_uploaded_file($_FILES["photo"]["tmp_name"], $uploadDir . $photo);
+            if (!move_uploaded_file($_FILES["photo"]["tmp_name"], $uploadDir . $photo)) {
+                Log::error('move_uploaded_file failed during user update', ['dest' => $uploadDir . $photo, 'user_id' => $id]);
+                return response()->json(['success' => 0, 'error' => 'Photo could not be saved. Please try again.']);
+            }
             $this->resizeImage($photo, $ext == 'png');
         }
 
