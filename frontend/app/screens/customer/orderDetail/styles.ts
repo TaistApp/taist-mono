@@ -124,9 +124,17 @@ export const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
   },
+  btnSubmitButton: {
+    width: '100%',
+    backgroundColor: '#000000',
+    paddingVertical: 16,
+    borderRadius: 28,
+    alignItems: 'center',
+  },
   btnSubmitLabel: {
-    color: AppColors.textOnPrimary,
+    color: '#ffffff',
     fontSize: 16,
+    fontWeight: '600',
     textAlign: 'center',
     letterSpacing: 0.5,
   },

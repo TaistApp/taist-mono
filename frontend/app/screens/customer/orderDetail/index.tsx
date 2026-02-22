@@ -1,4 +1,4 @@
-import { FAB, TextInput } from '@react-native-material/core';
+import { TextInput } from '@react-native-material/core';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -41,6 +41,7 @@ import {
 } from '../../../services/api';
 import { OrderStatus } from '../../../types/status';
 import { GetOrderString, getImageURL } from '../../../utils/functions';
+import { navigate, setActiveOrderDetailId } from '../../../utils/navigation';
 import { ShowErrorToast, ShowSuccessToast } from '../../../utils/toast';
 import {
   getFormattedDate,
@@ -69,21 +70,22 @@ const OrderDetail = () => {
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const scrollViewRef = useRef<ScrollView>(null);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    console.log(params);
-console.log("order detail useeffect....");
     const orderInfo = typeof params.orderInfo === 'string' ? JSON.parse(params.orderInfo) : params.orderInfo;
+    setActiveOrderDetailId(orderInfo.id);
     loadData(orderInfo.id);
     getPaymentMethod();
-    const intervalId = setInterval(() => {
-      console.log('interval');
+    pollingRef.current = setInterval(() => {
       const orderInfo = typeof params.orderInfo === 'string' ? JSON.parse(params.orderInfo) : params.orderInfo;
       loadData(orderInfo.id);
-    }, 30000); // 30 seconds
+    }, 30000);
 
-    return () => clearInterval(intervalId);
-
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      setActiveOrderDetailId(null);
+    };
   }, []);
 
   useEffect(() => {
@@ -112,12 +114,16 @@ console.log("order detail useeffect....");
 
   const loadData = async (orderId: number) => {
     const resp = await GetOrderDataAPI({ order_id: orderId }, dispatch);
-    console.log('load data ======>>>');
     if (resp.success == 1) {
-      console.log('load data 1:  ======>>>');
       setOrderInfo(resp.data);
       setChefInfo(resp.data.chef);
       setMenu(resp.data.menu);
+
+      // Stop polling once order is completed — no further status changes expected
+      if (resp.data.status === 3 && pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
 
       // Update time remaining if order is in requested status
       if (resp.data.status === 1 && resp.data.deadline_info) {
@@ -240,7 +246,8 @@ console.log("order detail useeffect....");
       }
     }
     dispatch(hideLoading());
-    router.back();
+    ShowSuccessToast('Review submitted!');
+    navigate.toCustomer.orders();
   };
 
   var items: Array<any> = [];
@@ -514,16 +521,14 @@ console.log("order detail useeffect....");
                   />
                 </TouchableOpacity>
 
-                <FAB
+                <TouchableOpacity
                   testID="customerOrderDetail.submitReviewButton"
-                  style={styles.btnSubmit}
-                  variant="extended"
-                  color="#000000"
-                  tintColor="#ffffff"
-                  label="SAVE REVIEW"
-                  labelStyle={styles.btnSubmit}
+                  style={styles.btnSubmitButton}
                   onPress={handleSubmitReview}
-                />
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.btnSubmitLabel}>SAVE REVIEW</Text>
+                </TouchableOpacity>
               </View>
             </>
           )}
