@@ -44,6 +44,8 @@ A food marketplace connecting customers with local chefs — Laravel API + React
 
 **Never seed in production.** Full details: `docs/maestro-test-users.md` | Conventions: `docs/maestro-conventions.md`
 
+**Before any Maestro work**, read `docs/maestro-conventions.md` — it has testIDs, patterns, and pitfalls. **After Maestro work**, follow the Post-Session Retrospective section in that doc to update it with anything new you learned.
+
 - Seed: `php artisan db:seed --class="Database\Seeders\MaestroTestUserSeeder"` (idempotent)
 - Env vars: `frontend/.maestro/test-users.env.yaml`
 

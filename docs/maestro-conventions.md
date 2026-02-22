@@ -314,6 +314,22 @@ Steps 1–2 have testIDs. Steps 3+ (profile, location, preferences) are **missin
 | 3 (preferences) | Push/Location switches | `signup.preferences.pushNotifications` / `.locationServices` |
 | 3 (preferences) | Continue/Back | `signup.preferences.continueButton` / `.backButton` |
 
+## Post-Session Retrospective
+
+**After finishing any Maestro work**, do a quick retrospective before releasing the session lock:
+
+1. **Update this file** (`docs/maestro-conventions.md`) if you discovered:
+   - New testIDs that aren't documented here
+   - Workarounds for elements that behave unexpectedly
+   - Patterns that worked better than what's currently documented
+   - New screens or flows that should be added
+
+2. **Update `MEMORY.md`** (Maestro sections) if you hit gotchas that would trip up future sessions — syntax mistakes, timing issues, platform quirks.
+
+3. **Flag app improvements** — if you noticed accessibility or testability issues during the session (missing testIDs, merged accessibility text, elements that are hard to target), note them in a comment or TODO so they can be fixed in the app code. Don't silently work around problems that should be fixed at the source.
+
+The goal: each Maestro session should leave the directions better than it found them. Five minutes of documentation saves hours of re-discovery.
+
 ## File Organization
 
 ```
