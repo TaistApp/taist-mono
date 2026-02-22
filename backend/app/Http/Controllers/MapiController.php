@@ -4677,7 +4677,7 @@ Write only the review text:";
 
             // Check if the payment method is valid
             if (
-                $paymentMethod->card->exp_msuperadminonth < now()->month &&
+                $paymentMethod->card->exp_month < now()->month &&
                 $paymentMethod->card->exp_year <= now()->year
             ) {
                 return response()->json(['success' => 0, 'error' => "The card has expired."]);
