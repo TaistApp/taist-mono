@@ -258,6 +258,7 @@ const BackgroundCheck = () => {
                   }
                   mode="date"
                   display="spinner"
+                  themeVariant="light"
                   onChange={(event, date) => {
                     if (event.type === 'set' && date) {
                       setBgInfo({...bgInfo, birthday: date.getTime() / 1000});

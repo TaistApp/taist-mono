@@ -496,6 +496,7 @@ const Profile = () => {
               <DateTimePicker
                 mode="time"
                 display="spinner"
+                themeVariant="light"
                 value={tempTime}
                 minimumDate={new Date(2030, 0, 15, 0, 0, 0)}
                 maximumDate={new Date(2030, 0, 15, 23, 59, 59)}

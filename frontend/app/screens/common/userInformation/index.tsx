@@ -393,6 +393,7 @@ const UserInformation = ({navigation, route}: any) => {
                   }
                   mode="date"
                   display="spinner"
+                  themeVariant="light"
                   onChange={onDateChange}
                   maximumDate={new Date()}
                   minimumDate={moment().subtract(120, 'years').toDate()}

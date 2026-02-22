@@ -719,6 +719,7 @@ const user: IUser = typeof params?.user === 'string'
                   }
                   mode="date"
                   display="spinner"
+                  themeVariant="light"
                   onChange={onDateChange}
                   maximumDate={new Date()}
                   minimumDate={moment().subtract(120, 'years').toDate()}
