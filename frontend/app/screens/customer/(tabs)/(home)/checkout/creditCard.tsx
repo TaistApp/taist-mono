@@ -54,6 +54,7 @@ const CreditCard = () => {
               cardStyle={{
                 backgroundColor: colorScheme === 'dark' ? '#000000' : '#ffffff',
                 textColor: colorScheme === 'dark' ? '#ffffff' : '#000000',
+                placeholderColor: '#999999',
               }}
               style={{height: 100}}
               onCardChange={setDetails}
