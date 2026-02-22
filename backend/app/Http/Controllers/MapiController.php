@@ -2243,7 +2243,7 @@ Respond ONLY with valid JSON:
                     $aiReviewText = trim($result['content']);
 
                     // Create AI review record with varied date
-                    $variedDate = $this->varyReviewDate($authenticReview->created_at);
+                    $variedDate = $this->varyReviewDate();
                     $aiReview = app(Reviews::class)->create([
                         'order_id' => $authenticReview->order_id,
                         'from_user_id' => $authenticReview->from_user_id,
@@ -2372,7 +2372,7 @@ Write only the review text:";
      * Vary the review date to add realism
      * Returns a date within 1-14 days before the current time
      */
-    private function varyReviewDate($originalDate)
+    private function varyReviewDate()
     {
         $now = time();
 
@@ -2880,7 +2880,7 @@ Write only the review text:";
                 $aiReviewText = trim($result['content']);
 
                 // Vary the date for each AI review
-                $variedDate = $this->varyReviewDate($authenticReview->created_at);
+                $variedDate = $this->varyReviewDate();
                 app(Reviews::class)->create([
                     'order_id' => $authenticReview->order_id,
                     'from_user_id' => $authenticReview->from_user_id,
