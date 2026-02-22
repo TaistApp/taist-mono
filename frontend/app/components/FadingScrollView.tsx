@@ -1,19 +1,16 @@
 import React, { forwardRef, useCallback, useRef, useState } from 'react';
-import { ScrollView, ScrollViewProps, StyleSheet, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { ScrollView, ScrollViewProps, StyleSheet, Text, View } from 'react-native';
 import { AppColors } from '../../constants/theme';
 
 interface FadingScrollViewProps extends ScrollViewProps {
-  /** Color to fade into at the edges — should match parent background */
-  fadeColor?: string;
-  /** Width of each fade gradient in px */
-  fadeWidth?: number;
+  /** Size of the chevron indicator in px */
+  chevronSize?: number;
 }
 
 const THRESHOLD = 5;
 
 const FadingScrollView = forwardRef<ScrollView, FadingScrollViewProps>(
-  ({ fadeColor = AppColors.surface, fadeWidth = 32, children, onScroll, ...rest }, ref) => {
+  ({ chevronSize = 24, children, onScroll, ...rest }, ref) => {
     const [showLeft, setShowLeft] = useState(false);
     const [showRight, setShowRight] = useState(false);
 
@@ -53,6 +50,12 @@ const FadingScrollView = forwardRef<ScrollView, FadingScrollViewProps>(
       [update],
     );
 
+    const chevronStyle = {
+      width: chevronSize,
+      height: chevronSize,
+      borderRadius: chevronSize / 2,
+    };
+
     return (
       <View style={styles.wrapper} onLayout={handleLayout}>
         <ScrollView
@@ -63,27 +66,24 @@ const FadingScrollView = forwardRef<ScrollView, FadingScrollViewProps>(
           scrollEventThrottle={16}
           onScroll={handleScroll}
           onContentSizeChange={handleContentSizeChange}
+          style={[rest.style, styles.scroll]}
         >
           {children}
         </ScrollView>
 
         {showLeft && (
-          <LinearGradient
-            colors={[fadeColor, 'transparent']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={[styles.fade, styles.fadeLeft, { width: fadeWidth }]}
-            pointerEvents="none"
-          />
+          <View style={[styles.chevronWrap, styles.chevronLeft]} pointerEvents="none">
+            <View style={[styles.chevronCircle, chevronStyle]}>
+              <Text style={[styles.chevronText, { fontSize: chevronSize * 0.6 }]}>{'\u2039'}</Text>
+            </View>
+          </View>
         )}
         {showRight && (
-          <LinearGradient
-            colors={['transparent', fadeColor]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={[styles.fade, styles.fadeRight, { width: fadeWidth }]}
-            pointerEvents="none"
-          />
+          <View style={[styles.chevronWrap, styles.chevronRight]} pointerEvents="none">
+            <View style={[styles.chevronCircle, chevronStyle]}>
+              <Text style={[styles.chevronText, { fontSize: chevronSize * 0.6 }]}>{'\u203A'}</Text>
+            </View>
+          </View>
         )}
       </View>
     );
@@ -94,18 +94,35 @@ FadingScrollView.displayName = 'FadingScrollView';
 
 const styles = StyleSheet.create({
   wrapper: {
-    position: 'relative',
+    alignSelf: 'stretch',
+    flexShrink: 0,
+    flexGrow: 0,
   },
-  fade: {
+  scroll: {
+    flexGrow: 0,
+  },
+  chevronWrap: {
     position: 'absolute',
     top: 0,
     bottom: 0,
+    justifyContent: 'center',
   },
-  fadeLeft: {
-    left: 0,
+  chevronLeft: {
+    left: -4,
   },
-  fadeRight: {
-    right: 0,
+  chevronRight: {
+    right: -4,
+  },
+  chevronCircle: {
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chevronText: {
+    color: AppColors.textOnPrimary,
+    fontWeight: '700',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 });
 
