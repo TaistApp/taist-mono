@@ -156,12 +156,44 @@ Many text elements have trailing spaces (e.g., `"REQUESTED "` instead of `"REQUE
 
 Or use the `id:` selector when testIDs are available.
 
-## Date Picker
+## Date & Time Pickers
 
-**iOS:** Spinner wheel — use `scroll` on the picker column or `tapOn` specific values.
-**Android:** Material dialog — tap the date, then OK/Cancel.
+### iOS Spinner Pickers (Tested)
 
-Not yet tested with Maestro. Will need platform-specific flows.
+All iOS date/time pickers use `display="spinner"` with a custom modal (Cancel/Done header + spinner wheel).
+
+**Dark mode:** All spinners have `themeVariant="light"` to prevent invisible text (white-on-white) when the device is in dark mode. If adding a new DateTimePicker, always include this prop.
+
+**Time pickers** (chef profile hours, GoLiveToggle):
+- Spinner shows hours/minutes/AM-PM columns
+- Maestro can read spinner values via `inspect_view_hierarchy`
+- Cancel/Done buttons are in a custom header above the spinner
+
+**Date pickers** (account birthday, signup birthday, background check):
+- Spinner shows month/day/year columns
+- testID: `account.birthdayPicker` (account screen)
+
+### Known Issue: GoLiveToggle Modal
+
+The "Same-Day Availability" modal in GoLiveToggle (`frontend/app/components/GoLiveToggle/index.tsx`) has a **Maestro testability problem**: React Native's `<Modal>` wraps all content in an accessibility container, merging child elements into a single tappable region. This means:
+- Cancel/Done/day-selection buttons inside the modal can't be individually tapped by Maestro
+- Coordinate taps (`point:`) hit the backdrop overlay `<Pressable>` instead of modal content, dismissing the modal
+- `accessible={false}` on inner Views doesn't fix it — the merge happens at the RN Modal level
+
+**Workaround:** None currently reliable for Maestro. This modal needs architectural changes (e.g., replacing `<Modal>` with a custom overlay, or adding native accessibility workarounds) to be testable.
+
+**App improvement needed:** Add testIDs to GoLiveToggle modal buttons and investigate RN Modal accessibility override patterns.
+
+### Simulator Dark Mode
+
+Always test pickers with dark mode enabled to catch theme inheritance issues:
+```bash
+# Enable dark mode
+xcrun simctl ui <UDID> appearance dark
+
+# Disable dark mode
+xcrun simctl ui <UDID> appearance light
+```
 
 ## Keyboard Handling
 
@@ -268,6 +300,14 @@ Some parameters exist on the MCP `tap_on` tool but are **not valid in flow YAML*
 - tapOn: "Active C"
 ```
 
+### Coordinate Taps on Modals
+
+Modals with a backdrop `<Pressable>` (used to dismiss on tap-outside) can intercept coordinate taps. If the backdrop's touch area overlaps the modal content, `point:` taps may dismiss the modal instead of hitting buttons inside it.
+
+**Symptoms:** Tapping a coordinate that visually overlaps a button dismisses the modal instead.
+
+**Fix in app code:** Ensure modal content Views use `onStartShouldSetResponder={() => true}` to capture touches before the backdrop. Better yet, add testIDs to modal buttons so you don't need coordinates.
+
 ### Regex in tapOn
 
 When using `tapOn:` with a string, Maestro treats it as a regex. Dot (`.`) matches any character, which usually works in your favor. But be careful with special characters:
@@ -313,6 +353,17 @@ Steps 1–2 have testIDs. Steps 3+ (profile, location, preferences) are **missin
 | 3 (chef location) | Continue/Back | `signup.chefLocation.continueButton` / `.backButton` |
 | 3 (preferences) | Push/Location switches | `signup.preferences.pushNotifications` / `.locationServices` |
 | 3 (preferences) | Continue/Back | `signup.preferences.continueButton` / `.backButton` |
+
+## Known Testability Issues (App Improvements Needed)
+
+These are app-side issues that make Maestro testing harder. Fix these in the app code when possible rather than working around them in flows.
+
+| Issue | Screen | Impact | Suggested Fix |
+|-------|--------|--------|---------------|
+| RN Modal merges accessibility | GoLiveToggle "Same-Day Availability" | Can't tap Cancel/Done/day buttons individually | Replace `<Modal>` with custom overlay or use `accessibilityViewIsModal` |
+| No testIDs on GoLiveToggle modal buttons | GoLiveToggle | No `id:` selector available for modal actions | Add `goLive.modal.cancel`, `goLive.modal.done`, `goLive.modal.today`, `goLive.modal.tomorrow` |
+| Trailing spaces on text elements | Multiple screens | Fuzzy matching works but exact matches break | Trim trailing spaces from Text elements |
+| Coordinate taps fragile | Any modal with backdrop overlay | `point:` taps may hit overlay instead of content | Ensure modal content has enough padding / testIDs |
 
 ## Post-Session Retrospective
 

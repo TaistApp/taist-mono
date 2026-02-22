@@ -528,6 +528,7 @@ const GoLiveToggle: React.FC = () => {
         >
           <View
             style={styles.dayPickerContent}
+            accessible={false}
             onStartShouldSetResponder={() => true}
           >
             <Text style={styles.confirmTitle}>Go Live for Same-Day Orders</Text>
@@ -576,6 +577,7 @@ const GoLiveToggle: React.FC = () => {
         >
           <View
             style={styles.timeConfirmContent}
+            accessible={false}
             onStartShouldSetResponder={() => true}
             onResponderRelease={(e) => e.stopPropagation()}
           >
