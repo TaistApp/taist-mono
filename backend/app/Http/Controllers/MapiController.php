@@ -4239,9 +4239,21 @@ Write only the review text:";
                 $candidate_id = $response['applicantGuid'];
             }
             if (array_key_exists('code', $response)) {
-                Log::info('this ' . json_encode($response));
-                //return response()->json(['success' => 0, 'error' => "The third party API didn't work. Please submit that later."]);
-                return response()->json(['success' => 0, 'error' => "There is an issue with the submitted data formart. Please fill the form correctly."]);
+                Log::info('Background check API error: ' . json_encode($response));
+
+                $errorMsg = "There is an issue with the submitted data format. Please fill the form correctly.";
+                if (!empty($response['fields']) && is_array((array)$response['fields'])) {
+                    $fieldErrors = [];
+                    foreach ((array)$response['fields'] as $field => $messages) {
+                        $messages = (array)$messages;
+                        $fieldErrors[] = implode(' ', $messages);
+                    }
+                    if (!empty($fieldErrors)) {
+                        $errorMsg = implode(' ', $fieldErrors);
+                    }
+                }
+
+                return response()->json(['success' => 0, 'error' => $errorMsg]);
             }
         }
 
@@ -4270,8 +4282,8 @@ Write only the review text:";
 
             return response()->json(['success' => 1, 'message' => "Hang tight! Taist is reviewing your account and will let you know when you are approved to start cooking."]);
         } else {
-            Log::info('thiis1' . $response);
-            return response()->json(['success' => 0, 'error' => "There is an issue with the submitted data formart. Please fill the form correctly."]);
+            Log::info('Background check: no candidate_id, response: ' . json_encode($response));
+            return response()->json(['success' => 0, 'error' => "There is an issue with the submitted data format. Please try again later."]);
         }
     }
 
