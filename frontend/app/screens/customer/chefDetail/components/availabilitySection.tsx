@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  ScrollView,
+  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -10,7 +10,7 @@ import moment from 'moment';
 import { IChefProfile } from '../../../../types/index';
 import { GetAvailableTimeslotsAPI } from '../../../../services/api';
 import { AppColors, Shadows, Spacing } from '../../../../../constants/theme';
-import { StyleSheet } from 'react-native';
+import FadingScrollView from '../../../../components/FadingScrollView';
 
 interface Props {
   chefId: number;
@@ -133,14 +133,10 @@ const AvailabilitySection: React.FC<Props> = ({
 
   return (
     <View style={s.container}>
-      <Text style={s.heading}>Availability</Text>
+      <Text style={s.heading}>Chef Arrival Time</Text>
 
       {/* Date pills */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={s.datePillRow}
-      >
+      <FadingScrollView contentContainerStyle={s.datePillRow}>
         {datePills.map((pill) => {
           const isSelected = pill.dateStr === selectedDate;
           const isWorking = isChefWorkingDay(pill.weekday);
@@ -176,7 +172,7 @@ const AvailabilitySection: React.FC<Props> = ({
             </TouchableOpacity>
           );
         })}
-      </ScrollView>
+      </FadingScrollView>
 
       {/* Time slots */}
       {isLoading ? (
@@ -187,11 +183,7 @@ const AvailabilitySection: React.FC<Props> = ({
       ) : timeslots.length === 0 ? (
         <Text style={s.emptyText}>No times available for this date</Text>
       ) : (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={s.timePillRow}
-        >
+        <FadingScrollView contentContainerStyle={s.timePillRow}>
           {timeslots.map((time) => {
             const isSelected = selectedTime === time;
             return (
@@ -211,7 +203,7 @@ const AvailabilitySection: React.FC<Props> = ({
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
+        </FadingScrollView>
       )}
     </View>
   );
