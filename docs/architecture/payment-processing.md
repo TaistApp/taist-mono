@@ -251,50 +251,59 @@ Chefs must set up a Stripe Connect account to receive payouts.
 
 **Backend:**
 ```php
-// MapiController@addStripeAccount
+// MapiController@addStripeAccount (simplified — see full code in MapiController.php)
 public function addStripeAccount(Request $request)
 {
-    $chef = Listener::find($request->user_id);
+    $user = $this->_authUser();
 
-    // Create Connect account
-    $account = $stripe->accounts->create([
-        'type' => 'express',
-        'country' => 'US',
-        'email' => $chef->email,
-        'capabilities' => [
-            'card_payments' => ['requested' => true],
-            'transfers' => ['requested' => true],
-        ],
-        'business_type' => 'individual',
-        'individual' => [
-            'first_name' => $chef->first_name,
-            'last_name' => $chef->last_name,
-            'email' => $chef->email,
-            'phone' => $chef->phone,
-        ],
-    ]);
+    // Reuse existing or create new Stripe Connect account
+    if ($existingPayment && !empty($existingPayment->stripe_account_id)) {
+        $accountId = $existingPayment->stripe_account_id;
+        // Update with business URL so "TAIST" descriptor passes validation
+        $stripe->accounts->update($accountId, [
+            'business_profile' => ['url' => 'https://taist.app'],
+            'settings' => ['payments' => ['statement_descriptor' => 'TAIST']],
+        ]);
+    } else {
+        $account = $stripe->accounts->create([
+            'email' => $email,
+            'country' => 'US',
+            'business_type' => 'individual',
+            'capabilities' => [
+                'card_payments' => ['requested' => true],
+                'transfers' => ['requested' => true],
+            ],
+            'individual' => [/* pre-filled name, phone (E.164), DOB, address */],
+            'business_profile' => [
+                'name' => trim($user->first_name . ' ' . $user->last_name),
+                'url' => 'https://taist.app',
+                'mcc' => '5812',
+            ],
+            'settings' => ['payments' => ['statement_descriptor' => 'TAIST']],
+        ]);
+        $accountId = $account['id'];
+    }
 
-    // Save account ID
-    $chef->stripe_account_id = $account->id;
-    $chef->save();
-
-    // Create onboarding link
+    // Create onboarding link — 'currently_due' skips pre-filled pages
     $accountLink = $stripe->accountLinks->create([
-        'account' => $account->id,
-        'refresh_url' => config('app.url') . '/chef/stripe/refresh',
-        'return_url' => config('app.url') . '/chef/stripe/return',
+        'account' => $accountId,
+        'refresh_url' => $baseUrl . '/stripe/refresh',
+        'return_url' => $baseUrl . '/stripe/complete',
         'type' => 'account_onboarding',
+        'collection_options' => [
+            'fields' => 'currently_due',
+            'future_requirements' => 'include',
+        ],
     ]);
 
     return response()->json([
-        'success' => true,
-        'data' => [
-            'account_id' => $account->id,
-            'onboarding_url' => $accountLink->url,
-        ],
+        'success' => 1,
+        'onboarding_url' => $accountLink->url,
     ]);
 }
 ```
+
+> **Note:** Statement descriptor `'TAIST'` requires `business_profile.url = 'https://taist.app'` — Stripe validates that the descriptor matches either the business name or URL. See `docs/features/STRIPE_VERIFICATION_FIXES.md` for related fixes.
 
 ### Payout Distribution
 

@@ -299,42 +299,77 @@ Chefs must set up Stripe Connect to receive payouts.
 ### Backend Implementation
 
 ```php
-// MapiController@addStripeAccount
+// MapiController@addStripeAccount (simplified — see full code in MapiController.php)
 public function addStripeAccount(Request $request)
 {
-    $user = Listener::find($request->user_id);
+    $user = $this->_authUser();
+    $email = $data['email'] ?? $user->email;
 
-    // Create Express account
-    $account = $stripe->accounts->create([
-        'type' => 'express',
-        'country' => 'US',
-        'email' => $user->email,
-        'capabilities' => [
-            'card_payments' => ['requested' => true],
-            'transfers' => ['requested' => true],
-        ],
-    ]);
+    // Reuse existing Stripe account or create new one
+    if ($existingPayment && !empty($existingPayment->stripe_account_id)) {
+        $accountId = $existingPayment->stripe_account_id;
+        // Update existing account with business URL so "TAIST" descriptor
+        // passes Stripe's validation (must match name or URL)
+        $stripe->accounts->update($accountId, [
+            'business_profile' => ['url' => 'https://taist.app'],
+            'settings' => ['payments' => ['statement_descriptor' => 'TAIST']],
+        ]);
+    } else {
+        // Create Connect account with pre-filled data
+        $account = $stripe->accounts->create([
+            'email' => $email,
+            'country' => 'US',
+            'business_type' => 'individual',
+            'capabilities' => [
+                'card_payments' => ['requested' => true],
+                'transfers' => ['requested' => true],
+            ],
+            'individual' => [
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'email' => $email,
+                'phone' => AppHelper::formatPhoneE164($user->phone),
+                'dob' => [...], // From birthday timestamp
+                'address' => [...], // From user profile
+            ],
+            'business_profile' => [
+                'name' => trim($user->first_name . ' ' . $user->last_name),
+                'url' => 'https://taist.app',
+                'product_description' => 'Independent contractor chef...',
+                'mcc' => '5812',
+            ],
+            'settings' => [
+                'payments' => ['statement_descriptor' => 'TAIST'],
+            ],
+        ]);
+        $accountId = $account['id'];
+    }
 
-    $user->stripe_account_id = $account->id;
-    $user->save();
-
-    // Create onboarding link
+    // Create onboarding link — 'currently_due' skips pre-filled pages
     $accountLink = $stripe->accountLinks->create([
-        'account' => $account->id,
-        'refresh_url' => $returnUrl . '?refresh=true',
-        'return_url' => $returnUrl . '?success=true',
+        'account' => $accountId,
+        'refresh_url' => $baseUrl . '/stripe/refresh',
+        'return_url' => $baseUrl . '/stripe/complete',
         'type' => 'account_onboarding',
+        'collection_options' => [
+            'fields' => 'currently_due',
+            'future_requirements' => 'include',
+        ],
     ]);
 
     return response()->json([
-        'success' => true,
-        'data' => [
-            'account_id' => $account->id,
-            'onboarding_url' => $accountLink->url,
-        ],
+        'success' => 1,
+        'onboarding_url' => $accountLink->url,
     ]);
 }
 ```
+
+### Key Details
+
+- **Statement descriptor:** Set to `'TAIST'` — requires `business_profile.url` = `https://taist.app` so Stripe's validation passes (descriptor must match business name or URL)
+- **Pre-filled data:** Individual info (name, phone in E.164, DOB, address with state abbreviation) and business profile are pre-filled to minimize onboarding steps
+- **`collection_options.fields = 'currently_due'`:** Only shows pages where required info is actually missing, skipping pre-filled fields
+- **Existing account reuse:** If chef re-enters onboarding, the existing Stripe account is updated (not recreated) and a fresh account link is generated
 
 ### Return Handler
 
