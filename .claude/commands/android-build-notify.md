@@ -14,18 +14,12 @@ Wait for the latest EAS Android build to finish, then post the download link to 
 
 5. When the script finishes (exit code 0 = success):
    - Parse the output for `ARTIFACT_URL=`, `PROFILE=`, `APP_VERSION=`, `BUILD_VERSION=`, and `COMMIT_MSG=`
-   - Post to Slack channel `C0A1M8DJ7CK` (#android-builds) with this format:
-
+   - Download the APK: `curl -L -o /tmp/taist-android.apk {ARTIFACT_URL}`
+   - Upload to Slack with the message:
+   ```bash
+   ./scripts/slack-upload.sh /tmp/taist-android.apk C0A1M8DJ7CK "*Android Build Ready* :android: (preview)\n*Version:* {APP_VERSION} ({BUILD_VERSION})\n\n*What's new:*\n{CHANGES_SUMMARY}\n\ncc <@U09MTL5R6CX>"
    ```
-   *Android Build Ready* :android: (preview)
-   *Version:* {APP_VERSION} ({BUILD_VERSION})
-   *Download:* {ARTIFACT_URL}
-
-   *What's new:*
-   {CHANGES_SUMMARY}
-
-   cc <@U09MTL5R6CX>
-   ```
+   - Clean up: `rm /tmp/taist-android.apk`
 
 6. If the build fails (exit code 1), post to Slack that the build failed with the status.
 
