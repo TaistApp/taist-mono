@@ -17,7 +17,7 @@ class FixOrderPaymentTokens extends Command
     {
         $orderIds = explode(',', $this->argument('order_ids'));
 
-        require_once(base_path('../stripe-php/init.php'));
+        require_once(base_path('stripe-php/init.php'));
         $stripe = new \Stripe\StripeClient(env('STRIPE_SECRET'));
 
         foreach ($orderIds as $orderId) {
