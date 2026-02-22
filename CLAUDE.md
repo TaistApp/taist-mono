@@ -101,14 +101,21 @@ Details: `.claude/commands/build.md` | Polling script: `scripts/wait-for-eas-bui
 - **Backend port: 8005** (8005 standard for local runs)
 - Frontend API URLs point to `localhost:8005`
 
-## Maestro Simulator Isolation (Multi-Session)
+## Maestro Session Lock (CRITICAL for Multi-Session)
 
-When multiple Claude Code sessions run Maestro simultaneously:
-- **Each session MUST boot its own simulator** — never reuse one that's already booted
-- **Always pass `device_id`** to every Maestro MCP tool call and `--device <UDID>` to CLI commands
-- Check booted devices first: `xcrun simctl list devices booted`
-- To reset app state on a new simulator: `xcrun simctl uninstall <UDID> org.taist.taist` then reinstall
-- The app caches login sessions — a freshly booted sim may still be logged in from a prior install
+Maestro's driver uses a shared port (7001) — **only one session can use Maestro MCP at a time.** Full protocol: `docs/maestro-session-lock.md`
+
+**Before ANY Maestro MCP tool call:**
+1. Check lock: `cat /tmp/maestro-session.lock 2>/dev/null`
+2. If locked and < 15 min old → wait 2 min, retry up to 5 times, then ask user
+3. If no lock or stale (> 15 min) → acquire: `echo "$(date +%s)|<description>" > /tmp/maestro-session.lock`
+4. Refresh the lock timestamp on each Maestro tool call
+5. **Release when done:** `rm -f /tmp/maestro-session.lock`
+
+**Other Maestro notes:**
+- Always pass `device_id` to every Maestro MCP tool call and `--device <UDID>` to CLI commands
+- Check booted devices: `xcrun simctl list devices booted`
+- Reset app state: `xcrun simctl uninstall <UDID> org.taist.taist` then reinstall
 
 ## Database
 
