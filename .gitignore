@@ -84,3 +84,6 @@ key.properties
 backend/public/include/config.php
 backend/public/api/config.php
 
+# Slack summaries (local working files)
+docs/slack-summaries/
+
