@@ -1,8 +1,8 @@
 #!/bin/bash
-# Polls EAS for the latest Android build and outputs the artifact URL when done.
-# Usage: ./scripts/wait-for-eas-build.sh [build-id]
+# Polls EAS for a build and outputs the artifact URL when done.
+# Usage: ./scripts/wait-for-eas-build.sh [--platform ios|android] [build-id]
 #
-# If no build-id is given, finds the latest Android build automatically.
+# If no build-id is given, finds the latest build for the platform.
 # Polls every 30 minutes for up to 4 hours.
 # Exit codes: 0 = finished, 1 = errored/canceled, 2 = timeout
 
@@ -10,7 +10,22 @@ set -uo pipefail
 
 POLL_INTERVAL=1800
 MAX_WAIT=14400
+PLATFORM="android"
 FRONTEND_DIR="$(cd "$(dirname "$0")/../frontend" && pwd)"
+
+# Parse args
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --platform)
+            PLATFORM="$2"
+            shift 2
+            ;;
+        *)
+            BUILD_ID="$1"
+            shift
+            ;;
+    esac
+done
 
 # Helper: run eas build:view and extract just the JSON object
 eas_build_view() {
@@ -19,20 +34,19 @@ eas_build_view() {
 
 # Helper: run eas build:list and extract just the JSON array
 eas_build_list() {
-    cd "$FRONTEND_DIR" && eas build:list --platform android --limit 1 --json --non-interactive 2>/dev/null | sed -n '/^\[/,/^\]/p'
+    cd "$FRONTEND_DIR" && eas build:list --platform "$1" --limit 1 --json --non-interactive 2>/dev/null | sed -n '/^\[/,/^\]/p'
 }
 
 # Get build ID
-if [ -n "${1:-}" ]; then
-    BUILD_ID="$1"
-else
-    BUILD_ID=$(eas_build_list | jq -r '.[0].id')
+if [ -z "${BUILD_ID:-}" ]; then
+    BUILD_ID=$(eas_build_list "$PLATFORM" | jq -r '.[0].id')
     if [ -z "$BUILD_ID" ] || [ "$BUILD_ID" = "null" ]; then
-        echo "ERROR: Could not find any Android builds"
+        echo "ERROR: Could not find any $PLATFORM builds"
         exit 1
     fi
 fi
 
+echo "PLATFORM=$PLATFORM"
 echo "BUILD_ID=$BUILD_ID"
 
 # Get initial info
