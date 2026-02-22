@@ -73,6 +73,21 @@ Reusable system for post-deploy checks. Full details: `docs/production-verificat
 | Cleanup verify accounts | `cd backend && php artisan verify:accounts cleanup` |
 | Build admin panel locally | `cd backend/admin-panel && npm run build` |
 
+## EAS Build Commands
+
+Slash commands for building and deploying the mobile app. Auto-bumps build numbers, builds on EAS, submits iOS to TestFlight/App Store, and posts Android APKs to Slack.
+
+| Command | What it does |
+| ------- | ------------ |
+| `/build preview` | Both platforms, iOS → TestFlight, Android APK → #android-builds |
+| `/build preview-ios` | iOS only → TestFlight |
+| `/build preview-android` | Android only → #android-builds |
+| `/build production` | Both platforms, iOS → App Store |
+| `/build production-ios` | iOS only → App Store |
+| `/build production-android` | Android only |
+
+Details: `.claude/commands/build.md` | Polling script: `scripts/wait-for-eas-build.sh`
+
 ## Branching & Deployment
 
 - **`staging` branch** → Railway staging environment (auto-deploys on push)
