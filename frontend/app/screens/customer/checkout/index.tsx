@@ -52,6 +52,7 @@ import OrderItem from './components/orderItem';
 import { styles } from './styles';
 import { AppColors } from '../../../../constants/theme';
 import { getApplianceById } from '../../../constants/appliances';
+import FadingScrollView from '../../../components/FadingScrollView';
 
 const Checkout = () => {
   const self = useAppSelector(x => x.user.user);
@@ -568,17 +569,13 @@ const Checkout = () => {
           <View style={styles.checkoutBlock}>
             <Text style={styles.checkoutSubheading}>Order Date & Time</Text>
             <Text style={styles.checkoutText}>
-              Select the time for your chef to arrive.
+              Confirm the time for your chef to arrive.
             </Text>
             <Text style={styles.checkoutText}>
               Completion times may vary depending on your appliances.
             </Text>
             {/* Date pills */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.datePillRow}
-            >
+            <FadingScrollView contentContainerStyle={styles.datePillRow}>
               {Array.from({ length: 30 }, (_, i) => {
                 const date = moment().add(i, 'days');
                 const dateStr = date.format('YYYY-MM-DD');
@@ -616,10 +613,10 @@ const Checkout = () => {
                   </TouchableOpacity>
                 );
               })}
-            </ScrollView>
+            </FadingScrollView>
 
             {/* Time pills */}
-            <Text style={styles.timeLabel}>Select a time:</Text>
+            <Text style={styles.timeLabel}>Confirm time:</Text>
             {isLoadingTimes ? (
               <View style={styles.loadingTimesContainer}>
                 <ActivityIndicator size="small" color={AppColors.primary} />
@@ -632,10 +629,8 @@ const Checkout = () => {
                   : '* This chef is not available on this date'}
               </Text>
             ) : (
-              <ScrollView
+              <FadingScrollView
                 ref={timeScrollRef}
-                horizontal
-                showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.timePillRow}
               >
                 {times.map((item, idx) => {
@@ -664,7 +659,7 @@ const Checkout = () => {
                     </TouchableOpacity>
                   );
                 })}
-              </ScrollView>
+              </FadingScrollView>
             )}
             <Text style={styles.estimated}>
               {`* Estimated completion time is ${getEstimatedTime()}`}
