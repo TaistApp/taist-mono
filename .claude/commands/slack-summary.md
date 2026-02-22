@@ -223,6 +223,7 @@ Create `docs/slack-summaries/` if it doesn't exist. It should already be in `.gi
 
 ## Important Notes
 
+- **Billy (`U09N5L27YQM`) is the developer running this summary.** His messages are NOT issues or bug reports — they are his own status updates, responses, and decisions. Do NOT create action items from Billy's own posts. Do NOT treat his screenshots or messages as reported bugs. Only create issues from messages by other people (Dayne, Daryl, etc.). Billy's messages provide context (e.g., "I fixed this", "waiting on approval") but are never the source of a bug/issue themselves.
 - The Slack MCP bot can only see channels it has access to — if a channel fetch fails, skip it
 - User IDs for reference: Billy (`U09N5L27YQM`), Daryl (`U09MTL5R6CX`), Dayne (`U09N5L0PS7P`)
 - Don't include bot messages or automated notifications unless they indicate a real issue (e.g., build failure)
