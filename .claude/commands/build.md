@@ -95,6 +95,7 @@ When finished, post to Slack channel `C0AGB51FJMC` (#ios-builds):
 ```
 *iOS Build Submitted to TestFlight* :apple: (preview)
 *Version:* {APP_VERSION} ({BUILD_VERSION})
+Should be available in TestFlight in ~15 min.
 
 *What's new:*
 {CHANGES_SUMMARY}
