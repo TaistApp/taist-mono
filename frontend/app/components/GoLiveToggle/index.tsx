@@ -1,6 +1,6 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -11,7 +11,8 @@ import {
   View,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { clearGoLiveAutoOpen } from '../../reducers/chefSlice';
 import { SetAvailabilityOverrideAPI, GetAvailabilityOverridesAPI } from '../../services/api';
 import { ShowErrorToast, ShowSuccessToast } from '../../utils/toast';
 import { styles } from './styles';
@@ -103,6 +104,11 @@ const GoLiveToggle: React.FC = () => {
   // Get chef profile from Redux for weekly schedule
   const chefProfile = useSelector((state: RootState) => state.chef.profile);
 
+  // Auto-open from notification (e.g. "You're scheduled tomorrow")
+  const goLiveAutoOpen = useSelector((state: RootState) => state.chef.goLiveAutoOpen);
+  const dispatch = useDispatch();
+  const autoOpenPending = useRef(false);
+
   // Helper function to reset all go-live related state
   // Used to ensure consistent cleanup across all exit paths
   const resetGoLiveState = () => {
@@ -176,6 +182,12 @@ const GoLiveToggle: React.FC = () => {
     } catch (error) {
       console.error('Error fetching availability status:', error);
     }
+
+    // If a notification triggered auto-open, now that data is loaded, open the toggle for tomorrow
+    if (autoOpenPending.current) {
+      autoOpenPending.current = false;
+      handleDaySelect('tomorrow');
+    }
   };
 
   useEffect(() => {
@@ -187,6 +199,17 @@ const GoLiveToggle: React.FC = () => {
       fetchStatus();
     }, [])
   );
+
+  // When Redux flag is set (from notification tap), mark auto-open as pending
+  // and clear the flag. fetchStatus will trigger handleDaySelect after it completes.
+  useEffect(() => {
+    if (goLiveAutoOpen === 'tomorrow') {
+      autoOpenPending.current = true;
+      dispatch(clearGoLiveAutoOpen());
+      // Trigger fetchStatus so override data is fresh, then auto-open fires at the end
+      fetchStatus();
+    }
+  }, [goLiveAutoOpen]);
 
   // Handle toggle press - show day picker first
   const handleTogglePress = () => {

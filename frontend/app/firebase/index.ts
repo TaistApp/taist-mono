@@ -5,6 +5,7 @@ import { Platform } from 'react-native';
 import { PERMISSIONS, requestMultiple } from 'react-native-permissions';
 import Toast from 'react-native-toast-message';
 import { useAppDispatch } from '../hooks/useRedux';
+import { setGoLiveAutoOpen } from '../reducers/chefSlice';
 import { setUser } from '../reducers/userSlice';
 import { GetUserById, UpdateFCMTokenAPI } from '../services/api';
 import { store } from '../store';
@@ -357,10 +358,11 @@ export const firebaseActions = () => {
 // Helper function to handle notification navigation
 const handleNotificationNavigation = (remoteMessage: any) => {
   try {
-    // Handle availability confirmation notifications - navigate to chef home
+    // Handle availability confirmation notifications - navigate to chef profile and auto-open GoLive toggle
     if (isAvailabilityConfirmationNotification(remoteMessage)) {
-      console.log('>>>Availability confirmation notification - navigating to chef home>>>', JSON.stringify(remoteMessage));
-      navigate.toChef.home();
+      console.log('>>>Availability confirmation notification - navigating to chef profile>>>', JSON.stringify(remoteMessage));
+      store.dispatch(setGoLiveAutoOpen('tomorrow'));
+      navigate.toChef.profile();
       return;
     }
 

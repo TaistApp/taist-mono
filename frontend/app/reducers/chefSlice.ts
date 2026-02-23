@@ -5,12 +5,14 @@ interface ChefState {
   profile: IChefProfile;
   paymentMehthod: IPayment;
   orders: Array<IOrder>;
+  goLiveAutoOpen: 'tomorrow' | null;
 }
 
 const initialState: ChefState = {
   profile: {},
   paymentMehthod: {},
   orders: [],
+  goLiveAutoOpen: null,
 };
 
 const getNewArr = (oldArr: Array<any>, payloadArr: Array<any>) => {
@@ -43,9 +45,15 @@ const chefSlicer = createSlice({
     updateChefPaymentMthod: (state, action: PayloadAction<IPayment>) => {
       state.paymentMehthod = action.payload;
     },
+    setGoLiveAutoOpen: (state, action: PayloadAction<'tomorrow'>) => {
+      state.goLiveAutoOpen = action.payload;
+    },
+    clearGoLiveAutoOpen: (state) => {
+      state.goLiveAutoOpen = null;
+    },
   },
 });
 
-export const {clearChef, updateChefProfile, updateChefPaymentMthod} =
+export const {clearChef, updateChefProfile, updateChefPaymentMthod, setGoLiveAutoOpen, clearGoLiveAutoOpen} =
   chefSlicer.actions;
 export default chefSlicer.reducer;

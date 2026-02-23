@@ -269,8 +269,9 @@ Chefs receive reminders 24 hours before their scheduled availability to confirm/
 
 1. **Scheduled Command**: `chef:send-confirmation-reminders` runs hourly
 2. **Logic**: Finds chefs with weekly schedule for tomorrow who don't have an override yet
-3. **Notification**: Sends SMS + push notification
-4. **Actions**: Chef can confirm (creates override), modify times, or cancel
+3. **Notification**: Sends SMS + push notification (data includes `type: availability_confirmation`)
+4. **Tap behavior**: Tapping the push notification navigates to the Profile tab and auto-opens the GoLiveToggle's "Tomorrow's Hours" modal, pre-populated with the chef's weekly schedule times. Implemented via Redux flag (`goLiveAutoOpen`) dispatched in `firebase/index.ts` and consumed by `GoLiveToggle/index.tsx`.
+5. **Actions**: Chef can confirm (creates override), modify times, or cancel
 
 ### SMS Content
 ```

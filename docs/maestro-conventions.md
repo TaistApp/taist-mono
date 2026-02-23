@@ -180,9 +180,19 @@ The "Same-Day Availability" modal in GoLiveToggle (`frontend/app/components/GoLi
 - Coordinate taps (`point:`) hit the backdrop overlay `<Pressable>` instead of modal content, dismissing the modal
 - `accessible={false}` on inner Views doesn't fix it — the merge happens at the RN Modal level
 
-**Workaround:** None currently reliable for Maestro. This modal needs architectural changes (e.g., replacing `<Modal>` with a custom overlay, or adding native accessibility workarounds) to be testable.
+**Workaround:** Coordinate taps with `point: "70%,52%"` successfully tap the "Change Tomorrow" button from the online options modal. Adjust percentages based on modal layout.
 
 **App improvement needed:** Add testIDs to GoLiveToggle modal buttons and investigate RN Modal accessibility override patterns.
+
+### GoLiveToggle Notification Auto-Open
+
+The "You're scheduled tomorrow" push notification (`type: availability_confirmation`) auto-opens the GoLiveToggle's "Tomorrow's Hours" modal when tapped. The mechanism:
+1. Notification handler (`firebase/index.ts`) dispatches `setGoLiveAutoOpen('tomorrow')` to Redux
+2. Navigates to chef Profile tab
+3. GoLiveToggle's `useEffect` detects the flag, calls `fetchStatus()` then `handleDaySelect('tomorrow')`
+4. Modal opens with pre-populated times from the chef's weekly schedule
+
+**Testing limitation:** `xcrun simctl push` sends APNs notifications that don't route through Firebase's `onNotificationOpenedApp` handler. Full push notification → auto-open testing requires a real device with FCM configured.
 
 ### Simulator Dark Mode
 
