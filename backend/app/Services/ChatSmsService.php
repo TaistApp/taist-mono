@@ -59,12 +59,14 @@ class ChatSmsService
                 return;
             }
 
-            $senderName = trim(($sender->first_name ?? '') . ' ' . ($sender->last_name ?? ''));
             $senderRole = ((int) $sender->user_type === 2) ? 'chef' : 'customer';
-            $senderDescriptor = $senderName !== '' ? $senderName : "your {$senderRole}";
+            // Name convention: customers see chef "FirstName L.", chefs see customer "FirstName" only
+            $recipientIsChef = ((int) $recipient->user_type === 2);
+            $senderDescriptor = $this->formatSenderName($sender, $recipientIsChef, $senderRole);
             $inboxUrl = rtrim((string) env('APP_URL', 'https://taist.app'), '/') . '/open/inbox';
 
-            $message = "Taist: New message from {$senderDescriptor}. Open inbox: {$inboxUrl}. Reply in the app only - this SMS inbox is not monitored.";
+            $period = (substr($senderDescriptor, -1) === '.') ? '' : '.';
+            $message = "Taist: New message from {$senderDescriptor}{$period} Open inbox: {$inboxUrl}. Reply in the app only - this SMS inbox is not monitored.";
 
             $result = $this->twilioService->sendSMS($recipient->phone, $message, [
                 'type' => 'chat_message_alert',
@@ -85,5 +87,27 @@ class ChatSmsService
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Format sender name for SMS based on who's receiving:
+     * - Customer receiving → chef shown as "FirstName L."
+     * - Chef receiving → customer shown as "FirstName" only
+     */
+    private function formatSenderName(Listener $sender, bool $recipientIsChef, string $senderRole): string
+    {
+        $first = trim($sender->first_name ?? '');
+        $last = trim($sender->last_name ?? '');
+
+        if (!$first) {
+            return "your {$senderRole}";
+        }
+
+        // Chef receiving sees customer first name only; customer receiving sees chef "FirstName L."
+        if ($recipientIsChef || !$last) {
+            return $first;
+        }
+
+        return $first . ' ' . strtoupper(substr($last, 0, 1)) . '.';
     }
 }

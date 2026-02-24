@@ -53,49 +53,71 @@ This document provides a quick reference for the SMS notification system impleme
 
 ---
 
+## Name Formatting Convention
+
+Names in SMS follow a privacy-conscious convention:
+
+| Recipient | Sees other party as | Example |
+|-----------|-------------------|---------|
+| **Customer** | Chef "FirstName L." | "Sarah J." |
+| **Chef** | Customer "FirstName" only | "John" |
+| **Admin** | Full name | "John Smith" |
+
+This is enforced in:
+- `OrderSmsService::formatUserName()` — order lifecycle SMS
+- `ChatSmsService::formatSenderName()` — chat message alerts
+- Frontend components (inline formatting)
+
+---
+
 ## Message Templates
 
 ### New Order Request (→ Chef)
 ```
-New order request! ORDER#0000123 from John Smith for Dec 4, 2PM.
+New order request! ORDER#0000123 from John for Dec 4, 2PM.
 Grilled Chicken Tacos x4. Total: $45.00. Accept within 30 minutes. View in app.
 ```
 
 ### Order Accepted (→ Customer)
 ```
-Great news! Chef Sarah Johnson accepted your order ORDER#0000123 for Dec 4, 2PM.
+Great news! Chef Sarah J. accepted your order ORDER#0000123 for Dec 4, 2PM.
 We'll notify you when they're on the way!
 ```
 
 ### Order Rejected (→ Customer)
 ```
-Sorry, Chef Sarah Johnson is unable to fulfill your order ORDER#0000123.
+Sorry, Chef Sarah J. is unable to fulfill your order ORDER#0000123.
 You will receive a full refund within 5-7 business days. Browse other chefs in the app!
 ```
 
 ### Chef On The Way (→ Customer)
 ```
-Chef Sarah Johnson is on the way with your order ORDER#0000123!
-They should arrive around 2:00 PM.
+Your chef is on the way! ORDER#0000123 should arrive around 2:00 PM.
 ```
 
 ### Order Complete (→ Customer)
 ```
-Your order ORDER#0000123 is complete! Hope you enjoyed it.
-Please rate your experience with Chef Sarah Johnson in the app.
+Your order is complete! ORDER#0000123.
+Hope you enjoyed it. Please rate your experience with Sarah J. in the app.
 ```
 
 ### 24-Hour Reminder (→ Chef)
 ```
-Reminder: You have order ORDER#0000123 from John Smith scheduled for tomorrow at 2:00 PM.
+Reminder: You have order ORDER#0000123 from John scheduled for tomorrow at 2:00 PM.
 Grilled Chicken Tacos x4. Don't forget!
 ```
 
 ### 24-Hour Reminder (→ Customer)
 ```
-Reminder: Your order ORDER#0000123 from Chef Sarah Johnson is scheduled for tomorrow at 2:00 PM.
+Reminder: Your order ORDER#0000123 from Chef Sarah J. is scheduled for tomorrow at 2:00 PM.
 Grilled Chicken Tacos x4. Can't wait!
 ```
+
+### Chat Message Alert (→ Either)
+```
+Taist: New message from John. Open inbox: https://taist.app/open/inbox. Reply in the app only - this SMS inbox is not monitored.
+```
+(If recipient is a customer, sender chef name includes last initial: "Sarah J.")
 
 ---
 
@@ -368,5 +390,5 @@ tail -f backend/storage/logs/laravel.log
 
 ---
 
-**Last Updated**: December 3, 2025
-**Document Version**: 1.0
+**Last Updated**: February 23, 2026
+**Document Version**: 1.1
