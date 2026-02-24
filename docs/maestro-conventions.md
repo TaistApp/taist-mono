@@ -247,6 +247,58 @@ A version check API call to the local backend may produce a persistent error ban
 | Date picker | Spinner (inline) | Dialog (modal) |
 | Keyboard dismiss | `hideKeyboard` | `hideKeyboard` or `back` |
 
+## Android Emulator Tips
+
+### Deep Linking to Screens
+
+When the drawer or normal navigation isn't cooperating, you can navigate directly to any screen via deep link:
+
+```bash
+adb shell "am start -a android.intent.action.VIEW -d 'exp+taist:///screens/chef/feedback' com.taist.app"
+adb shell "am start -a android.intent.action.VIEW -d 'exp+taist:///screens/chef/backgroundCheck' com.taist.app"
+```
+
+This bypasses all in-app navigation and is useful for testing specific screens in isolation.
+
+### Fresh Boot Required for Reliable `inputText`
+
+If Maestro's `inputText` starts timing out (DEADLINE_EXCEEDED at 120s), the emulator is degraded. **Do not retry repeatedly** — kill the emulator and reboot fresh:
+
+```bash
+# Kill emulator
+adb emu kill
+
+# Reboot fresh (no snapshot)
+emulator -avd Pixel_6_API_34 -no-snapshot-load -no-audio &
+
+# Wait for boot + system settle
+adb wait-for-device && adb shell getprop sys.boot_completed
+sleep 15  # Let system processes settle after boot_completed returns 1
+
+# Re-establish port forwarding
+adb forward tcp:7001 tcp:7001
+adb reverse tcp:8005 tcp:8005
+adb reverse tcp:8081 tcp:8081
+```
+
+After a fresh boot, `inputText` works reliably. The key is the 15s settle time after `boot_completed`.
+
+### Dismissing Dev Menu on Android
+
+On first launch, the Expo dev menu appears. Dismiss it:
+
+```yaml
+appId: com.taist.app
+---
+- tapOn: "Continue"    # Dismisses the "This is the developer menu" dialog
+```
+
+If the dev tools panel (with Reload/Go home/Performance monitor) opens instead, tap the X button or use `Go home`, then re-launch via deep link.
+
+### Hamburger Menu / DrawerModal on Android
+
+The hamburger menu (`header.hamburgerMenu`) may not open the drawer reliably on Android emulators via Maestro taps. The `DrawerModal` uses a custom modal triggered by `setShowDrawerModal(true)`, and the `toggleDrawer()` logic checks for a React Navigation drawer first. If navigation to drawer items is needed, use deep links instead.
+
 ## Common Pitfalls
 
 ### Scroll vs Swipe

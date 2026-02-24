@@ -9,10 +9,8 @@ Screens where the Android soft keyboard may cover TextInput fields. All identifi
 | 1 | Add to Order | `screens/customer/addToOrder/index.tsx` | `KeyboardAwareScrollView` + `scrollToEnd` on focus | Maestro Android |
 | 2 | Chat | `screens/common/chat/index.tsx` | `KeyboardAvoidingView` with `behavior='height'` on Android | Maestro Android |
 | 3 | Order Detail (review) | `screens/customer/orderDetail/index.tsx` | `KeyboardAwareScrollView` + `scrollToEnd` on focus | View hierarchy inspection |
-| 4 | Chef Feedback | `screens/chef/feedback/index.tsx` | `KeyboardAwareScrollView` (replaced plain ScrollView) | Same pattern as #1 |
-| 5 | Background Check | `screens/chef/backgroundCheck/index.tsx` | `KeyboardAwareScrollView` + `scrollToEnd` on SSN/Phone focus | Same pattern as #1 |
-
-**Note:** Screens #4 and #5 couldn't be individually tested with Maestro Android due to emulator performance issues (Maestro `inputText` DEADLINE_EXCEEDED on both Pixel_6_API_34 and Medium_Phone_API_36). They use the identical `KeyboardAwareScrollView` pattern that was verified working on screen #1.
+| 4 | Chef Feedback | `screens/chef/feedback/index.tsx` | `KeyboardAwareScrollView` (replaced plain ScrollView) | Maestro Android |
+| 5 | Background Check | `screens/chef/backgroundCheck/index.tsx` | `KeyboardAwareScrollView` + `scrollToEnd` on SSN/Phone focus | Maestro Android |
 
 ## Already Safe (no changes needed)
 
