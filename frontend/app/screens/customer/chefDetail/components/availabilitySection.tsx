@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -7,6 +7,7 @@ import {
   View,
 } from 'react-native';
 import moment from 'moment';
+import { useFocusEffect } from '@react-navigation/native';
 import { IChefProfile } from '../../../../types/index';
 import { GetAvailableTimeslotsAPI } from '../../../../services/api';
 import { AppColors, Shadows, Spacing } from '../../../../../constants/theme';
@@ -73,6 +74,19 @@ const AvailabilitySection: React.FC<Props> = ({
   useEffect(() => {
     fetchTimeslots(selectedDate);
   }, [selectedDate]);
+
+  // Re-fetch timeslots when screen regains focus (e.g., returning from Checkout
+  // after placing an order). Without this, stale cached slots remain visible.
+  const hasMounted = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (hasMounted.current) {
+        fetchTimeslots(selectedDate);
+      } else {
+        hasMounted.current = true;
+      }
+    }, [selectedDate])
+  );
 
   const fetchTimeslots = async (date: string) => {
     if (!chefId) {
