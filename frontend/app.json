@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "org.taist.taist",
-      "buildNumber": "21",
+      "buildNumber": "22",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "UIBackgroundModes": [
@@ -41,7 +41,7 @@
       "icon": "./assets/images/icon.png",
       "edgeToEdgeEnabled": true,
       "package": "com.taist.app",
-      "versionCode": 151,
+      "versionCode": 152,
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.INTERNET",
