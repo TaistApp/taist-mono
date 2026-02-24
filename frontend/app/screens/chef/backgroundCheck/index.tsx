@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Modal, Platform, Pressable, SafeAreaView, ScrollView, Text, View } from 'react-native';
 
 import {
@@ -17,6 +17,7 @@ import { useAppDispatch, useAppSelector } from '../../../hooks/useRedux';
 
 import DateTimePicker from '@react-native-community/datetimepicker';
  import moment from 'moment';
+import KeyboardAwareScrollView from '../../../components/KeyboardAwareScrollView';
 import StyledButton from '../../../components/styledButton';
 import StyledSwitch from '../../../components/styledSwitch';
 import StyledTextInput from '../../../components/styledTextInput';
@@ -38,6 +39,7 @@ const BackgroundCheck = () => {
   const [bgInfo, setBgInfo] = useState<any>({});
   const [agree, onChangeAgree] = useState(false);
   const [openBirthdayPicker, setOpenBirthdayPicker] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
 
   const statesData = [
     {key: '1', value: 'Alabama '},
@@ -112,7 +114,7 @@ const BackgroundCheck = () => {
   return (
     <SafeAreaView style={styles.main}>
       <Container backMode title="Background Check">
-        <ScrollView contentContainerStyle={styles.pageView} nestedScrollEnabled={true}>
+        <KeyboardAwareScrollView ref={scrollRef} contentContainerStyle={styles.pageView} nestedScrollEnabled={true}>
           <View style={styles.vcenter}>
             <StyledTextInput
               label="First Name "
@@ -197,12 +199,14 @@ const BackgroundCheck = () => {
               placeholder="Social Security Number "
               onChangeText={val => setBgInfo({...bgInfo, ssn: val})}
               value={bgInfo.ssn ?? ''}
+              onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 300)}
             />
             <StyledTextInput
               label="Phone Number "
               placeholder="Phone Number "
               onChangeText={val => setBgInfo({...bgInfo, phone: val})}
               value={bgInfo.phone ?? ''}
+              onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 300)}
             />
           </View>
           <View style={styles.switchWrapper}>
@@ -224,7 +228,7 @@ const BackgroundCheck = () => {
               disabled={!agree}
             />
           </View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
         {Platform.OS === 'ios' ? (
           <Modal
             visible={openBirthdayPicker}

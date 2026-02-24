@@ -1,11 +1,12 @@
 import { useState} from 'react';
 import {SafeAreaView} from 'react-native';
-import {View, ScrollView} from 'react-native';
+import {View} from 'react-native';
 // Hooks
 import {useAppDispatch, useAppSelector} from '../../../hooks/useRedux';
 
 import {styles} from './styles';
 import Container from '../../../layout/Container';
+import KeyboardAwareScrollView from '../../../components/KeyboardAwareScrollView';
 import StyledTextInput from '../../../components/styledTextInput';
 import StyledButton from '../../../components/styledButton';
 import {hideLoading, showLoading} from '../../../reducers/loadingSlice';
@@ -40,7 +41,7 @@ const Feedback = () => {
       <Container
         backMode={self.user_type == 1 ? false : true}
         title="Feedback and Suggestions">
-        <ScrollView contentContainerStyle={styles.pageView}>
+        <KeyboardAwareScrollView contentContainerStyle={styles.pageView}>
           <StyledTextInput
             label="Subject "
             placeholder="Subject "
@@ -57,7 +58,7 @@ const Feedback = () => {
           <View style={styles.vcenter}>
             <StyledButton title={'SAVE '} onPress={() => handleSave()} />
           </View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </Container>
     </SafeAreaView>
   );

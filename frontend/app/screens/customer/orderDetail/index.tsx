@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import KeyboardAwareScrollView from '../../../components/KeyboardAwareScrollView';
 
 // NPM
 import {
@@ -292,7 +293,7 @@ const OrderDetail = () => {
       <Container
         backMode
         title={getFormattedDateInTimezone((orderInfo?.order_date ?? 0) * 1000, orderInfo?.timezone)}>
-        <ScrollView ref={scrollViewRef} contentContainerStyle={styles.pageView}>
+        <KeyboardAwareScrollView ref={scrollViewRef} contentContainerStyle={styles.pageView}>
           <View style={{ alignItems: 'center' }}>
             <StyledProfileImage url={getImageURL(chefInfo?.photo)} size={160} />
             <Text style={styles.chefName}>{`${chefInfo?.first_name} ${chefInfo?.last_name?.charAt(0) ?? ''}.`}</Text>
@@ -444,6 +445,7 @@ const OrderDetail = () => {
                   variant={'outlined'}
                   color="#7f7f7f"
                   inputContainerStyle={{ paddingVertical: 10 }}
+                  onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 300)}
                 />
                 <Text style={{ color: '#7f7f7f', fontSize: 12, letterSpacing: 0.5, marginTop: 5, alignSelf: 'flex-end' }}>
                   {`${reviewText.length}/100 Characters`}
@@ -532,7 +534,7 @@ const OrderDetail = () => {
               </View>
             </>
           )}
-        </ScrollView>
+        </KeyboardAwareScrollView>
 
         <View style={styles.btnContainer}>
           <TouchableOpacity testID="customerOrderDetail.callButton" style={styles.btn} onPress={handleCall}>
