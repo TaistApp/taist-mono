@@ -58,7 +58,8 @@ class Kernel extends ConsoleKernel
         $schedule->command('reminders:send-weekly-order')
                  ->everyFifteenMinutes()
                  ->withoutOverlapping()
-                 ->runInBackground();
+                 ->runInBackground()
+                 ->appendOutputTo('/proc/1/fd/1');
 
         // Safety net: clean up stale verification accounts older than 2 hours.
         // Won't touch accounts from an active session (created < 2h ago).
