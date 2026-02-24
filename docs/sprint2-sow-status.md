@@ -130,8 +130,8 @@ Remaining Maestro gap for TMA-055:
 ### Requirements Applied
 
 - Push notifications only (no SMS)
-- Randomized weekdays: Mon-Thu
-- Max frequency: 2 reminders per user per week
+- Randomized weekdays: Mon-Thu (2 slots guaranteed on different days)
+- Max frequency: 2 reminders per user per week, always on separate days
 - Time window: 10:00-16:00 user local timezone
 - Static rotating message set, including:
   - `Feeling behind? Order Taist and get ahead on other stuff tonight. See chefs now.`
@@ -164,8 +164,9 @@ Remaining Maestro gap for TMA-055:
 - For each customer (verified + FCM token), service computes local time from state timezone and only sends when:
   - local weekday is Mon-Thu
   - local time is between 10:00 and 15:59
-  - current quarter-hour matches one of 2 deterministic random slots for that user/week
+  - current quarter-hour matches one of 2 deterministic random slots for that user/week (slots are always on different days)
   - user is below 2 sends for the week
+- Scheduler output now logged to Railway stdout (`appendOutputTo('/proc/1/fd/1')`) for visibility
 
 ### Message Rotation
 
@@ -185,6 +186,8 @@ Remaining Maestro gap for TMA-055:
    - `php artisan list` includes `reminders:send-weekly-order`.
 5. Dry-run command execution:
    - `php artisan reminders:send-weekly-order --dry-run` executed successfully.
+6. Different-day constraint test:
+   - 500 users × 4 weeks = 2,000 user-week combinations, 0 same-day collisions.
    - Current local DB result: scanned `0` users (no eligible local data in this environment).
 
 ## Implemented Fix: TMA-061 (Chef Availability on Current Day)
