@@ -298,14 +298,11 @@ const OrderDetail = () => {
                   Order ID
                 </Text>
                 <Text style={styles.text} numberOfLines={1}>
-                  Order Date
+                  Arrival Time
                 </Text>
                 <Text style={styles.text} numberOfLines={1}>
                   Status
                 </Text>
-                {/* <Text style={styles.text} numberOfLines={1}>
-                  Arrival Date
-                </Text> */}
               </View>
               <View style={{ rowGap: 5 }}>
                 <Text style={styles.text} numberOfLines={1}>
