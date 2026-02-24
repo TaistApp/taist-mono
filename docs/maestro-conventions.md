@@ -283,10 +283,24 @@ adb reverse tcp:8081 tcp:8081
 
 After a fresh boot, `inputText` works reliably. The key is the 15s settle time after `boot_completed`.
 
-### Dismissing Dev Menu on Android
+### Dismissing Dev Menu
 
-On first launch, the Expo dev menu appears. Dismiss it:
+On first launch after `clearState`, the Expo dev menu welcome sheet appears on both platforms.
 
+**iOS:**
+```yaml
+# The X button has accessibilityText="Close" and resource-id="xmark"
+- tapOn:
+    text: "Close"
+# Then wait for the app splash to load
+- extendedWaitUntil:
+    visible: "Login With Email"
+    timeout: 15000
+```
+
+**Important:** Do NOT tap "Continue" on iOS — it scrolls down inside the dev menu instead of dismissing it. Use `tapOn: "Close"` (the X button).
+
+**Android:**
 ```yaml
 appId: com.taist.app
 ---
@@ -416,6 +430,43 @@ Steps 1–2 have testIDs. Steps 3+ (profile, location, preferences) are **missin
 | 3 (preferences) | Push/Location switches | `signup.preferences.pushNotifications` / `.locationServices` |
 | 3 (preferences) | Continue/Back | `signup.preferences.continueButton` / `.backButton` |
 
+## Forgot Password Flow
+
+### testIDs
+
+| Element | testID | Step |
+|---------|--------|------|
+| Email input | `forgotPassword.emailInput` | Step 1 (request code) |
+| Code input | `forgotPassword.codeInput` | Step 2 (reset) |
+| Password input | `forgotPassword.passwordInput` | Step 2 |
+| Confirm password input | `forgotPassword.confirmPasswordInput` | Step 2 |
+| Submit button (Request/Reset) | `forgotPassword.submitButton` | Both steps |
+| Back to login button | `forgotPassword.backButton` | Step 2 |
+
+### Flow
+
+1. Login screen → tap `login.forgotButton`
+2. Enter email → tap `forgotPassword.submitButton` (text: "Request")
+3. API returns verification code, UI transitions to step 2 (code + password fields)
+4. Enter code, new password, confirm password → tap `forgotPassword.submitButton` (text: "Reset")
+5. On success, navigates back to login
+
+### iOS Caveat: Automatic Strong Password
+
+The password and confirm password fields use `secureTextEntry`, which triggers iOS's **Automatic Strong Password** overlay. This overlay covers the fields and prevents Maestro from typing into them reliably. The fields show as "Automatic Strong Password cover view text" in the hierarchy.
+
+**Workaround:** For E2E testing, complete step 2 (the actual password reset) via the API directly:
+```bash
+# Get code from Resend API after step 1
+curl -s https://api.resend.com/emails/<email_id> -H "Authorization: Bearer $RESEND_KEY"
+# Reset via API
+curl -s -X POST https://api-staging.taist.app/mapi/reset_password \
+  -H "apiKey: ..." -d '{"code": "<code>", "password": "newpass"}'
+```
+Then verify login in the app with the new password.
+
+**App improvement:** Consider adding `textContentType="oneTimeCode"` on the code field and `textContentType="newPassword"` on the password fields, or test whether `autoComplete="off"` suppresses the iOS autofill overlay.
+
 ## Known Testability Issues (App Improvements Needed)
 
 These are app-side issues that make Maestro testing harder. Fix these in the app code when possible rather than working around them in flows.
@@ -426,6 +477,7 @@ These are app-side issues that make Maestro testing harder. Fix these in the app
 | No testIDs on GoLiveToggle modal buttons | GoLiveToggle | No `id:` selector available for modal actions | Add `goLive.modal.cancel`, `goLive.modal.done`, `goLive.modal.today`, `goLive.modal.tomorrow` |
 | Trailing spaces on text elements | Multiple screens | Fuzzy matching works but exact matches break | Trim trailing spaces from Text elements |
 | Coordinate taps fragile | Any modal with backdrop overlay | `point:` taps may hit overlay instead of content | Ensure modal content has enough padding / testIDs |
+| iOS Strong Password overlay | Forgot Password (step 2) | `secureTextEntry` fields get covered by iOS autofill | Test `textContentType="newPassword"` or `autoComplete="off"` |
 
 ## Post-Session Retrospective
 

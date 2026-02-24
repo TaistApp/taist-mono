@@ -121,7 +121,7 @@ Navigates to customer HOME tab successfully.
 | Rating count "(0)" | YES | `accessibilityText="(0) "` | |
 | Bio text | YES | `accessibilityText="Maestro test chef — active and verified.  "` | |
 | "All Chefs are fully insured." | YES | `accessibilityText` | |
-| "Availability" label | YES | `accessibilityText="Availability"` | |
+| "Chef Arrival Time" label | YES | `accessibilityText="Chef Arrival Time"` | |
 | Day selector chips | YES | `accessibilityText="Today, 20"`, `"Sat, 21"` etc | Scrollable horizontal |
 | Time slots | YES | `accessibilityText="7:30 pm"`, `"8:00 pm"` etc | Scrollable horizontal |
 | Allergy filter label | YES | `accessibilityText="Exclude items with the following:"` | |

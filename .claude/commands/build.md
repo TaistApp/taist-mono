@@ -99,7 +99,18 @@ Should be available in TestFlight in ~15 min.
 cc <@U09N5L0PS7P>
 ```
 
-Periodically check background tasks using `TaskOutput` with `block: true, timeout: 300000` (5-minute block waits). Don't spam checks.
+**IMPORTANT — Stay active and block-wait for completion:**
+
+After starting both background poll tasks, **immediately** call `TaskOutput` with `block: true, timeout: 300000` (5 min) on the first task. When it returns (completed or timed out), check the second task the same way. Keep cycling through both tasks until both have completed. Do NOT report to the user and go idle — stay in a loop checking until both builds finish.
+
+When a build completes:
+1. Parse the output for `STATUS=FINISHED` or `STATUS=ERRORED`/`STATUS=CANCELED`
+2. For successful Android: download APK and upload to Slack immediately
+3. For successful iOS: post TestFlight message to Slack immediately
+4. For failures: post failure message to the respective Slack channel
+5. Continue waiting for the other build if it hasn't finished yet
+
+Only after **both** builds are fully handled (Slack posts sent), move to Step 6.
 
 If a build fails (`STATUS=ERRORED` or `STATUS=CANCELED`), post a failure message to the respective Slack channel instead.
 
@@ -107,10 +118,9 @@ If a build fails (`STATUS=ERRORED` or `STATUS=CANCELED`), post a failure message
 
 Tell the user:
 - What versions were bumped to
-- Which builds were started
-- The changes summary that will be posted
-- For iOS: that auto-submit to TestFlight/App Store is in progress
-- For Android preview: that you're watching for the APK and will post to #android-builds
+- Which builds completed (success/failure)
+- The changes summary that was posted
+- Links to any Slack messages sent
 
 ## Important Notes
 

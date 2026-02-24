@@ -118,6 +118,8 @@ Maestro's driver uses a shared port (7001) — **only one session can use Maestr
 - Always pass `device_id` to every Maestro MCP tool call and `--device <UDID>` to CLI commands
 - Check booted devices: `xcrun simctl list devices booted`
 - Reset app state: `xcrun simctl uninstall <UDID> org.taist.taist` then reinstall
+- **No shortcuts:** When told to use Maestro, use Maestro — don't substitute with `curl`, API calls, `simctl openurl`, or a different device. If Maestro won't cooperate, troubleshoot it. If stuck, stop and ask the user.
+- **Lock timestamp is law:** Do NOT use `ps aux` or any other heuristic to override a lock that's < 15 min old. Wait and retry.
 
 ## Database
 

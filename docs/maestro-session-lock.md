@@ -50,6 +50,9 @@ Maestro's MCP server uses a hardcoded gRPC driver port (7001). When two Claude C
 3. **Always clean up.** Remove the lock when your Maestro work is done, even if the task isn't fully complete.
 4. **15-minute stale threshold** handles crashed sessions — `/tmp` also clears on reboot.
 5. **The lock only applies to Maestro MCP tools** (`mcp__maestro__*`). It does not apply to reading files, editing code, or other non-Maestro work.
+6. **The timestamp is the ONLY authority on staleness.** Do NOT check `ps aux` for Maestro processes, inspect driver ports, or use any other heuristic to decide a lock is stale. Multiple idle Maestro MCP Java processes persist across sessions and tell you nothing about whether another session is actively using Maestro. If the lock is < 15 min old, it is active — wait and retry, period.
+7. **Never override an active lock.** Even if the description looks like a finished task, or the processes look idle, or you "think" the other session is done — respect the timestamp. The other session may be between Maestro calls (editing code, reading files) and about to resume.
+8. **Maestro means Maestro — no shortcuts.** When a task requires Maestro verification (e.g., "use Maestro to test this"), you MUST use Maestro on the specified device. Do NOT substitute with `curl`, API calls, `xcrun simctl openurl`, or any other workaround. Do NOT switch to a different device or simulator unless the user says to. If Maestro isn't cooperating (lock contention, device issues, flow failures), troubleshoot the Maestro setup. If you genuinely can't fix it after reasonable attempts, **stop and ask the user for help** — don't silently fall back to a non-Maestro approach.
 
 ## Quick Reference
 

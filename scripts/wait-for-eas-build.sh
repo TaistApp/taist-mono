@@ -3,12 +3,12 @@
 # Usage: ./scripts/wait-for-eas-build.sh [--platform ios|android] [build-id]
 #
 # If no build-id is given, finds the latest build for the platform.
-# Polls every 30 minutes for up to 4 hours.
+# Polls every 20 minutes for up to 4 hours.
 # Exit codes: 0 = finished, 1 = errored/canceled, 2 = timeout
 
 set -uo pipefail
 
-POLL_INTERVAL=1800
+POLL_INTERVAL=1200
 MAX_WAIT=14400
 PLATFORM="android"
 FRONTEND_DIR="$(cd "$(dirname "$0")/../frontend" && pwd)"

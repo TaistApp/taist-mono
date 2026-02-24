@@ -39,28 +39,35 @@ Fetch all channels in parallel. If a channel fetch fails, skip it and note it.
 
 ### 3. Download Full Message JSON via Slack API
 
-The Slack MCP tool strips file attachments from its output. To get image URLs, fetch the raw JSON for channels that had activity:
+The Slack MCP tool strips file attachments and author user IDs from its output. To get image URLs and message authorship, fetch the raw JSON for channels that had activity:
 
 ```bash
 TOKEN=$(python3 -c "import json; print(json.load(open('$(git rev-parse --show-toplevel)/.mcp.json'))['mcpServers']['slack']['env']['SLACK_MCP_XOXB_TOKEN'])")
 curl -s -H "Authorization: Bearer $TOKEN" "https://slack.com/api/conversations.history?channel=CHANNEL_ID&limit=20" -o /tmp/slack-CHANNELNAME.json
 ```
 
-Then extract file URLs:
+Then extract message authors and file URLs:
 ```bash
 python3 -c "
 import json
 data = json.load(open('/tmp/slack-CHANNELNAME.json'))
 for m in data.get('messages', []):
+    ts = m.get('ts', '')
+    user = m.get('user', '')
+    text = m.get('text', '')[:80]
     files = m.get('files', [])
-    if files:
-        ts = m.get('ts', '')
-        text = m.get('text', '')[:80]
-        print(f'MSG ts={ts} text=\"{text}\"')
-        for f in files:
-            print(f'  FILE: {f.get(\"name\",\"\")} | url={f.get(\"url_private\",\"\")}')
+    print(f'MSG ts={ts} user={user} text=\"{text}\"')
+    for f in files:
+        print(f'  FILE: {f.get(\"name\",\"\")} | url={f.get(\"url_private\",\"\")}')
 "
 ```
+
+**Important:** The `user` field is the Slack user ID (e.g., `U09N5L0PS7P`). Map these to display names using the known user IDs:
+- `U09N5L27YQM` = Billy
+- `U09MTL5R6CX` = Daryl
+- `U09N5L0PS7P` = Dayne
+
+Record the `user` ID for every message — this is needed for reply tagging later.
 
 ### 4. Download All Images
 
@@ -78,8 +85,9 @@ Use descriptive filenames based on the message context (e.g., `background-check-
 
 Before spawning subagents, compile a numbered list of every distinct issue/topic found in the messages. For each, note:
 - Issue number and short title
-- Channel and message timestamp
-- Reporter name
+- **Channel ID** (e.g., `C0AGCUXHENQ`) — needed for replies
+- **Message timestamp** (e.g., `1771780896.445069`) — needed for threaded replies
+- **Author name + Slack user ID** (e.g., `Dayne (U09N5L0PS7P)`) — needed for @mentions in replies
 - Brief description from message text
 - Whether it has screenshots (and their file paths in `/tmp/slack-images/`)
 
@@ -202,16 +210,24 @@ Format the output as:
 
 ### Questions Needing Response
 - Question (from @person in #channel)
+
+### Slack Replies Sent
+(pending approval)
 ```
+
+The "Slack Replies Sent" section starts as `(pending approval)`. When the user approves sending replies, use `conversations_add_message` with the channel ID and thread_ts from each item to post threaded replies, then update this section with what was sent.
 
 For each issue include:
 - **Priority** (P0-P3)
-- **Channel** where it was discussed
 - **Status tag**: `[NEW]`, `[UPDATED]`, `[ONGOING]`, or `[RESOLVED]`
 - **Code status**: `[FIXED IN STAGING]`, `[NOT STARTED]`, etc.
 - **Summary** (1-2 sentences)
-- **Key participants** (display names)
+- **Author:** Display name + Slack user ID (e.g., `Dayne (U09N5L0PS7P)`)
+- **Channel:** Channel ID (e.g., `C0AGCUXHENQ`)
+- **Msg ts:** Message timestamp for threading replies
 - **Screenshot observations** if applicable
+
+These three fields (Author, Channel, Msg ts) enable direct threaded replies without any lookups.
 
 Specifically call out anything directed at or mentioning Billy (`U09N5L27YQM`) in the "Action Items" section.
 
