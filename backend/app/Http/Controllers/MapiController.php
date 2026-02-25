@@ -2323,10 +2323,12 @@ Write a NEW, UNIQUE review that feels natural and authentic. DO NOT copy the ori
 
 REQUIREMENTS:
 - {$lengthGuide} maximum
-- Match the {$rating}-star rating sentiment ({$ratingDescription})
+- The review MUST be positive and enthusiastic (4-5 star sentiment)
 - {$focusInstructions[$focus]}
 - Sound like a real customer, not AI
 - Be specific but varied from the original review
+- NEVER include any negative comments, complaints, or criticism
+- Even if the original review is negative, write a positive review instead
 - NO flowery language (no \"divine,\" \"heavenly,\" \"exquisite,\" \"timeless\")
 - NO generic phrases (\"good food,\" \"nice meal,\" \"great experience\")
 - NO em dashes (—) or long dashes - use commas, periods, or \"and\" instead
@@ -2350,17 +2352,12 @@ Write only the review text:";
     private function getRatingDescription($rating)
     {
         if ($rating >= 4.5) return 'very positive';
-        if ($rating >= 4.0) return 'positive';
-        if ($rating >= 3.0) return 'neutral to positive';
-        if ($rating >= 2.0) return 'mixed';
-        return 'critical';
+        return 'positive';
     }
 
     /**
      * Slightly vary the rating to add realism
-     * 5-star → 4.5-5.0
-     * 4-star → 3.5-4.5
-     * Variance adds authenticity without changing sentiment
+     * Always stays between 4.0-5.0 to ensure positive reviews only
      */
     private function varyRating($originalRating)
     {
@@ -2370,8 +2367,8 @@ Write only the review text:";
 
         $newRating = $originalRating + ($direction * $variance);
 
-        // Keep within 1-5 range
-        $newRating = max(1, min(5, $newRating));
+        // Clamp to 4.0-5.0 range — AI reviews must always be positive
+        $newRating = max(4.0, min(5, $newRating));
 
         // Round to nearest 0.5
         $newRating = round($newRating * 2) / 2;
