@@ -4,7 +4,8 @@
     "build": {
       "commands": [
         "...",
-        "cd admin-panel && npm ci && npm run build"
+        "cd admin-panel && npm ci && npm run build",
+        "cp -r public/assets/uploads storage/seed-uploads"
       ]
     }
   }

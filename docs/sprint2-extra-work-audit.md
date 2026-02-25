@@ -13,7 +13,7 @@
 | Category | Commits | Est. Hours | Description |
 |----------|---------|------------|-------------|
 | **SOW Work** | 21 | 20 | SOW deliverables + associated bug fixes and dev iteration |
-| **Pre-existing Bug Fixes** | 8 | ~8 | Bugs from the prior developer (CodeUpScale) — not Billy's code |
+| **Pre-existing Bug Fixes** | 9 | ~8.5 | Bugs from the prior developer (CodeUpScale) — not Billy's code |
 | **Admin Panel Overhaul** | 9 | ~16 | Complete rebuild — Billy's initiative, not in the SOW |
 | **Client-Requested UX Changes** | 6 | ~4 | UX improvements the client asked for beyond the SOW |
 | **Infra / Tooling / DX** | 29 | — | CI/CD, Maestro, docs, Claude tooling, deploy config, security |
@@ -74,6 +74,7 @@ CodeUpScale team:
 | 6 | `83245fa` | Feb 22 | **Fix tip/review page bouncing by stopping polling on completed orders** | Moeez | `919cd8f`, Sep 9, 2025 ("feat: Update to Expo Router navigation") |
 | 7 | `ec5739b` | Feb 21 | **Fix Android manifest merger conflict for notification color** | Moeez | `2fb2c0e`, Jul 9, 2025 ("Initial commit") |
 | 8 | `60e805c` | Feb 20 | **Fix calendar font-scaling bug** | Moeez | `919cd8f`, Sep 9, 2025 ("feat: Update to Expo Router navigation") |
+| 9 | *(pending)* | Feb 24 | **Fix chat inbox profile pics never loading (empty URL not handled)** — `StyledProfileImage` always attempted network load even when `url` was empty/undefined, causing perpetual gray placeholder. Component never checked for empty URLs. | Moeez | `8ed0998`, Nov 20, 2025 (initial commit from feature/expo-finalization) |
 
 ---
 

@@ -25,7 +25,11 @@ function formatOrderId(id: number) {
 function formatTimestamp(ts: number) {
   if (!ts) return "";
   const d = new Date(ts * 1000);
-  return d.toISOString().slice(0, 10);
+  return d.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 const columns: ColumnDef<Transaction>[] = [

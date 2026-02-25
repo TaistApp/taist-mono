@@ -74,7 +74,13 @@ function formatOrderId(id: number) {
 function formatTimestamp(ts: number) {
   if (!ts) return "";
   const d = new Date(ts * 1000);
-  return d.toISOString().slice(0, 16).replace("T", " ");
+  return d.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 function formatCurrency(n: number) {

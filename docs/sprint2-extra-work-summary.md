@@ -7,7 +7,7 @@ During Sprint 2 development, the following work was performed beyond the 6 contr
 
 ---
 
-## Pre-existing Bug Fixes (~8 hrs)
+## Pre-existing Bug Fixes (~8.5 hrs)
 
 Bugs that existed in the codebase from the prior development team (CodeUpScale). These were NOT introduced by Billy — verified via `git blame` and CodeUpScale's own source repos.
 
@@ -26,6 +26,7 @@ CodeUpScale had three developers on this project:
 | 6 | **Tip/review page bouncing** — order detail page polled every 30 seconds unconditionally (even on completed orders), which reset component state and hid the review/tip form mid-use | Medium — UX broken, users couldn't leave reviews | **Moeez**, Sep 9, 2025 (`919cd8f`, "feat: Update to Expo Router navigation and replace CalendarStrip") | Unconditional `setInterval(30000)` with `console.log('interval')` debug statement and `router.back()` navigation. |
 | 7 | **Android manifest merger conflict** — included both `expo-notifications` and `@react-native-firebase/messaging`, which both set `default_notification_color`, blocking Android builds | High — Android builds failed | **Moeez**, Jul 9, 2025 (`2fb2c0e`, "Initial commit") | Both packages added in the very first commit of the Expo rewrite. Never resolved — likely never completed a successful Android EAS build. |
 | 8 | **Calendar font-scaling overflow** — day containers used fixed `minWidth: 45` and no font scaling protection, so accessibility font scaling caused days to overflow off-screen | Low — accessibility | **Moeez**, Sep 9, 2025 (`919cd8f`, "feat: Update to Expo Router navigation and replace CalendarStrip") | Created `customCalendar.tsx` with `minWidth: 45` and no `maxFontSizeMultiplier`. Same commit as #6. |
+| 9 | **Chat inbox profile pics never load** — `StyledProfileImage` attempted network load on empty/undefined URLs instead of immediately showing placeholder. Component never checked if URL was valid before creating `Image` source, causing silent failures and perpetual gray avatars. | Medium — UX broken, chat inbox always shows placeholders | **Moeez**, Nov 20, 2025 (`8ed0998`, initial commit from feature/expo-finalization) | Component created with no empty-URL handling. Same code unchanged through all subsequent commits. |
 
 ---
 
@@ -49,6 +50,6 @@ UX improvements and terminology changes requested by the client during Sprint 2,
 | Item | Hours | Rate | Total |
 |------|-------|------|-------|
 | SOW (contracted) | 20 hrs | $100/hr | $2,000 |
-| Pre-existing bug fixes | ~8 hrs | $100/hr | ~$800 |
+| Pre-existing bug fixes | ~8.5 hrs | $100/hr | ~$850 |
 | Client-requested UX changes | ~4 hrs | $100/hr | ~$400 |
-| **Total extra** | **~12 hrs** | | **~$1,200** |
+| **Total extra** | **~12.5 hrs** | | **~$1,250** |
