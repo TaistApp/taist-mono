@@ -212,7 +212,7 @@ When customers browse a chef's available time slots, the system filters out slot
 ### How It Works
 
 1. Customer requests available timeslots for a chef on a specific date
-2. Backend fetches all active orders for that chef on that date (statuses: Requested=1, Accepted=2, On My Way=7)
+2. Backend fetches all active orders for that chef on that date (statuses: Accepted=2, On My Way=7). Requested orders do NOT block slots since the chef hasn't committed to them yet.
 3. For each order, a "blocked window" is calculated:
    - **Start**: `order_time - estimated_time` (prep start)
    - **End**: `order_time + ORDER_BUFFER_MINUTES` (30 min post-delivery buffer)
@@ -222,7 +222,7 @@ When customers browse a chef's available time slots, the system filters out slot
 
 | Constant | Value | Description |
 |----------|-------|-------------|
-| `BLOCKOUT_ORDER_STATUSES` | `[1, 2, 7]` | Statuses that block timeslots |
+| `BLOCKOUT_ORDER_STATUSES` | `[2, 7]` | Statuses that block timeslots (Accepted, On My Way) |
 | `ORDER_BUFFER_MINUTES` | `30` | Buffer after order time |
 | `DEFAULT_ORDER_DURATION_MINUTES` | `120` | Fallback if no estimated_time on menu |
 
@@ -338,6 +338,7 @@ The Railway server runs in UTC. If you convert a Unix timestamp to a date/time u
 - Frontend sends `order_date_string` (YYYY-MM-DD) and `order_time_string` (HH:mm) alongside the legacy `order_date` (Unix timestamp)
 - Backend uses the string fields for availability checks and stores them in `order_date_new` and `order_time` columns
 - The Unix `order_date` is kept for backward compatibility (receipts, refund timing)
+- The admin panel uses the string fields (`order_date_new`, `order_time`) for displaying order dates — not the legacy timestamp — to avoid browser timezone shifts
 - Never call `date('l', $unixTimestamp)` or `date('Y-m-d', $unixTimestamp)` for availability/scheduling logic — use the string fields instead
 
 **Database columns on tbl_orders:**
