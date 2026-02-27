@@ -209,6 +209,10 @@ This behavior is controlled by comparison operators (`<` for exclusive) in:
 
 When customers browse a chef's available time slots, the system filters out slots that conflict with existing orders. This prevents double-booking and ensures chefs have adequate prep time.
 
+### Same-Day 2-Hour Minimum
+
+For same-day orders, slots must be at least 2 hours away. This is calculated using the **chef's timezone** (derived from `$chef->state` via `TimezoneHelper::getTimezoneForState()`), not UTC. "Today" is also defined by the chef's clock. The comparison is a pure HH:MM string comparison — no UTC timestamp math.
+
 ### How It Works
 
 1. Customer requests available timeslots for a chef on a specific date
