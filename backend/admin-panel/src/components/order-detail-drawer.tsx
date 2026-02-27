@@ -19,6 +19,8 @@ interface Order {
   quantity: number;
   total_price: number;
   order_date: number;
+  order_date_new: string | null;
+  order_time: string | null;
   status: string;
   status_code: number;
   notes: string | null;
@@ -69,6 +71,20 @@ const statusColors: Record<string, string> = {
 
 function formatOrderId(id: number) {
   return `ORDER${String(id).padStart(7, "0")}`;
+}
+
+function formatOrderDate(dateStr: string | null, timeStr: string | null) {
+  if (!dateStr) return "";
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  let formatted = `${monthNames[month - 1]} ${day}, ${year}`;
+  if (timeStr) {
+    const [h, m] = timeStr.split(":").map(Number);
+    const ampm = h >= 12 ? "PM" : "AM";
+    const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    formatted += `, ${hour12}:${String(m).padStart(2, "0")} ${ampm}`;
+  }
+  return formatted;
 }
 
 function formatTimestamp(ts: number) {
@@ -138,7 +154,7 @@ export default function OrderDetailDrawer({
             </div>
             <div className="text-sm">
               <span className="text-gray-500">Order Date:</span>{" "}
-              {formatTimestamp(order.order_date)}
+              {formatOrderDate(order.order_date_new, order.order_time)}
             </div>
             <div className="text-sm">
               <span className="text-gray-500">Total:</span>{" "}

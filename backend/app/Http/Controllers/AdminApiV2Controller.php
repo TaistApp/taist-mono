@@ -392,7 +392,7 @@ class AdminApiV2Controller extends Controller
         $selects = [
             'o.id', 'o.customer_user_id', 'o.chef_user_id', 'o.menu_id',
             'o.amount', 'o.total_price', 'o.addons', 'o.address',
-            'o.order_date', 'o.status', 'o.notes', 'o.payment_token',
+            'o.order_date', 'o.order_date_new', 'o.order_time', 'o.status', 'o.notes', 'o.payment_token',
             'o.created_at', 'o.updated_at',
             'f.email as customer_email',
             'f.first_name as customer_first_name',
@@ -440,6 +440,8 @@ class AdminApiV2Controller extends Controller
                 'quantity' => $o->amount,
                 'total_price' => (float)$o->total_price,
                 'order_date' => (int)$o->order_date,
+                'order_date_new' => $o->order_date_new,
+                'order_time' => $o->order_time,
                 'status' => $statusMap[$o->status] ?? 'Unknown',
                 'status_code' => (int)$o->status,
                 'notes' => $o->notes,

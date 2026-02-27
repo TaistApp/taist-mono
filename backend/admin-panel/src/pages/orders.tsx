@@ -32,6 +32,8 @@ interface Order {
   quantity: number;
   total_price: number;
   order_date: number;
+  order_date_new: string | null;
+  order_time: string | null;
   status: string;
   status_code: number;
   notes: string | null;
@@ -62,16 +64,18 @@ function formatOrderId(id: number) {
   return `ORDER${String(id).padStart(7, "0")}`;
 }
 
-function formatTimestamp(ts: number) {
-  if (!ts) return "";
-  const d = new Date(ts * 1000);
-  return d.toLocaleString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+function formatOrderDate(dateStr: string | null, timeStr: string | null) {
+  if (!dateStr) return "";
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  let formatted = `${monthNames[month - 1]} ${day}, ${year}`;
+  if (timeStr) {
+    const [h, m] = timeStr.split(":").map(Number);
+    const ampm = h >= 12 ? "PM" : "AM";
+    const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    formatted += `, ${hour12}:${String(m).padStart(2, "0")} ${ampm}`;
+  }
+  return formatted;
 }
 
 function formatDate(ts: number) {
@@ -178,7 +182,7 @@ const columns: ColumnDef<Order>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Order Date" />
     ),
-    cell: ({ row }) => formatTimestamp(row.original.order_date),
+    cell: ({ row }) => formatOrderDate(row.original.order_date_new, row.original.order_time),
   },
   {
     accessorKey: "status",
@@ -348,7 +352,7 @@ export default function OrdersPage() {
       "Menu Item": o.menu_title ?? "",
       Qty: o.quantity,
       Total: o.total_price,
-      "Order Date": formatTimestamp(o.order_date),
+      "Order Date": formatOrderDate(o.order_date_new, o.order_time),
       Status: o.status,
       Created: formatDate(o.created_at),
     }));
