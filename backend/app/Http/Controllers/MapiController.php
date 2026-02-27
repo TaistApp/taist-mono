@@ -964,15 +964,16 @@ class MapiController extends Controller
             ]);
         }
 
-        // Calculate 2-hour minimum from now (only applies to today)
-        $now = time();
-        $minimumOrderTime = $now + (2 * 60 * 60);
-
-        // Use client timezone to determine if requested date is "today"
-        $clientTimezone = $request->input('timezone');
-        $todayDateOnly = \App\Helpers\TimezoneHelper::getTodayInTimezone($clientTimezone);
+        // Use chef's timezone for "is today" check and 2-hour minimum
+        // Slot HH:MM strings represent chef-local time, so comparisons must use chef's clock
+        $chefTimezone = \App\Helpers\TimezoneHelper::getTimezoneForState($chef->state);
+        $chefToday = \App\Helpers\TimezoneHelper::getTodayInTimezone($chefTimezone);
         $requestedDateOnly = date('Y-m-d', $dateTimestamp);
-        $isRequestedDateToday = ($requestedDateOnly === $todayDateOnly);
+        $isRequestedDateToday = ($requestedDateOnly === $chefToday);
+
+        // Calculate 2-hour minimum in chef's local time as HH:MM string
+        $chefNow = \App\Helpers\TimezoneHelper::getNowInTimezone($chefTimezone);
+        $minimumOrderTimeLocal = $chefNow->modify('+2 hours')->format('H:i');
 
         // OPTIMIZATION: Fetch availability data ONCE instead of per-slot
         $dayOfWeek = strtolower(date('l', $dateTimestamp));
@@ -1045,11 +1046,8 @@ class MapiController extends Controller
             for ($minute = 0; $minute < 60; $minute += 30) {
                 $timeStr = sprintf('%02d:%02d', $hour, $minute);
 
-                // Create timestamp for this slot on the selected date
-                $slotTimestamp = strtotime($date . ' ' . $timeStr . ':00');
-
-                // Skip if less than 2 hours from now (only for today's date)
-                if ($isRequestedDateToday && $slotTimestamp < $minimumOrderTime) {
+                // Skip if less than 2 hours from now in chef's timezone (only for today)
+                if ($isRequestedDateToday && $timeStr < $minimumOrderTimeLocal) {
                     continue;
                 }
 
@@ -2496,42 +2494,45 @@ Write only the review text:";
         $orderDateString = $request->input('order_date_string');
         $orderTimeString = $request->input('order_time_string');
 
-        $currentTimestamp = time();
-
-        // Use string date for same-day comparison if available, else fall back to UTC
-        $orderDateOnly = $orderDateString ?: date('Y-m-d', $orderTimestamp);
-        $todayDateOnly = date('Y-m-d', $currentTimestamp);
-        $isSameDay = ($orderDateOnly === $todayDateOnly);
-
-        if ($isSameDay) {
-            $minimumOrderTime = $currentTimestamp + (2 * 60 * 60); // 2 hours from now
-
-            if ($orderTimestamp < $minimumOrderTime) {
-                $hoursNeeded = ceil(($minimumOrderTime - $orderTimestamp) / 3600);
-                return response()->json([
-                    'success' => 0,
-                    'error' => "Same-day orders must be placed at least 2 hours in advance. Please select a time at least {$hoursNeeded} hours from now, or choose a different day.",
-                    'minimum_order_timestamp' => $minimumOrderTime,
-                    'requested_timestamp' => $orderTimestamp,
-                ]);
-            }
-        }
-
-        // For all orders, ensure the order is not in the past
-        if ($orderTimestamp < $currentTimestamp) {
-            return response()->json([
-                'success' => 0,
-                'error' => 'Cannot place orders for times in the past.',
-                'requested_timestamp' => $orderTimestamp,
-                'current_timestamp' => $currentTimestamp,
-            ]);
-        }
-
-        // ===== TMA-011 REVISED: Validate chef availability (uses override logic) =====
+        // Fetch chef early — needed for timezone-aware validation below
         $chef = app(Listener::class)->where('id', $request->chef_user_id)->first();
 
         if (!$chef) {
             return response()->json(['success' => 0, 'error' => 'Chef not found']);
+        }
+
+        // Use chef's timezone for same-day check and 2-hour minimum
+        // Order times are in chef-local time, so "today" and "now" must use chef's clock
+        $chefTimezone = \App\Helpers\TimezoneHelper::getTimezoneForState($chef->state);
+        $chefToday = \App\Helpers\TimezoneHelper::getTodayInTimezone($chefTimezone);
+
+        $orderDateOnly = $orderDateString ?: date('Y-m-d', $orderTimestamp);
+        $isSameDay = ($orderDateOnly === $chefToday);
+
+        if ($isSameDay) {
+            // Compute "now + 2 hours" in chef's timezone as HH:MM
+            $chefNow = \App\Helpers\TimezoneHelper::getNowInTimezone($chefTimezone);
+            $minimumOrderTimeLocal = $chefNow->modify('+2 hours')->format('H:i');
+            $orderTime = $orderTimeString ?: date('H:i', $orderTimestamp);
+
+            if ($orderTime < $minimumOrderTimeLocal) {
+                return response()->json([
+                    'success' => 0,
+                    'error' => "Same-day orders must be placed at least 2 hours in advance. Please select a later time or choose a different day.",
+                ]);
+            }
+        }
+
+        // For all orders, ensure the order time is not in the past (in chef's timezone)
+        if ($isSameDay) {
+            $chefNowTime = \App\Helpers\TimezoneHelper::getCurrentTimeInTimezone($chefTimezone);
+            $orderTime = $orderTimeString ?: date('H:i', $orderTimestamp);
+            if ($orderTime < substr($chefNowTime, 0, 5)) {
+                return response()->json([
+                    'success' => 0,
+                    'error' => 'Cannot place orders for times in the past.',
+                ]);
+            }
         }
 
         // Get client timezone to match timeslots API logic
