@@ -62,7 +62,7 @@ class MapiController extends Controller
     // TMA-037: Demand signaling & time blockout constants
     const DEMAND_SIGNAL_FAKE_PERCENTAGE = 40;       // % of chefs without orders that get fake "hot" badge
     const DEMAND_SIGNAL_STATUSES = [1, 2];           // Order statuses that count as real demand
-    const BLOCKOUT_ORDER_STATUSES = [1, 2, 7];       // Order statuses that block timeslots (Requested, Accepted, On My Way)
+    const BLOCKOUT_ORDER_STATUSES = [2, 7];           // Order statuses that block timeslots (Accepted, On My Way)
     const ORDER_BUFFER_MINUTES = 30;                  // Buffer time (minutes) between orders
     const DEFAULT_ORDER_DURATION_MINUTES = 120;       // Fallback if chef has no live menu items
 
