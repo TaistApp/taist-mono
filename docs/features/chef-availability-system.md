@@ -394,6 +394,29 @@ GetAvailabilityOverridesAPI({
 
 ---
 
+## Legacy Timestamp Conversion (One-Time Data Fix)
+
+Some chefs have Unix timestamps (e.g. `1764946800`) in `tbl_availabilities` schedule fields instead of `HH:MM` strings. This causes `Carbon::parse` crashes in any code that concatenates the raw value into a datetime string.
+
+**Code is protected:** `normalizeTimeValue()` handles both formats at runtime in `Listener.php` and `ChefConfirmationReminderService.php`. But the underlying data should still be converted.
+
+### Commands
+
+```bash
+# Dry-run: shows affected chefs and what would change
+php artisan availability:convert-timestamps
+
+# Apply: converts timestamps to HH:MM strings in-place
+php artisan availability:convert-timestamps --execute
+```
+
+### Deployment Checklist
+
+- [x] **Staging** — Run `availability:convert-timestamps --execute` (done 2026-02-28)
+- [ ] **Production** — Run `availability:convert-timestamps --execute` after deploying to main
+
+---
+
 ## Deprecated (Do Not Use)
 
 The following are deprecated and should not be used:
