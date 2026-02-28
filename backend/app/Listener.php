@@ -113,18 +113,25 @@ class Listener extends Authenticatable
      * @param string $orderDate The order date/time
      * @return bool
      */
-    public function isAvailableForOrder($orderDate, $timezone = null)
+    public function isAvailableForOrder($orderDate, $orderTimeStr = null, $timezone = null)
     {
-        // Handle both Unix timestamp (number) and date string formats
-        $orderTimestamp = is_numeric($orderDate) ? (int)$orderDate : strtotime($orderDate);
+        // If date and time strings are provided (YYYY-MM-DD + HH:mm), use them directly
+        // This avoids UTC timezone conversion bugs with Unix timestamps
+        if ($orderTimeStr && is_string($orderDate) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $orderDate)) {
+            $orderDateOnly = $orderDate;
+            $orderTime = $orderTimeStr;
+        } else {
+            // Legacy: handle Unix timestamp or datetime string
+            $orderTimestamp = is_numeric($orderDate) ? (int)$orderDate : strtotime($orderDate);
 
-        if (!$orderTimestamp || $orderTimestamp <= 0) {
-            \Log::warning("[AVAILABILITY] Invalid order date received: " . var_export($orderDate, true));
-            return false;
+            if (!$orderTimestamp || $orderTimestamp <= 0) {
+                \Log::warning("[AVAILABILITY] Invalid order date received: " . var_export($orderDate, true));
+                return false;
+            }
+
+            $orderDateOnly = date('Y-m-d', $orderTimestamp);
+            $orderTime = date('H:i', $orderTimestamp);
         }
-
-        $orderDateOnly = date('Y-m-d', $orderTimestamp);
-        $orderTime = date('H:i', $orderTimestamp);
 
         // Check for override first
         $override = \App\Models\AvailabilityOverride::forChef($this->id)
@@ -137,22 +144,31 @@ class Listener extends Authenticatable
         }
 
         // No override - fall back to weekly recurring schedule (today and future dates)
-        return $this->hasScheduleForDateTime($orderTimestamp, $orderTime);
+        return $this->hasScheduleForDateTime($orderDateOnly, $orderTime);
     }
 
     /**
      * Check if chef has availability for a specific date/time in weekly schedule
      * TMA-011 REVISED - Checks both day AND time
      *
-     * @param int|string $dateTime The date/time to check (Unix timestamp or date string)
+     * @param int|string $dateTime The date/time to check (YYYY-MM-DD string, Unix timestamp, or datetime string)
      * @param string $time Time in H:i format
      * @return bool
      */
     private function hasScheduleForDateTime($dateTime, $time)
     {
-        // Handle both Unix timestamp and date string
-        $timestamp = is_numeric($dateTime) ? (int)$dateTime : strtotime($dateTime);
-        $dayOfWeek = strtolower(date('l', $timestamp));
+        // Extract day-of-week from date string directly — never go through Unix timestamps
+        // because the server runs in UTC and date('l', $timestamp) gives the wrong day
+        // for evening US orders (e.g. Sunday 7 PM EST = Monday 00:00 UTC)
+        if (is_string($dateTime) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateTime)) {
+            $dt = \DateTime::createFromFormat('Y-m-d', $dateTime);
+            $dayOfWeek = strtolower($dt->format('l'));
+        } else {
+            // Legacy fallback — should not be reached after timezone fix
+            \Log::warning("[TIMESLOTS] hasScheduleForDateTime received non-date-string: " . var_export($dateTime, true));
+            $timestamp = is_numeric($dateTime) ? (int)$dateTime : strtotime($dateTime);
+            $dayOfWeek = strtolower(date('l', $timestamp));
+        }
         // Database column is misspelled as "saterday" - map to match
         if ($dayOfWeek === 'saturday') {
             $dayOfWeek = 'saterday';

@@ -177,6 +177,40 @@ AFTER (What Stripe now receives):
 Commit: `15b60b7` - "Clean up codebase: documentation, formatting, and helper utilities"
 Date: December 10, 2025
 
+---
+
+## Fix 4: Statement Descriptor Validation Failure (Feb 2026)
+
+### Date
+February 22, 2026
+
+### Problem
+Chefs were blocked on Stripe's "Public details" page during onboarding. The statement descriptor field showed `TAIST` (pre-filled correctly) but Stripe displayed a red validation error: **"Your statement descriptor must be similar to your legal name or business URL."**
+
+The business name was set to the chef's name (e.g., "Dayne Arnett"), which doesn't match "TAIST". Stripe requires the descriptor to match either the business name or a business URL.
+
+**Screenshot:** Chef stuck on "Add public details for customers" page with red error under the statement descriptor field.
+
+### Root Cause
+- `business_profile.url` was never set during account creation
+- Without a URL containing "taist", Stripe rejected the descriptor
+- Additionally, `collection_options.fields = 'eventually_due'` forced the page to show even when all fields were pre-filled
+
+### Fix (Commit `965d22d`)
+
+**Three changes in `MapiController.php`:**
+
+1. **Added `'url' => 'https://taist.app'` to `business_profile`** during account creation — makes "TAIST" a valid descriptor since it matches the URL domain
+
+2. **Added `$stripe->accounts->update()` in the existing-account reuse path** — when a chef re-enters onboarding, their existing Stripe account gets updated with the URL and descriptor, fixing already-created accounts
+
+3. **Changed `collection_options.fields` from `'eventually_due'` to `'currently_due'`** — Stripe now skips pages where required info is already pre-filled, reducing onboarding friction
+
+### Files Modified
+1. `backend/app/Http/Controllers/MapiController.php` — `addStripeAccount()` method (3 changes)
+
+---
+
 ## Next Steps
 
 1. Test the Stripe Connect onboarding flow with a new user

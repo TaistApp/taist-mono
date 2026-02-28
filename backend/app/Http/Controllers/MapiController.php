@@ -59,6 +59,13 @@ class MapiController extends Controller
     protected $orderSmsService; // SMS Notification Service
     protected $chatSmsService; // Chat SMS Alert Service
 
+    // TMA-037: Demand signaling & time blockout constants
+    const DEMAND_SIGNAL_FAKE_PERCENTAGE = 40;       // % of chefs without orders that get fake "hot" badge
+    const DEMAND_SIGNAL_STATUSES = [1, 2];           // Order statuses that count as real demand
+    const BLOCKOUT_ORDER_STATUSES = [2, 7];           // Order statuses that block timeslots (Accepted, On My Way)
+    const ORDER_BUFFER_MINUTES = 30;                  // Buffer time (minutes) between orders
+    const DEFAULT_ORDER_DURATION_MINUTES = 120;       // Fallback if chef has no live menu items
+
     public function __construct(Request $request, OrderSmsService $orderSmsService, ChatSmsService $chatSmsService)
     {
         $this->request = $request;
@@ -392,7 +399,12 @@ class MapiController extends Controller
         }
 
         $photo = '';
+        $photoExpected = isset($request->user_type) && $request->user_type == 2; // Chefs must have a photo
         if (isset($_FILES['photo']) && $_FILES['photo']['name']) {
+            if ($_FILES['photo']['error'] !== UPLOAD_ERR_OK) {
+                Log::error('Photo upload failed during registration', ['error_code' => $_FILES['photo']['error'], 'email' => $request->email]);
+                return response()->json(['success' => 0, 'error' => 'Photo upload failed. Please try again.']);
+            }
             $aname = explode(".", $_FILES['photo']['name']);
             $ext = strtolower($aname[count($aname) - 1]);
             $ext = $_FILES['photo']['type'] == 'image/png' ? 'png' : 'jpg';
@@ -401,8 +413,14 @@ class MapiController extends Controller
             if (!is_dir($uploadDir)) {
                 mkdir($uploadDir, 0755, true);
             }
-            move_uploaded_file($_FILES["photo"]["tmp_name"], $uploadDir . $photo);
+            if (!move_uploaded_file($_FILES["photo"]["tmp_name"], $uploadDir . $photo)) {
+                Log::error('move_uploaded_file failed during registration', ['dest' => $uploadDir . $photo, 'email' => $request->email]);
+                return response()->json(['success' => 0, 'error' => 'Photo could not be saved. Please try again.']);
+            }
             $this->resizeImage($photo, $ext == 'png');
+        } elseif ($photoExpected) {
+            Log::warning('Chef registration without photo', ['email' => $request->email, 'files_keys' => array_keys($_FILES)]);
+            return response()->json(['success' => 0, 'error' => 'Profile photo is required for chef accounts.']);
         }
 
         $api_token = $this->_generateToken();
@@ -946,15 +964,16 @@ class MapiController extends Controller
             ]);
         }
 
-        // Calculate 3-hour minimum from now (only applies to today)
-        $now = time();
-        $minimumOrderTime = $now + (3 * 60 * 60);
-
-        // Use client timezone to determine if requested date is "today"
-        $clientTimezone = $request->input('timezone');
-        $todayDateOnly = \App\Helpers\TimezoneHelper::getTodayInTimezone($clientTimezone);
+        // Use chef's timezone for "is today" check and 2-hour minimum
+        // Slot HH:MM strings represent chef-local time, so comparisons must use chef's clock
+        $chefTimezone = \App\Helpers\TimezoneHelper::getTimezoneForState($chef->state);
+        $chefToday = \App\Helpers\TimezoneHelper::getTodayInTimezone($chefTimezone);
         $requestedDateOnly = date('Y-m-d', $dateTimestamp);
-        $isRequestedDateToday = ($requestedDateOnly === $todayDateOnly);
+        $isRequestedDateToday = ($requestedDateOnly === $chefToday);
+
+        // Calculate 2-hour minimum in chef's local time as HH:MM string
+        $chefNow = \App\Helpers\TimezoneHelper::getNowInTimezone($chefTimezone);
+        $minimumOrderTimeLocal = $chefNow->modify('+2 hours')->format('H:i');
 
         // OPTIMIZATION: Fetch availability data ONCE instead of per-slot
         $dayOfWeek = strtolower(date('l', $dateTimestamp));
@@ -1027,11 +1046,8 @@ class MapiController extends Controller
             for ($minute = 0; $minute < 60; $minute += 30) {
                 $timeStr = sprintf('%02d:%02d', $hour, $minute);
 
-                // Create timestamp for this slot on the selected date
-                $slotTimestamp = strtotime($date . ' ' . $timeStr . ':00');
-
-                // Skip if less than 3 hours from now (only for today's date)
-                if ($isRequestedDateToday && $slotTimestamp < $minimumOrderTime) {
+                // Skip if less than 2 hours from now in chef's timezone (only for today)
+                if ($isRequestedDateToday && $timeStr < $minimumOrderTimeLocal) {
                     continue;
                 }
 
@@ -1043,6 +1059,9 @@ class MapiController extends Controller
                 }
             }
         }
+
+        // TMA-037: Filter out slots blocked by existing orders
+        $allSlots = self::filterSlotsByOrders($allSlots, (int) $chefId, $dateOnly);
 
         return response()->json([
             'success' => 1,
@@ -1074,6 +1093,100 @@ class MapiController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Convert "HH:MM" time string to minutes since midnight.
+     */
+    public static function timeToMinutes(string $time): int
+    {
+        $parts = explode(':', $time);
+        return ((int) $parts[0] * 60) + (int) ($parts[1] ?? 0);
+    }
+
+    /**
+     * TMA-037: Filter timeslots by existing orders for a chef on a date.
+     * Removes slots that would overlap with existing orders (including buffer time).
+     */
+    public static function filterSlotsByOrders(array $slots, int $chefId, string $dateOnly): array
+    {
+        $existingOrders = DB::table('tbl_orders')
+            ->join('tbl_menus', 'tbl_orders.menu_id', '=', 'tbl_menus.id')
+            ->where('tbl_orders.chef_user_id', $chefId)
+            ->where('tbl_orders.order_date_new', $dateOnly)
+            ->whereIn('tbl_orders.status', self::BLOCKOUT_ORDER_STATUSES)
+            ->select('tbl_orders.order_time', 'tbl_menus.estimated_time')
+            ->get();
+
+        if ($existingOrders->isEmpty()) {
+            return $slots;
+        }
+
+        // Build order windows: [start => arrival_minutes, end => arrival + prep]
+        $orderWindows = [];
+        foreach ($existingOrders as $order) {
+            $arrivalMinutes = self::timeToMinutes($order->order_time);
+            $prepMinutes = (int) ($order->estimated_time ?? 120);
+            $orderWindows[] = [
+                'start' => $arrivalMinutes,
+                'end'   => $arrivalMinutes + $prepMinutes,
+            ];
+        }
+        usort($orderWindows, fn($a, $b) => $a['start'] - $b['start']);
+
+        // Chef's max menu item duration (conservative estimate for new order)
+        $maxNewSessionMinutes = (int) (DB::table('tbl_menus')
+            ->where('user_id', $chefId)
+            ->where('is_live', 1)
+            ->max('estimated_time') ?? self::DEFAULT_ORDER_DURATION_MINUTES);
+
+        $bufferMinutes = self::ORDER_BUFFER_MINUTES;
+
+        return array_values(array_filter($slots, function ($slotHHMM) use ($orderWindows, $maxNewSessionMinutes, $bufferMinutes) {
+            $parts = explode(':', $slotHHMM);
+            $slotMinutes = ((int) $parts[0] * 60) + (int) $parts[1];
+            $newOrderEnd = $slotMinutes + $maxNewSessionMinutes;
+
+            foreach ($orderWindows as $window) {
+                // Slot is clear if it fully comes after existing order (with buffer)
+                // or fully ends before existing order starts (with buffer)
+                $comesAfter = $slotMinutes >= $window['end'] + $bufferMinutes;
+                $comesBefore = $newOrderEnd + $bufferMinutes <= $window['start'];
+                if (!$comesAfter && !$comesBefore) {
+                    return false;
+                }
+            }
+            return true;
+        }));
+    }
+
+    /**
+     * TMA-037: Compute demand signal (is_hot flag) for a set of chefs on a given date.
+     *
+     * @return array Map of chefId => bool (is_hot)
+     */
+    public static function computeDemandSignal(array $chefIds, string $dateString): array
+    {
+        $chefsWithOrders = !empty($chefIds)
+            ? DB::table('tbl_orders')
+                ->whereIn('chef_user_id', $chefIds)
+                ->where('order_date_new', $dateString)
+                ->whereIn('status', self::DEMAND_SIGNAL_STATUSES)
+                ->distinct()
+                ->pluck('chef_user_id')
+                ->flip()
+                ->toArray()
+            : [];
+
+        $result = [];
+        foreach ($chefIds as $id) {
+            $hasRealDemand = isset($chefsWithOrders[$id]);
+            $hasFakeDemand = !$hasRealDemand && self::DEMAND_SIGNAL_FAKE_PERCENTAGE > 0
+                && (abs(crc32($id . '-' . $dateString)) % 100) < self::DEMAND_SIGNAL_FAKE_PERCENTAGE;
+            $result[$id] = $hasRealDemand || $hasFakeDemand;
+        }
+
+        return $result;
     }
 
     private function resizeImage($file, $png = FALSE, $crop = FALSE)
@@ -2139,7 +2252,7 @@ Respond ONLY with valid JSON:
                     $aiReviewText = trim($result['content']);
 
                     // Create AI review record with varied date
-                    $variedDate = $this->varyReviewDate($authenticReview->created_at);
+                    $variedDate = $this->varyReviewDate();
                     $aiReview = app(Reviews::class)->create([
                         'order_id' => $authenticReview->order_id,
                         'from_user_id' => $authenticReview->from_user_id,
@@ -2208,10 +2321,12 @@ Write a NEW, UNIQUE review that feels natural and authentic. DO NOT copy the ori
 
 REQUIREMENTS:
 - {$lengthGuide} maximum
-- Match the {$rating}-star rating sentiment ({$ratingDescription})
+- The review MUST be positive and enthusiastic (4-5 star sentiment)
 - {$focusInstructions[$focus]}
 - Sound like a real customer, not AI
 - Be specific but varied from the original review
+- NEVER include any negative comments, complaints, or criticism
+- Even if the original review is negative, write a positive review instead
 - NO flowery language (no \"divine,\" \"heavenly,\" \"exquisite,\" \"timeless\")
 - NO generic phrases (\"good food,\" \"nice meal,\" \"great experience\")
 - NO em dashes (—) or long dashes - use commas, periods, or \"and\" instead
@@ -2235,17 +2350,12 @@ Write only the review text:";
     private function getRatingDescription($rating)
     {
         if ($rating >= 4.5) return 'very positive';
-        if ($rating >= 4.0) return 'positive';
-        if ($rating >= 3.0) return 'neutral to positive';
-        if ($rating >= 2.0) return 'mixed';
-        return 'critical';
+        return 'positive';
     }
 
     /**
      * Slightly vary the rating to add realism
-     * 5-star → 4.5-5.0
-     * 4-star → 3.5-4.5
-     * Variance adds authenticity without changing sentiment
+     * Always stays between 4.0-5.0 to ensure positive reviews only
      */
     private function varyRating($originalRating)
     {
@@ -2255,8 +2365,8 @@ Write only the review text:";
 
         $newRating = $originalRating + ($direction * $variance);
 
-        // Keep within 1-5 range
-        $newRating = max(1, min(5, $newRating));
+        // Clamp to 4.0-5.0 range — AI reviews must always be positive
+        $newRating = max(4.0, min(5, $newRating));
 
         // Round to nearest 0.5
         $newRating = round($newRating * 2) / 2;
@@ -2268,7 +2378,7 @@ Write only the review text:";
      * Vary the review date to add realism
      * Returns a date within 1-14 days before the current time
      */
-    private function varyReviewDate($originalDate)
+    private function varyReviewDate()
     {
         $now = time();
 
@@ -2357,13 +2467,15 @@ Write only the review text:";
             'customer_id' => $request->customer_user_id,
             'menu_id' => $request->menu_id,
             'order_date' => $request->order_date,
+            'order_date_string' => $request->order_date_string,
+            'order_time_string' => $request->order_time_string,
             'total_price' => $request->total_price,
         ]);
 
         if ($this->_checktaistApiKey($request->header('apiKey')) === false)
             return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
 
-        // ===== TMA-011: Validate 3-hour minimum window =====
+        // ===== TMA-011: Validate minimum window =====
         $orderDate = $request->order_date;
         // Handle both Unix timestamp (number) and date string formats
         $orderTimestamp = is_numeric($orderDate) ? (int)$orderDate : strtotime($orderDate);
@@ -2377,57 +2489,68 @@ Write only the review text:";
             ]);
         }
 
-        $currentTimestamp = time();
+        // Use explicit date/time strings from frontend if provided (timezone-safe)
+        // Falls back to parsing Unix timestamp (legacy, subject to UTC conversion bugs)
+        $orderDateString = $request->input('order_date_string');
+        $orderTimeString = $request->input('order_time_string');
 
-        // 3-hour rule only applies to same-day orders
-        $orderDateOnly = date('Y-m-d', $orderTimestamp);
-        $todayDateOnly = date('Y-m-d', $currentTimestamp);
-        $isSameDay = ($orderDateOnly === $todayDateOnly);
-
-        if ($isSameDay) {
-            $minimumOrderTime = $currentTimestamp + (3 * 60 * 60); // 3 hours from now
-
-            if ($orderTimestamp < $minimumOrderTime) {
-                $hoursNeeded = ceil(($minimumOrderTime - $orderTimestamp) / 3600);
-                return response()->json([
-                    'success' => 0,
-                    'error' => "Same-day orders must be placed at least 3 hours in advance. Please select a time at least {$hoursNeeded} hours from now, or choose a different day.",
-                    'minimum_order_timestamp' => $minimumOrderTime,
-                    'requested_timestamp' => $orderTimestamp,
-                ]);
-            }
-        }
-
-        // For all orders, ensure the order is not in the past
-        if ($orderTimestamp < $currentTimestamp) {
-            return response()->json([
-                'success' => 0,
-                'error' => 'Cannot place orders for times in the past.',
-                'requested_timestamp' => $orderTimestamp,
-                'current_timestamp' => $currentTimestamp,
-            ]);
-        }
-
-        // ===== TMA-011 REVISED: Validate chef availability (uses override logic) =====
+        // Fetch chef early — needed for timezone-aware validation below
         $chef = app(Listener::class)->where('id', $request->chef_user_id)->first();
 
         if (!$chef) {
             return response()->json(['success' => 0, 'error' => 'Chef not found']);
         }
 
+        // Use chef's timezone for same-day check and 2-hour minimum
+        // Order times are in chef-local time, so "today" and "now" must use chef's clock
+        $chefTimezone = \App\Helpers\TimezoneHelper::getTimezoneForState($chef->state);
+        $chefToday = \App\Helpers\TimezoneHelper::getTodayInTimezone($chefTimezone);
+
+        $orderDateOnly = $orderDateString ?: date('Y-m-d', $orderTimestamp);
+        $isSameDay = ($orderDateOnly === $chefToday);
+
+        if ($isSameDay) {
+            // Compute "now + 2 hours" in chef's timezone as HH:MM
+            $chefNow = \App\Helpers\TimezoneHelper::getNowInTimezone($chefTimezone);
+            $minimumOrderTimeLocal = $chefNow->modify('+2 hours')->format('H:i');
+            $orderTime = $orderTimeString ?: date('H:i', $orderTimestamp);
+
+            if ($orderTime < $minimumOrderTimeLocal) {
+                return response()->json([
+                    'success' => 0,
+                    'error' => "Same-day orders must be placed at least 2 hours in advance. Please select a later time or choose a different day.",
+                ]);
+            }
+        }
+
+        // For all orders, ensure the order time is not in the past (in chef's timezone)
+        if ($isSameDay) {
+            $chefNowTime = \App\Helpers\TimezoneHelper::getCurrentTimeInTimezone($chefTimezone);
+            $orderTime = $orderTimeString ?: date('H:i', $orderTimestamp);
+            if ($orderTime < substr($chefNowTime, 0, 5)) {
+                return response()->json([
+                    'success' => 0,
+                    'error' => 'Cannot place orders for times in the past.',
+                ]);
+            }
+        }
+
         // Get client timezone to match timeslots API logic
         $clientTimezone = $request->input('timezone');
 
-        // Use the override-aware availability check
-        if (!$chef->isAvailableForOrder($orderDate, $clientTimezone)) {
-            $orderTime = date('H:i', $orderTimestamp);
-            $dayOfWeek = date('l', $orderTimestamp);
-            $clientToday = \App\Helpers\TimezoneHelper::getTodayInTimezone($clientTimezone);
+        // Use date+time strings for availability check (timezone-safe)
+        // Falls back to legacy timestamp-based check if strings not provided
+        $isAvailable = ($orderDateString && $orderTimeString)
+            ? $chef->isAvailableForOrder($orderDateString, $orderTimeString, $clientTimezone)
+            : $chef->isAvailableForOrder($orderDate, null, $clientTimezone);
+
+        if (!$isAvailable) {
+            $orderTime = $orderTimeString ?: date('H:i', $orderTimestamp);
+            $dayOfWeek = date('l', strtotime($orderDateOnly));
             \Log::warning("[CHEF_UNAVAILABLE] Chef {$chef->id} not available for order. " .
                 "Requested: {$orderDateOnly} ({$dayOfWeek}) at {$orderTime}, " .
-                "Today (client TZ): {$clientToday}, " .
-                "Today (UTC): {$todayDateOnly}, " .
-                "Client TZ: " . ($clientTimezone ?: 'null') . ", " .
+                "order_date_string: " . ($orderDateString ?: 'null') . ", " .
+                "order_time_string: " . ($orderTimeString ?: 'null') . ", " .
                 "Raw orderDate: {$orderDate}");
             return response()->json([
                 'success' => 0,
@@ -2503,6 +2626,8 @@ Write only the review text:";
             'addons' => isset($request->addons) ? $request->addons : '',
             'address' => $request->address,
             'order_date' => $request->order_date,
+            'order_date_new' => $orderDateString ?: date('Y-m-d', $orderTimestamp),
+            'order_time' => $orderTimeString ?: date('H:i', $orderTimestamp),
             'status' => isset($request->status) ? $request->status : 1,
             'notes' => isset($request->notes) ? $request->notes : '',
             // Discount fields
@@ -2764,7 +2889,7 @@ Write only the review text:";
                 $aiReviewText = trim($result['content']);
 
                 // Vary the date for each AI review
-                $variedDate = $this->varyReviewDate($authenticReview->created_at);
+                $variedDate = $this->varyReviewDate();
                 app(Reviews::class)->create([
                     'order_id' => $authenticReview->order_id,
                     'from_user_id' => $authenticReview->from_user_id,
@@ -3083,6 +3208,10 @@ Write only the review text:";
 
         $photo = $request->photo;
         if (isset($_FILES['photo']) && $_FILES['photo']['name']) {
+            if ($_FILES['photo']['error'] !== UPLOAD_ERR_OK) {
+                Log::error('Photo upload failed during user update', ['error_code' => $_FILES['photo']['error'], 'user_id' => $id]);
+                return response()->json(['success' => 0, 'error' => 'Photo upload failed. Please try again.']);
+            }
             $aname = explode(".", $_FILES['photo']['name']);
             $ext = strtolower($aname[count($aname) - 1]);
             $ext = $_FILES['photo']['type'] == 'image/png' ? 'png' : 'jpg';
@@ -3091,7 +3220,10 @@ Write only the review text:";
             if (!is_dir($uploadDir)) {
                 mkdir($uploadDir, 0755, true);
             }
-            move_uploaded_file($_FILES["photo"]["tmp_name"], $uploadDir . $photo);
+            if (!move_uploaded_file($_FILES["photo"]["tmp_name"], $uploadDir . $photo)) {
+                Log::error('move_uploaded_file failed during user update', ['dest' => $uploadDir . $photo, 'user_id' => $id]);
+                return response()->json(['success' => 0, 'error' => 'Photo could not be saved. Please try again.']);
+            }
             $this->resizeImage($photo, $ext == 'png');
         }
 
@@ -3555,6 +3687,17 @@ Write only the review text:";
                 return true;
             }));
         }
+
+        // TMA-037: Demand signaling — add is_hot flag to each chef
+        if (!isset($dateString)) {
+            $dateString = date('Y-m-d');
+        }
+        $currentChefIds = collect($data)->pluck('id')->toArray();
+        $demandSignal = self::computeDemandSignal($currentChefIds, $dateString);
+        $data = collect($data)->map(function ($chef) use ($demandSignal) {
+            $chef->is_hot = $demandSignal[$chef->id] ?? false;
+            return $chef;
+        })->values()->all();
 
         // PERFORMANCE: Cache the results for 5 minutes (300 seconds)
         Cache::put($cacheKey, $data, 300);
@@ -4053,15 +4196,11 @@ Write only the review text:";
 
         if (!$user) return response()->json(['success' => 0, 'error' => "No user info with the ID."]);
 
-        $phoneNumber = str_replace('-', '', $request->phone);
-        $phoneNumber = str_replace('(', '', $phoneNumber);
-        $phoneNumber = str_replace(')', '', $phoneNumber);
+        $phoneNumber = preg_replace('/[^0-9]/', '', $request->phone);
 
         $phoneNumber = "(" . substr($phoneNumber,  0,  3) . ") " . substr($phoneNumber,  3,  3) . "-" . substr($phoneNumber,  6,  4);
 
-        $ssn = str_replace('-', '', $request->ssn);
-        $ssn = str_replace('(', '', $ssn);
-        $ssn = str_replace(')', '', $ssn);
+        $ssn = preg_replace('/[^0-9]/', '', $request->ssn);
 
         $ssn = substr($ssn,  0,  3) . "-" . substr($ssn,  3,  2) . "-" . substr($ssn,  5,  4);
 
@@ -4116,9 +4255,21 @@ Write only the review text:";
                 $candidate_id = $response['applicantGuid'];
             }
             if (array_key_exists('code', $response)) {
-                Log::info('this ' . json_encode($response));
-                //return response()->json(['success' => 0, 'error' => "The third party API didn't work. Please submit that later."]);
-                return response()->json(['success' => 0, 'error' => "There is an issue with the submitted data formart. Please fill the form correctly."]);
+                Log::info('Background check API error: ' . json_encode($response));
+
+                $errorMsg = "There is an issue with the submitted data format. Please fill the form correctly.";
+                if (!empty($response['fields']) && is_array((array)$response['fields'])) {
+                    $fieldErrors = [];
+                    foreach ((array)$response['fields'] as $field => $messages) {
+                        $messages = (array)$messages;
+                        $fieldErrors[] = implode(' ', $messages);
+                    }
+                    if (!empty($fieldErrors)) {
+                        $errorMsg = implode(' ', $fieldErrors);
+                    }
+                }
+
+                return response()->json(['success' => 0, 'error' => $errorMsg]);
             }
         }
 
@@ -4147,8 +4298,8 @@ Write only the review text:";
 
             return response()->json(['success' => 1, 'message' => "Hang tight! Taist is reviewing your account and will let you know when you are approved to start cooking."]);
         } else {
-            Log::info('thiis1' . $response);
-            return response()->json(['success' => 0, 'error' => "There is an issue with the submitted data formart. Please fill the form correctly."]);
+            Log::info('Background check: no candidate_id, response: ' . json_encode($response));
+            return response()->json(['success' => 0, 'error' => "There is an issue with the submitted data format. Please try again later."]);
         }
     }
 
@@ -4377,8 +4528,20 @@ Write only the review text:";
                 ->first();
 
             if ($existingPayment && !empty($existingPayment->stripe_account_id)) {
-                // Use existing Stripe account - just create a new account link
+                // Use existing Stripe account - update it with business URL so
+                // the statement descriptor "TAIST" passes Stripe's validation
+                // (descriptor must match business name or URL)
                 $accountId = $existingPayment->stripe_account_id;
+                $stripe->accounts->update($accountId, [
+                    'business_profile' => [
+                        'url' => 'https://taist.app',
+                    ],
+                    'settings' => [
+                        'payments' => [
+                            'statement_descriptor' => 'TAIST',
+                        ],
+                    ],
+                ]);
             } else {
                 // Create new Stripe account
                 $account = $stripe->accounts->create([
@@ -4416,6 +4579,7 @@ Write only the review text:";
                     // Pre-fill business profile to skip "Business name" and "website URL" questions
                     'business_profile' => [
                         'name' => trim($user->first_name . ' ' . $user->last_name),
+                        'url' => 'https://taist.app',
                         'product_description' => 'Independent contractor chef providing services through Taist',
                         'mcc' => '5812', // Restaurants/eating places
                     ],
@@ -4442,7 +4606,7 @@ Write only the review text:";
                 'return_url' => $baseUrl . '/stripe/complete',
                 'type' => 'account_onboarding',
                 'collection_options' => [
-                    'fields' => 'eventually_due',
+                    'fields' => 'currently_due',
                     'future_requirements' => 'include',
                 ],
             ]);
@@ -4550,7 +4714,7 @@ Write only the review text:";
 
             // Check if the payment method is valid
             if (
-                $paymentMethod->card->exp_msuperadminonth < now()->month &&
+                $paymentMethod->card->exp_month < now()->month &&
                 $paymentMethod->card->exp_year <= now()->year
             ) {
                 return response()->json(['success' => 0, 'error' => "The card has expired."]);

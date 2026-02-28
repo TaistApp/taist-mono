@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Pressable,
   SafeAreaView,
@@ -40,6 +40,7 @@ import {
 } from '../../../utils/functions';
 import { navigate } from '../../../utils/navigation';
 import { ShowErrorToast } from '../../../utils/toast';
+import AvailabilitySection from './components/availabilitySection';
 import ChefMenuItem from './components/chefMenuItem';
 import ChefReviewItem from './components/chefReviewItem';
 import { styles } from './styles';
@@ -53,6 +54,10 @@ const ChefDetail = () => {
 
   const [allergyIds, onChangeAllergyIds] = useState<Array<number>>([]);
   const [chefProfile, onChangeChefProfile] = useState<IChefProfile>();
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [availabilityDate, setAvailabilityDate] = useState<string>('');
+  const scrollViewRef = useRef<ScrollView>(null);
+  const availabilityY = useRef<number>(0);
 
   const chefInfo: IUser = JSON.parse(params.chefInfo as string);
   const reviews: Array<IReview> = JSON.parse(params.reviews as string);
@@ -114,7 +119,13 @@ const ChefDetail = () => {
     });
   };
 
+  const handleTimeSelect = (time: string | null, date: string) => {
+    setSelectedTime(time);
+    setAvailabilityDate(date);
+  };
+
   const handleCheckout = () => {
+    const dateToPass = availabilityDate || selectedDate;
     router.push({
       pathname: '/screens/customer/(tabs)/(home)/checkout',
       params: {
@@ -122,7 +133,8 @@ const ChefDetail = () => {
         orders: JSON.stringify(chefOrders),
         weekDay: weekDay.toString(),
         chefProfile: JSON.stringify(chefProfile),
-        selectedDate: selectedDate,
+        selectedDate: dateToPass,
+        selectedTime: selectedTime || '',
       }
     });
   };
@@ -143,7 +155,7 @@ const ChefDetail = () => {
   return (
     <SafeAreaView style={styles.main}>
       <Container>
-        <ScrollView contentContainerStyle={styles.pageView}>
+        <ScrollView ref={scrollViewRef} contentContainerStyle={styles.pageView}>
           <View style={styles.heading}>
             <Pressable onPress={() => router.back()}>
               <FontAwesomeIcon icon={faAngleLeft} size={20} color="#ffffff" />
@@ -175,7 +187,7 @@ const ChefDetail = () => {
           </View>
 
           {reviews.length > 0 && (
-            <View style={styles.chefReviewContainer}>
+            <View testID="chefDetail.reviewsSection" style={styles.chefReviewContainer}>
               <Text style={styles.chefCardReviewHeading}>Reviews</Text>
               {reviews.map((item, index) => {
                 return (
@@ -184,6 +196,23 @@ const ChefDetail = () => {
               })}
             </View>
           )}
+
+          <View onLayout={(e) => { availabilityY.current = e.nativeEvent.layout.y; }}>
+            {chefProfile && (
+              <AvailabilitySection
+                chefId={chefInfo.id ?? 0}
+                initialDate={selectedDate}
+                chefProfile={chefProfile}
+                selectedTime={selectedTime}
+                onTimeSelect={handleTimeSelect}
+                onReady={() => {
+                  setTimeout(() => {
+                    scrollViewRef.current?.scrollTo({ y: availabilityY.current, animated: true });
+                  }, 300);
+                }}
+              />
+            )}
+          </View>
 
           {allergen.length > 0 && (
             <>
@@ -211,6 +240,7 @@ const ChefDetail = () => {
               {filteredMenus.map((item, index) => {
                 return (
                   <ChefMenuItem
+                    testID={`chefDetail.menuItem.${index}`}
                     item={item}
                     onPress={() => handleGoAddToOrder(item)}
                     key={`menuItem_${index}`}
@@ -222,13 +252,14 @@ const ChefDetail = () => {
         </ScrollView>
         {price_checkout > 0 && (
           <View style={{width: '100%', padding: 10, gap: 10}}>
-            <TouchableOpacity style={GlobalStyles.btn} onPress={handleCheckout}>
+            <TouchableOpacity testID="chefDetail.checkoutButton" style={GlobalStyles.btn} onPress={handleCheckout}>
               <Text
                 style={
                   GlobalStyles.btnTxt
                 }>{`CHECKOUT - $${price_checkout.toFixed(2)} `}</Text>
             </TouchableOpacity>
             <TouchableOpacity
+              testID="chefDetail.clearCartButton"
               style={GlobalStyles.btn}
               onPress={handleClearCart}>
               <Text style={GlobalStyles.btnTxt}>{`CLEAR CART `}</Text>

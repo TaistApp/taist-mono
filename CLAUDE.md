@@ -13,6 +13,7 @@ A food marketplace connecting customers with local chefs — Laravel API + React
 ## Project Structure
 
 - `backend/` — Laravel 8 API (PHP)
+- `backend/admin-panel/` — Admin panel SPA (React + Vite + shadcn/ui), auto-built on Railway deploy via `railpack.json`
 - `frontend/` — React Native (Expo) mobile app
 - `docs/` — Project documentation
 
@@ -35,9 +36,15 @@ A food marketplace connecting customers with local chefs — Laravel API + React
 - User types: `1` = customer, `2` = chef
 - Verified states: `0` = pending, `1` = active, `2` = denied, `3` = banned
 
-## Maestro E2E Test Users
+## Timestamp Convention (CRITICAL)
 
-**Never seed in production.** Full details: `docs/maestro-test-users.md`
+**Railway runs in UTC.** Never use `date('l', $timestamp)` or `date('Y-m-d', $timestamp)` for availability or scheduling — evening US orders resolve to the wrong day. Use `order_date_string` (YYYY-MM-DD) and `order_time_string` (HH:mm) string fields instead. Full details: `docs/features/chef-availability-system.md` (Timestamp Convention section).
+
+## Maestro E2E Testing
+
+**Never seed in production.** Full details: `docs/maestro-test-users.md` | Conventions: `docs/maestro-conventions.md`
+
+**Before any Maestro work**, read `docs/maestro-conventions.md` — it has testIDs, patterns, and pitfalls. **After Maestro work**, follow the Post-Session Retrospective section in that doc to update it with anything new you learned.
 
 - Seed: `php artisan db:seed --class="Database\Seeders\MaestroTestUserSeeder"` (idempotent)
 - Env vars: `frontend/.maestro/test-users.env.yaml`
@@ -66,6 +73,22 @@ Reusable system for post-deploy checks. Full details: `docs/production-verificat
 | Verify staging | `./scripts/verify-production.sh staging` |
 | Create verify accounts | `cd backend && php artisan verify:accounts create` |
 | Cleanup verify accounts | `cd backend && php artisan verify:accounts cleanup` |
+| Build admin panel locally | `cd backend/admin-panel && npm run build` |
+
+## EAS Build Commands
+
+Slash commands for building and deploying the mobile app. Auto-bumps build numbers, builds on EAS, submits iOS to TestFlight/App Store, and posts Android APKs to Slack.
+
+| Command | What it does |
+| ------- | ------------ |
+| `/build preview` | Both platforms, iOS → TestFlight, Android APK → #android-builds |
+| `/build preview-ios` | iOS only → TestFlight |
+| `/build preview-android` | Android only → #android-builds |
+| `/build production` | Both platforms, iOS → App Store |
+| `/build production-ios` | iOS only → App Store |
+| `/build production-android` | Android only |
+
+Details: `.claude/commands/build.md` | Polling script: `scripts/wait-for-eas-build.sh`
 
 ## Branching & Deployment
 
@@ -73,11 +96,30 @@ Reusable system for post-deploy checks. Full details: `docs/production-verificat
 - **`main` branch** → Railway production environment (auto-deploys on push)
 - Workflow: feature branches → PR to `staging` → test → PR from `staging` to `main`
 - Frontend (Expo/EAS) is deployed separately, not via Railway
+- **Admin panel** auto-builds on Railway deploy via `backend/railpack.json` — no need to commit built assets
 
 ## Local Development
 
 - **Backend port: 8005** (8005 standard for local runs)
 - Frontend API URLs point to `localhost:8005`
+
+## Maestro Session Lock (CRITICAL for Multi-Session)
+
+Maestro's driver uses a shared port (7001) — **only one session can use Maestro MCP at a time.** Full protocol: `docs/maestro-session-lock.md`
+
+**Before ANY Maestro MCP tool call:**
+1. Check lock: `cat /tmp/maestro-session.lock 2>/dev/null`
+2. If locked and < 15 min old → wait 2 min, retry up to 5 times, then ask user
+3. If no lock or stale (> 15 min) → acquire: `echo "$(date +%s)|<description>" > /tmp/maestro-session.lock`
+4. Refresh the lock timestamp on each Maestro tool call
+5. **Release when done:** `rm -f /tmp/maestro-session.lock`
+
+**Other Maestro notes:**
+- Always pass `device_id` to every Maestro MCP tool call and `--device <UDID>` to CLI commands
+- Check booted devices: `xcrun simctl list devices booted`
+- Reset app state: `xcrun simctl uninstall <UDID> org.taist.taist` then reinstall
+- **No shortcuts:** When told to use Maestro, use Maestro — don't substitute with `curl`, API calls, `simctl openurl`, or a different device. If Maestro won't cooperate, troubleshoot it. If stuck, stop and ask the user.
+- **Lock timestamp is law:** Do NOT use `ps aux` or any other heuristic to override a lock that's < 15 min old. Wait and retry.
 
 ## Database
 

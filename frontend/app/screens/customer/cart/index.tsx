@@ -103,6 +103,7 @@ const Cart = () => {
       <SafeAreaView style={styles.main}>
         <Container backMode={true} title="CART">
           <EmptyListView
+            testID="cart.emptyState"
             img={require('../../../assets/images/orders_empty.png')}
             title="Your cart is empty"
             subTitle="Add items from a chef to fill your cart."
@@ -135,6 +136,7 @@ const Cart = () => {
                     </Text>
                   </View>
                   <TouchableOpacity
+                    testID={`cart.clearButton.${chefId}`}
                     onPress={() => handleRemoveChefOrders(Number(chefId))}
                     style={styles.clearButton}>
                     <FontAwesomeIcon icon={faTrash} size={16} color="#fa4616" />
@@ -158,7 +160,7 @@ const Cart = () => {
                   }
 
                   return (
-                    <View key={`${order.menu_id}-${index}`} style={styles.cartItem}>
+                    <View testID={`cart.cartItem.${index}`} key={`${order.menu_id}-${index}`} style={styles.cartItem}>
                       <View style={styles.itemInfo}>
                         <Text style={styles.itemName}>{menu?.title}</Text>
                         <Text style={styles.itemDescription}>
@@ -189,6 +191,7 @@ const Cart = () => {
                     <Text style={styles.totalPrice}>${totalPrice.toFixed(2)}</Text>
                   </View>
                   <StyledButton
+                    testID="cart.checkoutButton"
                     title="PROCEED TO CHECKOUT"
                     onPress={() => handleCheckout(Number(chefId))}
                   />

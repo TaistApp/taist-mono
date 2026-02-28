@@ -1,0 +1,511 @@
+# Maestro Conventions for Taist App
+
+Patterns, workarounds, and best practices for writing Maestro E2E flows against the Taist React Native app.
+
+## testID Naming Convention
+
+```
+{screen}.{element}              → login.emailInput
+{screen}.{element}.{index}      → customerHome.chefCard.0
+{screen}.{section}.{element}    → account.address.cityInput
+```
+
+**Screen names:** `landing`, `login`, `signup`, `forgotPassword`, `customerHome`, `chefDetail`, `customerOrders`, `account`, `chefHome`, `chefOrders`, `chefMenu`, `menuWizard`, `chefProfile`, `chefEarnings`, `chatInbox`, `chatDetail`, `drawer`, `onboarding`, `reportIssue`
+
+## Element Identification Strategy
+
+Use this priority order when targeting elements:
+
+1. **`testID`** (via `id:` in Maestro) — Most reliable. Use when available.
+2. **`accessibilityText`** (via `tapOn:` text) — Works for buttons, labels, chips. Be aware of trailing spaces.
+3. **`hintText`** (placeholder text) — Works for text inputs (e.g., `tapOn: "Enter your email"`).
+4. **Coordinate tap** (via `point:`) — Last resort. Fragile across device sizes.
+
+## Login Flow
+
+```yaml
+appId: com.taist.app  # Android
+# appId: org.taist.taist  # iOS
+---
+- tapOn: "Enter your email"
+- inputText: ${EMAIL}
+- tapOn: "Enter your password"
+- inputText: ${PASSWORD}
+- tapOn: "Log In"
+```
+
+**Alternative using testIDs** (more reliable):
+```yaml
+- tapOn:
+    id: "login.emailInput"
+- inputText: ${EMAIL}
+- tapOn:
+    id: "login.passwordInput"
+- inputText: ${PASSWORD}
+- tapOn:
+    id: "login.submitButton"
+```
+
+**All login screen testIDs:** `login.emailInput`, `login.passwordInput`, `login.togglePassword`, `login.forgotButton`, `login.submitButton`, `login.signupButton`
+
+**Test user credentials** are in `frontend/.maestro/test-users.env.yaml`.
+
+## Switching Users
+
+The drawer LOGOUT item now has `testID="drawer.logout"`. However, the most reliable way to switch users is still:
+
+```yaml
+- clearState: org.taist.taist  # iOS
+# - clearState: com.taist.app  # Android
+```
+
+This resets the app completely. After `clearState`, you need to reconnect to Metro on iOS (tap the Metro URL in the Expo dev launcher).
+
+## Tab Navigation
+
+Tabs are identifiable by text: `HOME`, `ORDERS`, `ACCOUNT` (customer) or `HOME`, `ORDERS`, `MENU`, `PROFILE`, `EARNINGS` (chef).
+
+```yaml
+- tapOn: "ORDERS"       # Switch to ORDERS tab
+- tapOn: "HOME"         # Switch to HOME tab
+```
+
+**Caveat:** If an error banner overlaps the tab bar, text-based taps may fail. Use coordinate taps as fallback:
+```yaml
+# Customer tabs (3 tabs, y ≈ 793 on iPhone 16)
+- tapOn:
+    point: "69,793"     # HOME
+- tapOn:
+    point: "196,793"    # ORDERS
+- tapOn:
+    point: "327,793"    # ACCOUNT
+
+# Chef tabs (5 tabs, y ≈ 793 on iPhone 16)
+- tapOn:
+    point: "69,793"     # HOME
+- tapOn:
+    point: "117,793"    # ORDERS
+- tapOn:
+    point: "196,793"    # MENU
+- tapOn:
+    point: "274,793"    # PROFILE
+- tapOn:
+    point: "353,793"    # EARNINGS
+```
+
+## Drawer Navigation
+
+After the testID fix, drawer items are individually tappable:
+
+```yaml
+- tapOn:
+    id: "header.hamburgerMenu"    # Open drawer
+- tapOn:
+    id: "drawer.privacyPolicy"    # Tap specific item
+```
+
+Available drawer testIDs:
+- `drawer.closeButton`
+- `drawer.account`
+- `drawer.howToDoIt` (chef only)
+- `drawer.cancelApplication` (chef, pending only)
+- `drawer.privacyPolicy`
+- `drawer.termsAndConditions`
+- `drawer.logout`
+- `drawer.deleteAccount`
+
+## Header Icons
+
+```yaml
+- tapOn:
+    id: "header.hamburgerMenu"        # Open drawer
+- tapOn:
+    id: "header.backButton"           # Go back
+- tapOn:
+    id: "header.chatButton"           # Open inbox
+- tapOn:
+    id: "header.notificationsButton"  # Open notifications
+- tapOn:
+    id: "header.reportIssue"          # Report issue (bug icon)
+```
+
+## Report Issue Screen
+
+```yaml
+- tapOn:
+    id: "reportIssue.subjectInput"      # Subject text input
+- tapOn:
+    id: "reportIssue.descriptionInput"  # Description text input
+- tapOn:
+    id: "reportIssue.submitButton"      # Submit button
+```
+
+## Trailing Spaces
+
+Many text elements have trailing spaces (e.g., `"REQUESTED "` instead of `"REQUESTED"`). Use fuzzy matching:
+
+```yaml
+# This may fail:
+- tapOn: "REQUESTED"
+
+# This works:
+- tapOn:
+    text: "REQUESTED"
+    # Maestro's default fuzzy matching handles trailing spaces
+```
+
+Or use the `id:` selector when testIDs are available.
+
+## Date & Time Pickers
+
+### iOS Spinner Pickers (Tested)
+
+All iOS date/time pickers use `display="spinner"` with a custom modal (Cancel/Done header + spinner wheel).
+
+**Dark mode:** All spinners have `themeVariant="light"` to prevent invisible text (white-on-white) when the device is in dark mode. If adding a new DateTimePicker, always include this prop.
+
+**Time pickers** (chef profile hours, GoLiveToggle):
+- Spinner shows hours/minutes/AM-PM columns
+- Maestro can read spinner values via `inspect_view_hierarchy`
+- Cancel/Done buttons are in a custom header above the spinner
+
+**Date pickers** (account birthday, signup birthday, background check):
+- Spinner shows month/day/year columns
+- testID: `account.birthdayPicker` (account screen)
+
+### Known Issue: GoLiveToggle Modal
+
+The "Same-Day Availability" modal in GoLiveToggle (`frontend/app/components/GoLiveToggle/index.tsx`) has a **Maestro testability problem**: React Native's `<Modal>` wraps all content in an accessibility container, merging child elements into a single tappable region. This means:
+- Cancel/Done/day-selection buttons inside the modal can't be individually tapped by Maestro
+- Coordinate taps (`point:`) hit the backdrop overlay `<Pressable>` instead of modal content, dismissing the modal
+- `accessible={false}` on inner Views doesn't fix it — the merge happens at the RN Modal level
+
+**Workaround:** Coordinate taps with `point: "70%,52%"` successfully tap the "Change Tomorrow" button from the online options modal. Adjust percentages based on modal layout.
+
+**App improvement needed:** Add testIDs to GoLiveToggle modal buttons and investigate RN Modal accessibility override patterns.
+
+### GoLiveToggle Notification Auto-Open
+
+The "You're scheduled tomorrow" push notification (`type: availability_confirmation`) auto-opens the GoLiveToggle's "Tomorrow's Hours" modal when tapped. The mechanism:
+1. Notification handler (`firebase/index.ts`) dispatches `setGoLiveAutoOpen('tomorrow')` to Redux
+2. Navigates to chef Profile tab
+3. GoLiveToggle's `useEffect` detects the flag, calls `fetchStatus()` then `handleDaySelect('tomorrow')`
+4. Modal opens with pre-populated times from the chef's weekly schedule
+
+**Testing limitation:** `xcrun simctl push` sends APNs notifications that don't route through Firebase's `onNotificationOpenedApp` handler. Full push notification → auto-open testing requires a real device with FCM configured.
+
+### Simulator Dark Mode
+
+Always test pickers with dark mode enabled to catch theme inheritance issues:
+```bash
+# Enable dark mode
+xcrun simctl ui <UDID> appearance dark
+
+# Disable dark mode
+xcrun simctl ui <UDID> appearance light
+```
+
+## Keyboard Handling
+
+```yaml
+- hideKeyboard          # Dismiss keyboard on both platforms
+```
+
+On iOS, you can also tap outside the input field. On Android, the back button dismisses keyboard too.
+
+## Waiting for API Responses
+
+The app has loading spinners during API calls. Use `assertVisible` or `waitFor` to wait:
+
+```yaml
+- tapOn: "Log In"
+- assertVisible: "HOME"    # Wait until HOME tab appears
+```
+
+## Error Banner
+
+A version check API call to the local backend may produce a persistent error banner ("401 Unauthenticated"). This banner:
+- Overlaps the tab bar at the bottom of the screen
+- Opens a full-screen error view if tapped
+- Blocks automation if not dismissed
+
+**Workaround:** Ensure the local backend is running (`cd backend && php artisan serve --host=0.0.0.0 --port=8005`), or add a dismiss step:
+
+```yaml
+- tapOn:
+    text: "Dismiss"
+    optional: true        # Don't fail if banner isn't present
+```
+
+## Platform Differences
+
+| Feature | iOS | Android |
+|---------|-----|---------|
+| App ID | `org.taist.taist` | `com.taist.app` |
+| `clearState` target | `org.taist.taist` | `com.taist.app` |
+| Back navigation | `header.backButton` testID | `back` command or testID |
+| Date picker | Spinner (inline) | Dialog (modal) |
+| Keyboard dismiss | `hideKeyboard` | `hideKeyboard` or `back` |
+
+## Android Emulator Tips
+
+### Deep Linking to Screens
+
+When the drawer or normal navigation isn't cooperating, you can navigate directly to any screen via deep link:
+
+```bash
+adb shell "am start -a android.intent.action.VIEW -d 'exp+taist:///screens/chef/feedback' com.taist.app"
+adb shell "am start -a android.intent.action.VIEW -d 'exp+taist:///screens/chef/backgroundCheck' com.taist.app"
+```
+
+This bypasses all in-app navigation and is useful for testing specific screens in isolation.
+
+### Fresh Boot Required for Reliable `inputText`
+
+If Maestro's `inputText` starts timing out (DEADLINE_EXCEEDED at 120s), the emulator is degraded. **Do not retry repeatedly** — kill the emulator and reboot fresh:
+
+```bash
+# Kill emulator
+adb emu kill
+
+# Reboot fresh (no snapshot)
+emulator -avd Pixel_6_API_34 -no-snapshot-load -no-audio &
+
+# Wait for boot + system settle
+adb wait-for-device && adb shell getprop sys.boot_completed
+sleep 15  # Let system processes settle after boot_completed returns 1
+
+# Re-establish port forwarding
+adb forward tcp:7001 tcp:7001
+adb reverse tcp:8005 tcp:8005
+adb reverse tcp:8081 tcp:8081
+```
+
+After a fresh boot, `inputText` works reliably. The key is the 15s settle time after `boot_completed`.
+
+### Dismissing Dev Menu
+
+On first launch after `clearState`, the Expo dev menu welcome sheet appears on both platforms.
+
+**iOS:**
+```yaml
+# The X button has accessibilityText="Close" and resource-id="xmark"
+- tapOn:
+    text: "Close"
+# Then wait for the app splash to load
+- extendedWaitUntil:
+    visible: "Login With Email"
+    timeout: 15000
+```
+
+**Important:** Do NOT tap "Continue" on iOS — it scrolls down inside the dev menu instead of dismissing it. Use `tapOn: "Close"` (the X button).
+
+**Android:**
+```yaml
+appId: com.taist.app
+---
+- tapOn: "Continue"    # Dismisses the "This is the developer menu" dialog
+```
+
+If the dev tools panel (with Reload/Go home/Performance monitor) opens instead, tap the X button or use `Go home`, then re-launch via deep link.
+
+### Hamburger Menu / DrawerModal on Android
+
+The hamburger menu (`header.hamburgerMenu`) may not open the drawer reliably on Android emulators via Maestro taps. The `DrawerModal` uses a custom modal triggered by `setShowDrawerModal(true)`, and the `toggleDrawer()` logic checks for a React Navigation drawer first. If navigation to drawer items is needed, use deep links instead.
+
+## Common Pitfalls
+
+### Scroll vs Swipe
+
+`scroll` scrolls down — it has **no direction property**. To scroll up or sideways, use `swipe`:
+
+```yaml
+# ✅ Correct: scroll down
+- scroll
+
+# ✅ Correct: scroll up (swipe finger downward)
+- swipe:
+    direction: DOWN
+    duration: 400
+
+# ✅ Correct: scroll a horizontal row (swipe left)
+- swipe:
+    start: 90%, 53%
+    end: 10%, 53%
+    duration: 300
+
+# ❌ WRONG: scroll does not accept direction
+- scroll:
+    direction: UP
+```
+
+### testID Naming
+
+testIDs use **dots**, not dashes or underscores:
+
+```yaml
+# ✅ Correct
+- tapOn:
+    id: "login.emailInput"
+
+# ❌ WRONG
+- tapOn:
+    id: "login-email-input"
+```
+
+### Accessibility Text vs Visible Text
+
+Accessibility text often differs from what you see on screen:
+- **Trailing spaces** are common: `"Active C. "` not `"Active C."`
+- **Merged children**: Parent accessibility text may concatenate all child texts
+- **Date pills** use compound text: `"Mon, 23"` not `"Mon"` or `"23"` separately
+
+**Always run `inspect_view_hierarchy` before writing flows** to see exact text/IDs.
+
+### MCP Tool Params vs YAML Properties
+
+Some parameters exist on the MCP `tap_on` tool but are **not valid in flow YAML**:
+
+```yaml
+# ❌ WRONG: use_fuzzy_matching is an MCP param, not YAML
+- tapOn:
+    text: "Active C."
+    use_fuzzy_matching: true
+
+# ✅ Correct: Maestro does fuzzy matching by default with tapOn text
+- tapOn: "Active C"
+```
+
+### Coordinate Taps on Modals
+
+Modals with a backdrop `<Pressable>` (used to dismiss on tap-outside) can intercept coordinate taps. If the backdrop's touch area overlaps the modal content, `point:` taps may dismiss the modal instead of hitting buttons inside it.
+
+**Symptoms:** Tapping a coordinate that visually overlaps a button dismisses the modal instead.
+
+**Fix in app code:** Ensure modal content Views use `onStartShouldSetResponder={() => true}` to capture touches before the backdrop. Better yet, add testIDs to modal buttons so you don't need coordinates.
+
+### Regex in tapOn
+
+When using `tapOn:` with a string, Maestro treats it as a regex. Dot (`.`) matches any character, which usually works in your favor. But be careful with special characters:
+
+```yaml
+# Matches "CHECKOUT - $18.00" (dot matches any char)
+- tapOn: "CHECKOUT - .*"
+
+# Matches "ADD TO ORDER - $18.00"
+- tapOn: "ADD TO ORDER - .*"
+```
+
+## Signup Screen testIDs
+
+Steps 1–2 have testIDs. Steps 3+ (profile, location, preferences) are **missing testIDs** — target by placeholder text for now.
+
+| Step | Element | testID |
+|------|---------|--------|
+| 1 (type) | Customer button | `signup.customerButton` |
+| 1 (type) | Chef button | `signup.chefButton` |
+| 2 (credentials) | Email input | `signup.emailInput` |
+| 2 (credentials) | Password input | `signup.passwordInput` |
+| 2 (credentials) | Continue button | `signup.continueButton` |
+| 2 (credentials) | Login link | `signup.loginLink` |
+| 3 (customer location) | ZIP input | `signup.location.zipInput` |
+| 3 (customer location) | Use location button | `signup.location.useMyLocation` |
+| 3 (customer location) | Continue/Back | `signup.location.continueButton` / `.backButton` |
+| 3 (customer phone) | Phone input | `signup.profile.phoneInput` |
+| 3 (customer phone) | Continue/Back | `signup.profile.continueButton` / `.backButton` |
+| 3 (customer phone) | Verify code input | `signup.profile.verifyCodeInput` |
+| 3 (customer phone) | Verify/Resend buttons | `signup.profile.verifyButton` / `.resendButton` |
+| 3 (chef name) | First/Last name | `signup.chefBasicInfo.firstNameInput` / `.lastNameInput` |
+| 3 (chef name) | Continue/Back | `signup.chefBasicInfo.continueButton` / `.backButton` |
+| 3 (chef phone) | Phone input | `signup.chefPhone.phoneInput` |
+| 3 (chef phone) | Continue/Back | `signup.chefPhone.continueButton` / `.backButton` |
+| 3 (chef phone) | Verify code input | `signup.chefPhone.verifyCodeInput` |
+| 3 (chef phone) | Verify/Resend buttons | `signup.chefPhone.verifyButton` / `.resendButton` |
+| 3 (chef birthday) | Birthday input | `signup.chefBirthday.birthdayInput` |
+| 3 (chef birthday) | Continue/Back | `signup.chefBirthday.continueButton` / `.backButton` |
+| 3 (chef photo) | Continue/Back | `signup.chefPhoto.continueButton` / `.backButton` |
+| 3 (chef location) | Address/City/ZIP | `signup.chefLocation.addressInput` / `.cityInput` / `.zipInput` |
+| 3 (chef location) | Use location button | `signup.chefLocation.useMyLocation` |
+| 3 (chef location) | Continue/Back | `signup.chefLocation.continueButton` / `.backButton` |
+| 3 (preferences) | Push/Location switches | `signup.preferences.pushNotifications` / `.locationServices` |
+| 3 (preferences) | Continue/Back | `signup.preferences.continueButton` / `.backButton` |
+
+## Forgot Password Flow
+
+### testIDs
+
+| Element | testID | Step |
+|---------|--------|------|
+| Email input | `forgotPassword.emailInput` | Step 1 (request code) |
+| Code input | `forgotPassword.codeInput` | Step 2 (reset) |
+| Password input | `forgotPassword.passwordInput` | Step 2 |
+| Confirm password input | `forgotPassword.confirmPasswordInput` | Step 2 |
+| Submit button (Request/Reset) | `forgotPassword.submitButton` | Both steps |
+| Back to login button | `forgotPassword.backButton` | Step 2 |
+
+### Flow
+
+1. Login screen → tap `login.forgotButton`
+2. Enter email → tap `forgotPassword.submitButton` (text: "Request")
+3. API returns verification code, UI transitions to step 2 (code + password fields)
+4. Enter code, new password, confirm password → tap `forgotPassword.submitButton` (text: "Reset")
+5. On success, navigates back to login
+
+### iOS Caveat: Automatic Strong Password
+
+The password and confirm password fields use `secureTextEntry`, which triggers iOS's **Automatic Strong Password** overlay. This overlay covers the fields and prevents Maestro from typing into them reliably. The fields show as "Automatic Strong Password cover view text" in the hierarchy.
+
+**Workaround:** For E2E testing, complete step 2 (the actual password reset) via the API directly:
+```bash
+# Get code from Resend API after step 1
+curl -s https://api.resend.com/emails/<email_id> -H "Authorization: Bearer $RESEND_KEY"
+# Reset via API
+curl -s -X POST https://api-staging.taist.app/mapi/reset_password \
+  -H "apiKey: ..." -d '{"code": "<code>", "password": "newpass"}'
+```
+Then verify login in the app with the new password.
+
+**App improvement:** Consider adding `textContentType="oneTimeCode"` on the code field and `textContentType="newPassword"` on the password fields, or test whether `autoComplete="off"` suppresses the iOS autofill overlay.
+
+## Known Testability Issues (App Improvements Needed)
+
+These are app-side issues that make Maestro testing harder. Fix these in the app code when possible rather than working around them in flows.
+
+| Issue | Screen | Impact | Suggested Fix |
+|-------|--------|--------|---------------|
+| RN Modal merges accessibility | GoLiveToggle "Same-Day Availability" | Can't tap Cancel/Done/day buttons individually | Replace `<Modal>` with custom overlay or use `accessibilityViewIsModal` |
+| No testIDs on GoLiveToggle modal buttons | GoLiveToggle | No `id:` selector available for modal actions | Add `goLive.modal.cancel`, `goLive.modal.done`, `goLive.modal.today`, `goLive.modal.tomorrow` |
+| Trailing spaces on text elements | Multiple screens | Fuzzy matching works but exact matches break | Trim trailing spaces from Text elements |
+| Coordinate taps fragile | Any modal with backdrop overlay | `point:` taps may hit overlay instead of content | Ensure modal content has enough padding / testIDs |
+| iOS Strong Password overlay | Forgot Password (step 2) | `secureTextEntry` fields get covered by iOS autofill | Test `textContentType="newPassword"` or `autoComplete="off"` |
+
+## Post-Session Retrospective
+
+**After finishing any Maestro work**, do a quick retrospective before releasing the session lock:
+
+1. **Update this file** (`docs/maestro-conventions.md`) if you discovered:
+   - New testIDs that aren't documented here
+   - Workarounds for elements that behave unexpectedly
+   - Patterns that worked better than what's currently documented
+   - New screens or flows that should be added
+
+2. **Update `MEMORY.md`** (Maestro sections) if you hit gotchas that would trip up future sessions — syntax mistakes, timing issues, platform quirks.
+
+3. **Flag app improvements** — if you noticed accessibility or testability issues during the session (missing testIDs, merged accessibility text, elements that are hard to target), note them in a comment or TODO so they can be fixed in the app code. Don't silently work around problems that should be fixed at the source.
+
+The goal: each Maestro session should leave the directions better than it found them. Five minutes of documentation saves hours of re-discovery.
+
+## File Organization
+
+```
+frontend/.maestro/
+├── test-users.env.yaml          # Test user credentials
+├── flows/
+│   ├── login-customer.yaml      # Login as customer
+│   ├── login-chef.yaml          # Login as chef
+│   ├── customer-home.yaml       # Customer home tab tests
+│   └── ...
+└── helpers/
+    ├── login.yaml               # Reusable login flow
+    └── switch-user.yaml         # Reusable user switch
+```

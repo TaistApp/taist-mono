@@ -69,6 +69,7 @@ export const StepChefPhoto: React.FC<StepChefPhotoProps> = ({
 
       <View style={styles.buttonContainer}>
         <StyledButton
+          testID="signup.chefPhoto.continueButton"
           title="Continue"
           onPress={handleContinue}
           disabled={!hasPhoto}
@@ -80,7 +81,7 @@ export const StepChefPhoto: React.FC<StepChefPhotoProps> = ({
           </Text>
         )}
         
-        <Pressable onPress={onBack} style={styles.backButton}>
+        <Pressable testID="signup.chefPhoto.backButton" onPress={onBack} style={styles.backButton}>
           <Text style={styles.backButtonText}>Back</Text>
         </Pressable>
       </View>

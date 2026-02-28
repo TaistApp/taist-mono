@@ -1,4 +1,4 @@
-import { FAB, TextInput } from '@react-native-material/core';
+import { TextInput } from '@react-native-material/core';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import KeyboardAwareScrollView from '../../../components/KeyboardAwareScrollView';
 
 // NPM
 import {
@@ -41,6 +42,7 @@ import {
 } from '../../../services/api';
 import { OrderStatus } from '../../../types/status';
 import { GetOrderString, getImageURL } from '../../../utils/functions';
+import { navigate, setActiveOrderDetailId } from '../../../utils/navigation';
 import { ShowErrorToast, ShowSuccessToast } from '../../../utils/toast';
 import {
   getFormattedDate,
@@ -69,21 +71,22 @@ const OrderDetail = () => {
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const scrollViewRef = useRef<ScrollView>(null);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    console.log(params);
-console.log("order detail useeffect....");
     const orderInfo = typeof params.orderInfo === 'string' ? JSON.parse(params.orderInfo) : params.orderInfo;
+    setActiveOrderDetailId(orderInfo.id);
     loadData(orderInfo.id);
     getPaymentMethod();
-    const intervalId = setInterval(() => {
-      console.log('interval');
+    pollingRef.current = setInterval(() => {
       const orderInfo = typeof params.orderInfo === 'string' ? JSON.parse(params.orderInfo) : params.orderInfo;
       loadData(orderInfo.id);
-    }, 30000); // 30 seconds
+    }, 30000);
 
-    return () => clearInterval(intervalId);
-
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      setActiveOrderDetailId(null);
+    };
   }, []);
 
   useEffect(() => {
@@ -112,12 +115,16 @@ console.log("order detail useeffect....");
 
   const loadData = async (orderId: number) => {
     const resp = await GetOrderDataAPI({ order_id: orderId }, dispatch);
-    console.log('load data ======>>>');
     if (resp.success == 1) {
-      console.log('load data 1:  ======>>>');
       setOrderInfo(resp.data);
       setChefInfo(resp.data.chef);
       setMenu(resp.data.menu);
+
+      // Stop polling once order is completed — no further status changes expected
+      if (resp.data.status === 3 && pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
 
       // Update time remaining if order is in requested status
       if (resp.data.status === 1 && resp.data.deadline_info) {
@@ -240,7 +247,8 @@ console.log("order detail useeffect....");
       }
     }
     dispatch(hideLoading());
-    router.back();
+    ShowSuccessToast('Review submitted!');
+    navigate.toCustomer.orders();
   };
 
   var items: Array<any> = [];
@@ -285,7 +293,7 @@ console.log("order detail useeffect....");
       <Container
         backMode
         title={getFormattedDateInTimezone((orderInfo?.order_date ?? 0) * 1000, orderInfo?.timezone)}>
-        <ScrollView ref={scrollViewRef} contentContainerStyle={styles.pageView}>
+        <KeyboardAwareScrollView ref={scrollViewRef} contentContainerStyle={styles.pageView}>
           <View style={{ alignItems: 'center' }}>
             <StyledProfileImage url={getImageURL(chefInfo?.photo)} size={160} />
             <Text style={styles.chefName}>{`${chefInfo?.first_name} ${chefInfo?.last_name?.charAt(0) ?? ''}.`}</Text>
@@ -293,6 +301,7 @@ console.log("order detail useeffect....");
 
           {orderInfo?.status == 3 && (
             <TouchableOpacity
+              accessible={false}
               style={{
                 width: '100%',
                 backgroundColor: '#fa4616',
@@ -428,6 +437,7 @@ console.log("order detail useeffect....");
               <Text style={styles.title}>Review your Experience</Text>
               <View style={[styles.card, { rowGap: 0 }]}>
                 <TextInput
+                  testID="customerOrderDetail.reviewInput"
                   multiline
                   placeholder="Type a message"
                   value={reviewText}
@@ -435,6 +445,7 @@ console.log("order detail useeffect....");
                   variant={'outlined'}
                   color="#7f7f7f"
                   inputContainerStyle={{ paddingVertical: 10 }}
+                  onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 300)}
                 />
                 <Text style={{ color: '#7f7f7f', fontSize: 12, letterSpacing: 0.5, marginTop: 5, alignSelf: 'flex-end' }}>
                   {`${reviewText.length}/100 Characters`}
@@ -493,7 +504,7 @@ console.log("order detail useeffect....");
                   </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity style={styles.btnPayment}>
+                <TouchableOpacity accessible={false} style={styles.btnPayment}>
                   <View style={{ rowGap: 5 }}>
                     <Text style={[styles.text, { fontSize: 18, letterSpacing: 0.5 }]}>
                       Payment Method
@@ -512,26 +523,25 @@ console.log("order detail useeffect....");
                   />
                 </TouchableOpacity>
 
-                <FAB
-                  style={styles.btnSubmit}
-                  variant="extended"
-                  color="#000000"
-                  tintColor="#ffffff"
-                  label="SAVE REVIEW"
-                  labelStyle={styles.btnSubmit}
+                <TouchableOpacity
+                  testID="customerOrderDetail.submitReviewButton"
+                  style={styles.btnSubmitButton}
                   onPress={handleSubmitReview}
-                />
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.btnSubmitLabel}>SAVE REVIEW</Text>
+                </TouchableOpacity>
               </View>
             </>
           )}
-        </ScrollView>
+        </KeyboardAwareScrollView>
 
         <View style={styles.btnContainer}>
-          <TouchableOpacity style={styles.btn} onPress={handleCall}>
+          <TouchableOpacity testID="customerOrderDetail.callButton" style={styles.btn} onPress={handleCall}>
             <FontAwesomeIcon icon={faPhone} color="#ffffff" size={20} />
             <Text style={styles.btnText}>Call</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.btn} onPress={handleChat}>
+          <TouchableOpacity testID="customerOrderDetail.chatButton" style={styles.btn} onPress={handleChat}>
             <FontAwesomeIcon icon={faComment} color="#ffffff" size={20} />
             <Text style={styles.btnText}>Chat</Text>
           </TouchableOpacity>
@@ -541,7 +551,7 @@ console.log("order detail useeffect....");
             (orderInfo?.status == 1 ||
               orderInfo?.status == 2 ||
               orderInfo?.status == 7) && (
-              <TouchableOpacity style={styles.btn} onPress={handleCancel}>
+              <TouchableOpacity testID="customerOrderDetail.cancelButton" style={styles.btn} onPress={handleCancel}>
                 <FontAwesomeIcon icon={faXmark} color="#ffffff" size={20} />
                 <Text style={styles.btnText}>Cancel</Text>
               </TouchableOpacity>

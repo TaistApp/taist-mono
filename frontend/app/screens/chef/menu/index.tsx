@@ -94,7 +94,7 @@ const Menu = () => {
           <Text style={styles.missingSubheading}>
             Tap below to create your very first menu item{' '}
           </Text>
-          <TouchableOpacity style={GlobalStyles.btn} onPress={onPress}>
+          <TouchableOpacity testID="chefMenu.addButton" style={GlobalStyles.btn} onPress={onPress}>
             <Text style={GlobalStyles.btnTxt}>ADD </Text>
           </TouchableOpacity>
         </View>
@@ -102,9 +102,10 @@ const Menu = () => {
     );
   };
 
-  const cardComponent = (item: IMenu) => {
+  const cardComponent = (item: IMenu, index?: number) => {
     return (
       <TouchableOpacity
+        testID={index !== undefined ? `chefMenu.menuItem.${index}` : undefined}
         style={styles.card}
         key={`cc_${item.id}`}
         onPress={() => handleItemEdit(item)}>
@@ -139,6 +140,7 @@ const Menu = () => {
               {tabs.map((tab, idx) => {
                 return (
                   <StyledTabButton
+                    testID={`chefMenu.tab.${idx}`}
                     title={tab.label}
                     style={styles.tab}
                     titleStyle={styles.tabText}
@@ -153,7 +155,7 @@ const Menu = () => {
               style={{width: '100%'}}
               contentContainerStyle={styles.cardContainer}>
               {filteredItems.map((item, idx) => {
-                return cardComponent({...item});
+                return cardComponent({...item}, idx);
               })}
               {filteredItems.length == 0 && (
                 <EmptyListView
@@ -162,6 +164,7 @@ const Menu = () => {
               )}
             </ScrollView>
             <TouchableOpacity
+              testID="chefMenu.addButton"
               style={[GlobalStyles.btn, {width: '100%'}]}
               onPress={handleNewItemAdd}>
               <Text style={GlobalStyles.btnTxt}>ADD </Text>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, SafeAreaView, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
@@ -16,7 +16,7 @@ import {
   UpdateConverstationAPI,
 } from '../../../services/api';
 import { IMessage, IOrder, IUser } from '../../../types/index';
-import { getImageURL } from '../../../utils/functions';
+import { formatDisplayName, getImageURL } from '../../../utils/functions';
 import TextBubble from './components/textBubble';
 import { styles } from './styles';
 
@@ -93,7 +93,7 @@ const Chat = () => {
     <SafeAreaView style={styles.main}>
       <Container
         backMode
-        title={`${otherUserInfo.first_name} `}
+        title={`${formatDisplayName(otherUserInfo.first_name, otherUserInfo.last_name, self.user_type === 1)} `}
         rightContent={
           otherUserInfo?.photo ? (
             <StyledProfileImage
@@ -102,7 +102,11 @@ const Chat = () => {
             />
           ) : null
         }>
-        <View style={styles.container}>
+        <KeyboardAvoidingView
+          style={styles.container}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        >
           <ScrollView
             ref={refScrollView}
             style={{flex: 1}}
@@ -124,6 +128,7 @@ const Chat = () => {
           </ScrollView>
           <View style={styles.bottomContainer}>
             <TextInput
+              testID="chatDetail.messageInput"
               ref={refTextInput}
               placeholder="Message..."
               value={message}
@@ -133,12 +138,13 @@ const Chat = () => {
               returnKeyLabel={'Send'}
             />
             <TouchableOpacity
+              testID="chatDetail.sendButton"
               style={styles.btnFly}
               onPress={() => handleSendMessage(message)}>
               <FontAwesomeIcon icon={faPaperPlane} size={20} color="#ffffff" />
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Container>
     </SafeAreaView>
   );

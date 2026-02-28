@@ -40,9 +40,9 @@ const APP_ENV = Constants.expoConfig?.extra?.APP_ENV || 'production';
 const getEnvironmentUrls = () => {
   switch (APP_ENV) {
     case 'local':
-      // Local development - Android emulator needs 10.0.2.2 to reach host's localhost
-      // iOS simulator and web can use localhost
-      const localHost = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
+      // Local development - use localhost with adb reverse for Android
+      // iOS simulator and web can use localhost directly
+      const localHost = 'localhost';
       return {
         BASE_URL: `http://${localHost}:8005/mapi/`,
         Photo_URL: `http://${localHost}:8005/assets/uploads/images/`,
@@ -54,10 +54,10 @@ const getEnvironmentUrls = () => {
     case 'development':
     // Staging environment - Railway
     return {
-      BASE_URL: 'https://taist-mono-staging.up.railway.app/mapi/',
-      Photo_URL: 'https://taist-mono-staging.up.railway.app/assets/uploads/images/',
-      Static_URL: 'https://taist-mono-staging.up.railway.app/assets/images/',
-      HTML_URL: 'https://taist-mono-staging.up.railway.app/assets/uploads/html/',
+      BASE_URL: 'https://api-staging.taist.app/mapi/',
+      Photo_URL: 'https://api-staging.taist.app/assets/uploads/images/',
+      Static_URL: 'https://api-staging.taist.app/assets/images/',
+      HTML_URL: 'https://api-staging.taist.app/assets/uploads/html/',
     };
     
     case 'production':

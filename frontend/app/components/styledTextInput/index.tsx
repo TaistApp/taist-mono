@@ -39,6 +39,7 @@ const StyledTextInput = forwardRef(
       textInputStyle,
       placeholderTextColor = 'rgba(255,255,255,0.5)',
       onPress,
+      testID,
       ...props
     }: Props,
     ref,
@@ -87,6 +88,7 @@ const StyledTextInput = forwardRef(
 
     return (
       <Pressable
+        testID={testID}
         style={[
           styles.container,
           label != undefined && {marginTop: 10},

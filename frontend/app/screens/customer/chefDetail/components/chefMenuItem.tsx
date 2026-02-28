@@ -3,12 +3,13 @@ import { IMenu } from '../../../../types/index';
 import { styles } from '../styles';
 
 type Props = {
+  testID?: string;
   item: IMenu;
   onPress: () => void;
 };
 const ChefMenuItem = (props: Props) => {
   return (
-    <TouchableOpacity onPress={props.onPress} style={styles.chefCardMenuItem}>
+    <TouchableOpacity testID={props.testID} onPress={props.onPress} style={styles.chefCardMenuItem}>
       <View style={styles.chefCardMenuItemHeading}>
         <Text style={styles.chefCardMenuItemTitle}>{props.item.title}</Text>
         <Text style={styles.chefCardMenuItemPrice}>{`${

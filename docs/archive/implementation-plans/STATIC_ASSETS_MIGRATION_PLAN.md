@@ -111,7 +111,7 @@ src='http://18.216.154.184/assets/uploads/images/logo-2.png'
 
 **To:**
 ```php
-src='https://taist-mono-staging.up.railway.app/assets/images/logo-2.png'
+src='https://api-staging.taist.app/assets/images/logo-2.png'
 ```
 
 (Note: Should use environment variable for base URL)

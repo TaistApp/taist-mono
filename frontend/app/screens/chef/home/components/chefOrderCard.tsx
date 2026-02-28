@@ -6,6 +6,7 @@ import {getImageURL, GetOrderString} from '../../../../utils/functions';
 import {OrderStatus} from '../../../../types/status';
 
 type Props = {
+  testID?: string;
   info: IOrder;
   customer: IUser;
   onPress: () => void;
@@ -14,7 +15,7 @@ type Props = {
 const ChefOrderCard = (props: Props) => {
   console.log('-------->>>>>>>',JSON.stringify(props));
   return (
-    <TouchableOpacity onPress={props.onPress} style={styles.orderCard}>
+    <TouchableOpacity testID={props.testID} accessible={false} onPress={props.onPress} style={styles.orderCard}>
       <View style={styles.orderCardMain}>
         <StyledProfileImage url={getImageURL(props.customer.photo)} size={80} />
         <View style={styles.orderCardInfo}>

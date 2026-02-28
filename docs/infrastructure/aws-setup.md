@@ -48,7 +48,7 @@ The Taist platform currently uses AWS EC2 instances to host backend APIs. There 
 | **OS** | Ubuntu (Apache 2.4.58) |
 | **PHP Version** | 7.2.34 |
 | **Purpose** | **Staging/Development Backend** |
-| **Domain** | `taist-mono-staging.up.railway.app` |
+| **Domain** | `api-staging.taist.app` |
 | **Used By** | Mobile app (staging/preview builds) |
 
 **Status:** ✅ **ACTIVE - This server is being used by your staging/development mobile builds**
@@ -57,7 +57,7 @@ The Taist platform currently uses AWS EC2 instances to host backend APIs. There 
 - Web Server: Apache 2.4.58
 - Backend: Laravel PHP application
 - SSL: Configured
-- API Endpoint: `https://taist-mono-staging.up.railway.app/mapi/`
+- API Endpoint: `https://api-staging.taist.app/mapi/`
 
 ---
 
@@ -75,7 +75,7 @@ The Taist platform currently uses AWS EC2 instances to host backend APIs. There 
 | **OS** | Amazon Linux 2 (Apache 2.4.58) |
 | **PHP Version** | 7.2.34 |
 | **Purpose** | ✅ **PRODUCTION BACKEND - CRITICAL** |
-| **Domain** | `taist-mono-production.up.railway.app` (via Cloudflare CDN) |
+| **Domain** | `api.taist.app` (via Cloudflare CDN) |
 | **Used By** | ✅ **Mobile app production builds** |
 
 **Status:** ✅ **ACTIVE - THIS IS YOUR PRODUCTION SERVER!**
@@ -86,7 +86,7 @@ The Taist platform currently uses AWS EC2 instances to host backend APIs. There 
 - PHP-FPM: ~45 worker processes
 - SSL: Managed by Cloudflare
 - Behind Cloudflare CDN (origin server)
-- API Endpoint: `https://taist-mono-production.up.railway.app/mapi/`
+- API Endpoint: `https://api.taist.app/mapi/`
 
 #### Active Traffic (Verified Nov 21, 2025):
 - ✅ iOS app users (Taist/6 CFNetwork)
@@ -125,20 +125,20 @@ The Taist platform currently uses AWS EC2 instances to host backend APIs. There 
 
 | Domain | IP Address(es) | Points To | Status |
 |--------|---------------|-----------|--------|
-| `taist-mono-staging.up.railway.app` | `18.118.114.98` | taist-staging-n... instance | ✅ Active |
-| `taist-mono-production.up.railway.app` | `104.21.40.91`, `172.67.183.71` | Cloudflare CDN → Taist 2 (18.216.154.184) | ✅ Active |
+| `api-staging.taist.app` | `18.118.114.98` | taist-staging-n... instance | ✅ Active |
+| `api.taist.app` | `104.21.40.91`, `172.67.183.71` | Cloudflare CDN → Taist 2 (18.216.154.184) | ✅ Active |
 | `api.taist.app` | `54.243.117.197`, `13.223.25.84` | Unknown (.NET/Kestrel server) | ⚠️ Mismatch |
 
 ### DNS Verification Results
 
 ```bash
 # Staging Backend
-$ nslookup taist-mono-staging.up.railway.app
+$ nslookup api-staging.taist.app
 Address: 18.118.114.98
 ✅ Matches: taist-staging-n... instance
 
 # Production Backend (behind Cloudflare)
-$ nslookup taist-mono-production.up.railway.app
+$ nslookup api.taist.app
 Address: 104.21.40.91, 172.67.183.71
 ✅ Cloudflare CDN (hiding origin server)
 
@@ -167,9 +167,9 @@ The mobile app (`frontend/app/services/api.ts`) uses different URLs based on env
 
 ```javascript
 APP_ENV = 'staging' or 'development'
-BASE_URL: 'https://taist-mono-staging.up.railway.app/mapi/'
-Photo_URL: 'https://taist-mono-staging.up.railway.app/assets/uploads/images/'
-HTML_URL: 'https://taist-mono-staging.up.railway.app/assets/uploads/html/'
+BASE_URL: 'https://api-staging.taist.app/mapi/'
+Photo_URL: 'https://api-staging.taist.app/assets/uploads/images/'
+HTML_URL: 'https://api-staging.taist.app/assets/uploads/html/'
 ```
 
 **Backend Server:** taist-staging-n... (`18.118.114.98`)  
@@ -179,9 +179,9 @@ HTML_URL: 'https://taist-mono-staging.up.railway.app/assets/uploads/html/'
 
 ```javascript
 APP_ENV = 'production'
-BASE_URL: 'https://taist-mono-production.up.railway.app/mapi/'
-Photo_URL: 'https://taist-mono-production.up.railway.app/assets/uploads/images/'
-HTML_URL: 'https://taist-mono-production.up.railway.app/assets/uploads/html/'
+BASE_URL: 'https://api.taist.app/mapi/'
+Photo_URL: 'https://api.taist.app/assets/uploads/images/'
+HTML_URL: 'https://api.taist.app/assets/uploads/html/'
 ```
 
 **Backend Server:** Unknown (behind Cloudflare CDN)  
@@ -286,7 +286,7 @@ Additional savings from stopped instance:
   - Determine correct configuration
   
 - [ ] **Document Cloudflare configuration**
-  - Identify origin server for taist-mono-production.up.railway.app
+  - Identify origin server for api.taist.app
   - Document Cloudflare DNS/CDN settings
 
 ### Medium Priority
@@ -366,8 +366,8 @@ curl -I http://18.216.154.184
 curl -H "Host: api.taist.app" http://18.216.154.184/api
 
 # Test actual mobile app URLs
-curl -I https://taist-mono-staging.up.railway.app/mapi/get-version
-curl -I https://taist-mono-production.up.railway.app/mapi/get-version
+curl -I https://api-staging.taist.app/mapi/get-version
+curl -I https://api.taist.app/mapi/get-version
 ```
 
 ---

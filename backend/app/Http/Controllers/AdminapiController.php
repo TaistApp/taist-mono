@@ -293,8 +293,8 @@ class AdminapiController extends Controller
                 'source' => 'admin_created',
                 'parent_review_id' => null,
                 'ai_generation_params' => null,
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
+                'created_at' => $this->varyReviewDate(),
+                'updated_at' => $this->varyReviewDate()
             ]);
 
             // Automatically generate 3 AI reviews based on this
@@ -311,10 +311,7 @@ class AdminapiController extends Controller
 
                 foreach ($variants as $index => $variant) {
                     // Build prompt
-                    $ratingDescription = $review->rating >= 4.5 ? 'very positive' :
-                                       ($review->rating >= 4.0 ? 'positive' :
-                                       ($review->rating >= 3.0 ? 'neutral to positive' :
-                                       ($review->rating >= 2.0 ? 'mixed' : 'critical')));
+                    $ratingDescription = $review->rating >= 4.5 ? 'very positive' : 'positive';
 
                     $lengthGuide = $variant['length'] === 'short' ? '40-70 characters' : '70-100 characters';
 
@@ -335,10 +332,12 @@ Write a NEW, UNIQUE review that feels natural and authentic. DO NOT copy the ori
 
 REQUIREMENTS:
 - {$lengthGuide} maximum
-- Match the {$review->rating}-star rating sentiment ({$ratingDescription})
+- The review MUST be positive and enthusiastic (4-5 star sentiment)
 - {$focusInstructions[$variant['focus']]}
 - Sound like a real customer, not AI
 - Be specific but varied from the original review
+- NEVER include any negative comments, complaints, or criticism
+- Even if the original review is negative, write a positive review instead
 - NO flowery language (no \"divine,\" \"heavenly,\" \"exquisite,\" \"timeless\")
 - NO generic phrases (\"good food,\" \"nice meal,\" \"great experience\")
 
@@ -353,13 +352,14 @@ Write only the review text:";
                     if ($result['success']) {
                         $aiReviewText = trim($result['content']);
 
-                        // Vary rating slightly
+                        // Vary rating slightly — always 4.0-5.0
                         $variance = (rand(0, 10) / 20);
                         $direction = rand(0, 1) ? 1 : -1;
                         $newRating = $review->rating + ($direction * $variance);
-                        $newRating = max(1, min(5, $newRating));
+                        $newRating = max(4.0, min(5, $newRating));
                         $newRating = round($newRating * 2) / 2;
 
+                        $variedDate = $this->varyReviewDate();
                         $aiReview = app(Reviews::class)->create([
                             'order_id' => 0,
                             'from_user_id' => 0,
@@ -376,8 +376,8 @@ Write only the review text:";
                                 'length' => $variant['length'],
                                 'generated_at' => time()
                             ]),
-                            'created_at' => date('Y-m-d H:i:s'),
-                            'updated_at' => date('Y-m-d H:i:s')
+                            'created_at' => $variedDate,
+                            'updated_at' => $variedDate
                         ]);
 
                         $generatedReviews[] = $aiReview;
@@ -405,5 +405,17 @@ Write only the review text:";
         }
     }
 
-
+    /**
+     * Vary the review date to add realism.
+     * Returns a date within 1-14 days before the current time.
+     */
+    private function varyReviewDate()
+    {
+        $now = time();
+        $daysToSubtract = rand(1, 14);
+        $hoursToSubtract = rand(0, 23);
+        $minutesToSubtract = rand(0, 59);
+        $newTimestamp = $now - ($daysToSubtract * 86400) - ($hoursToSubtract * 3600) - ($minutesToSubtract * 60);
+        return date('Y-m-d H:i:s', $newTimestamp);
+    }
 }

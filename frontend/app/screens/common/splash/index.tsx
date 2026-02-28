@@ -182,9 +182,11 @@ const Splash = () => {
 
   const autoLogin = async () => {
     try {
-      // Skip version check in local development
-      if (APP_ENV === 'local') {
-        console.log('Local development mode: Skipping version check');
+      // Skip version check in local development and staging
+      // Staging testers get builds directly (TestFlight/APK), not from the store,
+      // so the "Update Required" flow can't help them — it just blocks them.
+      if (APP_ENV === 'local' || APP_ENV === 'staging') {
+        console.log(`${APP_ENV} mode: Skipping version check`);
         const loginData = await ReadLoginData();
         if (loginData == null || !loginData.email || !loginData.password) {
           setSplash(false);

@@ -1,6 +1,6 @@
 # Sprint 2 SOW - Implementation Status
 
-Last updated: February 18, 2026
+Last updated: February 20, 2026
 Source of scope: `docs/sprint2-sow.md`
 
 ## SOW2 Scope (Complete List)
@@ -9,7 +9,7 @@ Source of scope: `docs/sprint2-sow.md`
 |---|---|---|---:|---|
 | 1 | TMA-063 | Weekly Order Reminder Notifications | 3h | Implemented, verification complete (staging data validation pending) |
 | 2 | TMA-061 | Chef Availability on Current Day | 4h | Implemented, verification complete (staging behavior validation pending) |
-| 3 | TMA-037 | Order Time Blockout Logic | 6h | Not started |
+| 3 | TMA-037 | Order Time Blockout Logic | 6h | Completed, verified on simulator |
 | 4 | TMA-054 | In-App Bug & Issue Reporting | 4h | Implemented in code, pending trusted Maestro + manual smoke verification |
 | 5 | TMA-055 | SMS Notifications for Chat Messages | 2h | Implemented, backend verification complete (staging SMS delivery pending) |
 | 6 | TMA-036 | Privacy Policy & Terms of Service Pages | 1h | Completed |
@@ -130,8 +130,8 @@ Remaining Maestro gap for TMA-055:
 ### Requirements Applied
 
 - Push notifications only (no SMS)
-- Randomized weekdays: Mon-Thu
-- Max frequency: 2 reminders per user per week
+- Randomized weekdays: Mon-Thu (2 slots guaranteed on different days)
+- Max frequency: 2 reminders per user per week, always on separate days
 - Time window: 10:00-16:00 user local timezone
 - Static rotating message set, including:
   - `Feeling behind? Order Taist and get ahead on other stuff tonight. See chefs now.`
@@ -164,8 +164,9 @@ Remaining Maestro gap for TMA-055:
 - For each customer (verified + FCM token), service computes local time from state timezone and only sends when:
   - local weekday is Mon-Thu
   - local time is between 10:00 and 15:59
-  - current quarter-hour matches one of 2 deterministic random slots for that user/week
+  - current quarter-hour matches one of 2 deterministic random slots for that user/week (slots are always on different days)
   - user is below 2 sends for the week
+- Scheduler output now logged to Railway stdout (`appendOutputTo('/proc/1/fd/1')`) for visibility
 
 ### Message Rotation
 
@@ -185,6 +186,8 @@ Remaining Maestro gap for TMA-055:
    - `php artisan list` includes `reminders:send-weekly-order`.
 5. Dry-run command execution:
    - `php artisan reminders:send-weekly-order --dry-run` executed successfully.
+6. Different-day constraint test:
+   - 500 users × 4 weeks = 2,000 user-week combinations, 0 same-day collisions.
    - Current local DB result: scanned `0` users (no eligible local data in this environment).
 
 ## Implemented Fix: TMA-061 (Chef Availability on Current Day)
@@ -362,6 +365,61 @@ Evidence to attach in handoff:
 - Pass/fail per required confirmation item above
 - Any mismatch with exact screen/API payload details
 
+## Implemented Fix: TMA-037 (Order Time Blockout + Demand Signaling + Chef Detail Availability)
+
+Full implementation plan: `docs/tma-037-implementation-plan.md`
+
+### What We Implemented
+
+Three sub-features shipped together:
+
+1. **Demand Signaling ("Popular" Badge)**
+   - Backend: CRC32 hash-based deterministic ~40% badge assignment per day
+   - Frontend: Orange badge overlay on chef profile pic + thin orange card border
+   - `backend/app/Http/Controllers/MapiController.php` (`getSearchChefs`)
+   - `frontend/app/screens/customer/home/components/chefCard.tsx`
+
+2. **Arrival Time Blockout Logic**
+   - Backend endpoint `getAvailableTimeslots` filters out past times with 3-hour minimum buffer
+   - Checks overrides vs weekly schedule, filters cancelled days
+   - `backend/app/Http/Controllers/MapiController.php`
+
+3. **Chef Detail Availability Section**
+   - New pill-based date/time picker on chef detail page (30-day range)
+   - Auto-scrolls to availability section on page load
+   - Pre-selects date/time and passes to checkout
+   - `frontend/app/screens/customer/chefDetail/components/availabilitySection.tsx`
+   - `frontend/app/screens/customer/chefDetail/index.tsx`
+
+4. **Checkout UI Overhaul (Pill-Based)**
+   - Replaced `CustomCalendar` week-view + `StyledTabButton` time selection with horizontal pill-based design matching chef detail
+   - 30-day scrollable date pills with working-day filtering
+   - Rounded time pills with loading/empty states
+   - Deleted `checkout/components/customCalendar.tsx`
+   - `frontend/app/screens/customer/checkout/index.tsx`
+   - `frontend/app/screens/customer/checkout/styles.ts`
+
+5. **Home Screen Calendar Polish**
+   - Replaced hardcoded hex colors with `AppColors.*` theme constants
+   - Changed selected-day styling from white+border to orange-fill+white-text (matches pill design)
+   - `frontend/app/screens/customer/home/components/customCalendar.tsx`
+
+### Verification Completed
+
+1. Simulator verification (Maestro MCP):
+   - Chef cards show "Popular" badge on ~40% of chefs
+   - Chef detail auto-scrolls to availability, date pills load timeslots
+   - Checkout pill UI: date selection loads timeslots, time selection updates estimated time
+   - Home calendar: orange-fill selected state renders correctly
+2. Backend: existing unit tests pass (availability override + SMS suites)
+3. No logic changes to order submission flow — checkout state management preserved
+
+### Commits
+
+- `d16347f` — TMA-037: Order time blockout, demand signaling, chef detail availability (25 files)
+- `0ce693e` — Checkout pill UI replacement + customCalendar deletion
+- `52e44ad` — Home calendar theme constants + orange-fill selected state
+
 ## SOW2 Tasks Ranked by Ease of Implementation
 
 Easiest to hardest:
@@ -372,6 +430,42 @@ Easiest to hardest:
 4. `TMA-061` Chef Availability on Current Day
 5. `TMA-054` In-App Bug & Issue Reporting
 6. `TMA-037` Order Time Blockout Logic
+
+## Bugfix: Order Creation Timezone Bug (February 21, 2026)
+
+### Problem
+
+Evening US orders (e.g. Sunday 7 PM EST) failed with "This chef is not available at the requested time" even when the chef had availability for that day and time.
+
+**Root cause:** The frontend sent `order_date` as a Unix timestamp. The backend (Railway, UTC) called `date('l', $timestamp)` to get the day-of-week, which resolved Sunday 7 PM EST (UTC-5) to Monday 00:00 UTC — checking Monday's schedule instead of Sunday's.
+
+### What We Fixed
+
+1. **Frontend** (`frontend/app/screens/customer/checkout/index.tsx`):
+   - Now sends `order_date_string` (YYYY-MM-DD) and `order_time_string` (HH:mm) alongside the Unix timestamp
+   - These are derived from the already-selected `DAY` and `time` values, no timezone conversion needed
+
+2. **Backend** (`backend/app/Listener.php`):
+   - `isAvailableForOrder()` now accepts date+time strings and uses them directly for availability checks
+   - Falls back to legacy timestamp parsing if strings not provided
+
+3. **Backend** (`backend/app/Http/Controllers/MapiController.php`):
+   - `createOrder` reads the new string fields and uses them for availability validation
+   - Populates `order_date_new` and `order_time` columns on the order record (these existed but were never populated)
+
+4. **Backend** (`backend/app/Services/OrderSmsService.php`):
+   - Added missing `formatUserName()` method that was causing a 500 error on all order creation
+
+### Verification
+
+- Confirmed bug on staging: Sunday 7 PM order → "chef not available" (before fix)
+- Confirmed fix on staging: Sunday 7 PM order → `success: 1` with correct `order_date_new=2026-02-22`, `order_time=19:00` (after fix)
+- All existing unit tests pass (32 availability tests, 57 assertions)
+
+### Commits
+
+- `db3cb13` — Fix timezone bug in order creation availability check
+- `dcaabb2` — Fix missing formatUserName method in OrderSmsService
 
 ## TMA-064 Google Play Account Deletion URL Compliance (February 18, 2026)
 

@@ -45,6 +45,7 @@ const StyledStripeCardField = ({style, content, onAddCard}: Props) => {
         cardStyle={{
           backgroundColor: '#000000',
           textColor: '#000000',
+          placeholderColor: '#999999',
         }}
         style={styles.cardStyle}
         onCardChange={setDetails}

@@ -74,6 +74,7 @@ export const StepChefBirthday: React.FC<StepChefBirthdayProps> = ({
       subtitle="We need to verify you're at least 18 years old."
     >
       <StyledTextInput
+        testID="signup.chefBirthday.birthdayInput"
         label="Birthday"
         placeholder="Select your birthday"
         onPress={() => setOpenBirthdayPicker(true)}
@@ -92,10 +93,11 @@ export const StepChefBirthday: React.FC<StepChefBirthdayProps> = ({
 
       <View style={styles.buttonContainer}>
         <StyledButton
+          testID="signup.chefBirthday.continueButton"
           title="Continue"
           onPress={validateAndProceed}
         />
-        <Pressable onPress={onBack} style={styles.backButton}>
+        <Pressable testID="signup.chefBirthday.backButton" onPress={onBack} style={styles.backButton}>
           <Text style={styles.backButtonText}>Back</Text>
         </Pressable>
       </View>

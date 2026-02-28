@@ -2,7 +2,7 @@
   "expo": {
     "name": "Taist",
     "slug": "Taist",
-    "version": "29.0.0",
+    "version": "31.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "taistexpo",
@@ -11,30 +11,37 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "org.taist.taist",
-      "buildNumber": "10",
+      "buildNumber": "23",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "UIBackgroundModes": [
           "remote-notification",
+          "location",
+          "remote-notification",
+          "location",
+          "remote-notification",
+          "location",
+          "remote-notification",
           "location"
         ],
-        "NSCameraUsageDescription": "Taist needs camera access to take photos for your chef profile and to capture images of your dishes that will be displayed to customers.",
+        "NSCameraUsageDescription": "Taist uses your camera to take a profile photo that represents you as a chef, and to photograph your dishes. For example, you can snap a photo of your signature meal to display on your chef profile for customers to see.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Taist needs your location to show nearby chefs and improve your experience in finding culinary services.",
         "NSLocationAlwaysUsageDescription": "To provide a better user experience, Taist requires your location even when the app is in background.",
         "NSLocationWhenInUseUsageDescription": "Taist needs your location to show nearby chefs and improve your experience in finding culinary services.",
         "NSLocationTemporaryUsageDescriptionDictionary": {
           "LocationAccuracyAuthorizationDescription": "Please enable precise location to show your exact position on the map"
         },
-        "NSPhotoLibraryAddUsageDescription": "Taist would like to save photos to your gallery, such as images received in messages.",
-        "NSPhotoLibraryUsageDescription": "Taist needs access to your photo library to select images for your chef profile picture and dish photos that will be displayed to customers.",
-        "NSUserNotificationsUsageDescription": "This app uses notifications to alert you about order updates and new messages."
+        "NSPhotoLibraryAddUsageDescription": "Taist saves photos to your photo library when you choose to download images from messages or order confirmations. For example, saving a receipt image shared by a customer.",
+        "NSPhotoLibraryUsageDescription": "Taist accesses your photo library so you can select an existing photo for your chef profile picture or upload photos of dishes you offer. For example, choosing a professional headshot as your profile image or selecting food photos to showcase your menu.",
+        "NSUserNotificationsUsageDescription": "This app uses notifications to alert you about order updates and new messages.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "icon": "./assets/images/icon.png",
       "edgeToEdgeEnabled": true,
       "package": "com.taist.app",
-      "versionCode": 146,
+      "versionCode": 153,
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.INTERNET",
@@ -68,6 +75,7 @@
       "favicon": "./assets/images/icon.png"
     },
     "plugins": [
+      "./plugins/withNotificationColorFix.js",
       [
         "react-native-edge-to-edge",
         {
@@ -127,7 +135,11 @@
           "ios": {
             "useFrameworks": "static",
             "privacyManifestAggregationEnabled": false,
-            "forceStaticLinking": ["RNFBApp", "RNFBCrashlytics", "RNFBMessaging"]
+            "forceStaticLinking": [
+              "RNFBApp",
+              "RNFBCrashlytics",
+              "RNFBMessaging"
+            ]
           },
           "android": {
             "enableProguardInReleaseBuilds": true,
@@ -137,7 +149,8 @@
                 "**/libc++_shared.so"
               ]
             },
-            "extraProguardRules": "-keep class com.swmansion.reanimated.** { *; }\n-keep class com.facebook.react.turbomodule.** { *; }\n-dontwarn com.stripe.android.pushProvisioning.**\n-keep class com.stripe.android.** { *; }\n-keep class com.reactnativestripesdk.** { *; }"
+            "extraProguardRules": "-keep class com.swmansion.reanimated.** { *; }\n-keep class com.facebook.react.turbomodule.** { *; }\n-dontwarn com.stripe.android.pushProvisioning.**\n-keep class com.stripe.android.** { *; }\n-keep class com.reactnativestripesdk.** { *; }",
+            "enableMinifyInReleaseBuilds": true
           }
         }
       ],
@@ -170,8 +183,7 @@
       [
         "expo-maps",
         {
-          "enableGoogleMaps": true,
-          "googleMapsApiKey": "AIzaSyDpFdDqF3zhC0WvFTBoav3N0-S5qWFlHAw"
+          "enableGoogleMaps": true
         }
       ]
     ],
@@ -184,6 +196,12 @@
         "projectId": "0bad62e8-4a7c-46bd-9d4c-931018151fae"
       }
     },
-    "owner": "bgroble"
+    "owner": "bgroble",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/0bad62e8-4a7c-46bd-9d4c-931018151fae"
+    }
   }
 }

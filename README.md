@@ -44,11 +44,13 @@ The frontend supports three environments:
 npm run dev:local      # http://localhost:8005
 
 # Staging (test server)
-npm run dev:staging    # https://taist-mono-staging.up.railway.app
+npm run dev:staging    # https://api-staging.taist.app
 
 # Production (live)
-npm run dev:prod       # https://taist-mono-production.up.railway.app
+npm run dev:prod       # https://api.taist.app
 ```
+
+> Railway backup URLs: `taist-mono-staging.up.railway.app` (staging) / `taist-mono-production.up.railway.app` (production). Use only if custom domains have DNS issues.
 
 ---
 

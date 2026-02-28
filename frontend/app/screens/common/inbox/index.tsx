@@ -58,6 +58,7 @@ const Inbox = () => {
           {items.map((item, idx) => {
             return (
               <InboxRecord
+                testID={`chatInbox.conversationCard.${idx}`}
                 self={self}
                 user={item.user}
                 lastMsg={item.msg}

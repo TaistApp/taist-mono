@@ -78,7 +78,8 @@ class ChatSmsServiceTest extends TestCase
 
         $this->assertNotNull($sentSms);
         $this->assertEquals('+15555550020', $sentSms['phone']);
-        $this->assertStringContainsString('Taist: New message from Chef Jane.', $sentSms['message']);
+        // SMS uses generic role instead of name for privacy
+        $this->assertStringContainsString('Taist: New message from your chef.', $sentSms['message']);
         $this->assertStringContainsString('Open inbox: ', $sentSms['message']);
         $this->assertStringContainsString('/open/inbox.', $sentSms['message']);
         $this->assertStringContainsString('Reply in the app only', $sentSms['message']);

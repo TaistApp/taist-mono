@@ -1,5 +1,5 @@
 import { TextInput } from '@react-native-material/core';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   Pressable,
   SafeAreaView,
@@ -21,6 +21,7 @@ import { IMenu, IOrder, IUser } from '../../../types/index';
 // Hooks
 import { useAppDispatch, useAppSelector } from '../../../hooks/useRedux';
 
+import KeyboardAwareScrollView from '../../../components/KeyboardAwareScrollView';
 import StyledCheckBox from '../../../components/styledCheckBox';
 import Container from '../../../layout/Container';
 import { addOrUpdateCustomerOrder } from '../../../reducers/customerSlice';
@@ -35,6 +36,7 @@ const AddToOrder = () => {
   const orderMenu: IMenu = JSON.parse(params.orderMenu as string);
   const chefInfo: IUser = JSON.parse(params.chefInfo as string);
 
+  const scrollRef = useRef<ScrollView>(null);
   const [quantity, onChangeQuantity] = useState(1);
   const [orderNotes, onChangeOrderNotes] = useState('');
   const [customizationIds, onChangeCustomizationIds] = useState<Array<number>>(
@@ -91,7 +93,7 @@ const AddToOrder = () => {
   return (
     <SafeAreaView style={styles.main}>
       <Container>
-        <ScrollView contentContainerStyle={styles.pageView}>
+        <KeyboardAwareScrollView ref={scrollRef} contentContainerStyle={styles.pageView}>
           <View style={styles.heading}>
             <Pressable onPress={() => router.back()}>
               <FontAwesomeIcon icon={faAngleLeft} size={20} color="#1a1a1a" />
@@ -122,12 +124,14 @@ const AddToOrder = () => {
             <Text style={styles.orderQuantityLabel}>Quantity: </Text>
             <View style={styles.orderQuantityAction}>
               <Pressable
+                testID="addToOrder.quantityMinus"
                 style={styles.orderQuantityButton}
                 onPress={() => handleQuantityMinus()}>
                 <Text style={styles.orderQuantityButtonText}>-</Text>
               </Pressable>
-              <Text style={styles.orderQuantityValue}>{quantity}</Text>
+              <Text testID="addToOrder.quantityValue" style={styles.orderQuantityValue}>{quantity}</Text>
               <Pressable
+                testID="addToOrder.quantityPlus"
                 style={styles.orderQuantityButton}
                 onPress={() => handleQuantityPlus()}>
                 <Text style={styles.orderQuantityButtonText}>+</Text>
@@ -156,6 +160,7 @@ const AddToOrder = () => {
           )}
           <View style={styles.vcenter}>
             <TextInput
+              testID="addToOrder.specialInstructions"
               style={styles.formFields}
               inputContainerStyle={styles.formFieldsContainer}
               inputStyle={styles.formInputFields}
@@ -165,17 +170,18 @@ const AddToOrder = () => {
               onChangeText={onChangeOrderNotes}
               value={orderNotes}
               color="#1a1a1a"
+              onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 300)}
             />
           </View>
           <View style={styles.vcenter}>
-            <Pressable style={styles.button} onPress={() => handleAddToOrder()}>
+            <Pressable testID="addToOrder.addCartButton" style={styles.button} onPress={() => handleAddToOrder()}>
               <Text style={styles.buttonText}>{`ADD TO ORDER - $${(
                 quantity * (orderMenu.price ?? 0) +
                 price_customizations
               ).toFixed(2)} `}</Text>
             </Pressable>
           </View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </Container>
     </SafeAreaView>
   );

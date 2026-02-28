@@ -9,6 +9,9 @@ vendor/
 backend/.env
 frontend/.env
 
+# MCP config (contains tokens)
+.mcp.json
+
 # IDE
 .idea/
 .vscode/
@@ -75,13 +78,12 @@ coverage/
 firebase_credentials.json
 google-services.json
 GoogleService-Info.plist
-# Exception: Firebase configs needed for EAS builds
-!frontend/ios/Taist/GoogleService-Info.plist
-!frontend/google-services.json
-!frontend/android/app/google-services.json
 key.properties
 
 # Config files with secrets
 backend/public/include/config.php
 backend/public/api/config.php
+
+# Slack summaries (local working files)
+docs/slack-summaries/
 

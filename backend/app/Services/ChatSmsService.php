@@ -59,12 +59,10 @@ class ChatSmsService
                 return;
             }
 
-            $senderName = trim(($sender->first_name ?? '') . ' ' . ($sender->last_name ?? ''));
             $senderRole = ((int) $sender->user_type === 2) ? 'chef' : 'customer';
-            $senderDescriptor = $senderName !== '' ? $senderName : "your {$senderRole}";
             $inboxUrl = rtrim((string) env('APP_URL', 'https://taist.app'), '/') . '/open/inbox';
 
-            $message = "Taist: New message from {$senderDescriptor}. Open inbox: {$inboxUrl}. Reply in the app only - this SMS inbox is not monitored.";
+            $message = "Taist: New message from your {$senderRole}. Open inbox: {$inboxUrl}. Reply in the app only - this SMS inbox is not monitored.";
 
             $result = $this->twilioService->sendSMS($recipient->phone, $message, [
                 'type' => 'chat_message_alert',

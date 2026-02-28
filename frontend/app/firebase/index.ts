@@ -5,10 +5,11 @@ import { Platform } from 'react-native';
 import { PERMISSIONS, requestMultiple } from 'react-native-permissions';
 import Toast from 'react-native-toast-message';
 import { useAppDispatch } from '../hooks/useRedux';
+import { setGoLiveAutoOpen } from '../reducers/chefSlice';
 import { setUser } from '../reducers/userSlice';
 import { GetUserById, UpdateFCMTokenAPI } from '../services/api';
 import { store } from '../store';
-import { navigate } from '../utils/navigation';
+import { navigate, getActiveOrderDetailId } from '../utils/navigation';
 
 let ORDER_ID = -1;
 let isNavigationReady = false;
@@ -131,10 +132,10 @@ export const InitializeNotification = () => {
               tip: parsedBody.tip ?? 'N/A',
             });
           } else {
-            // For customer, create a basic order object with the ID
-            const orderInfo = {
-              id: parseInt((remoteMessage?.data?.order_id || '0').toString()),
-            } as any; // Use any type to bypass strict typing for minimal order object
+            const orderId = parseInt((remoteMessage?.data?.order_id || '0').toString());
+            // Skip navigation if already viewing this order's detail page
+            if (getActiveOrderDetailId() === orderId) return;
+            const orderInfo = { id: orderId } as any;
             navigate.toCustomer.orderDetail(orderInfo);
           }
         }
@@ -357,10 +358,11 @@ export const firebaseActions = () => {
 // Helper function to handle notification navigation
 const handleNotificationNavigation = (remoteMessage: any) => {
   try {
-    // Handle availability confirmation notifications - navigate to chef home
+    // Handle availability confirmation notifications - navigate to chef profile and auto-open GoLive toggle
     if (isAvailabilityConfirmationNotification(remoteMessage)) {
-      console.log('>>>Availability confirmation notification - navigating to chef home>>>', JSON.stringify(remoteMessage));
-      navigate.toChef.home();
+      console.log('>>>Availability confirmation notification - navigating to chef profile>>>', JSON.stringify(remoteMessage));
+      store.dispatch(setGoLiveAutoOpen('tomorrow'));
+      navigate.toChef.profile();
       return;
     }
 
@@ -390,10 +392,10 @@ const handleNotificationNavigation = (remoteMessage: any) => {
       });
     } else {
       console.log('>>>Customer Role notification navigation>>>', JSON.stringify(remoteMessage));
-      // For customer, create a basic order object with the ID
-      const orderInfo = {
-        id: parseInt((remoteMessage?.data?.order_id || '0').toString()),
-      } as any; // Use any type to bypass strict typing for minimal order object
+      const orderId = parseInt((remoteMessage?.data?.order_id || '0').toString());
+      // Skip navigation if already viewing this order's detail page
+      if (getActiveOrderDetailId() === orderId) return;
+      const orderInfo = { id: orderId } as any;
       navigate.toCustomer.orderDetail(orderInfo);
     }
   } catch (error) {

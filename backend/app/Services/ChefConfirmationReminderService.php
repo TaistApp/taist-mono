@@ -232,8 +232,8 @@ class ChefConfirmationReminderService
             $startField = $dayField . '_start';
             $endField = $dayField . '_end';
 
-            $scheduledStart = $availability->$startField;
-            $scheduledEnd = $availability->$endField;
+            $scheduledStart = $this->normalizeTimeValue($availability->$startField);
+            $scheduledEnd = $this->normalizeTimeValue($availability->$endField);
 
             if (!$scheduledStart || !$scheduledEnd) {
                 continue; // Not scheduled for tomorrow in weekly schedule
@@ -291,5 +291,31 @@ class ChefConfirmationReminderService
         ]);
 
         return $remindersToSend;
+    }
+
+    /**
+     * Normalize a time value to "HH:MM" format.
+     * Handles both new "HH:MM" string format and legacy Unix timestamps.
+     *
+     * @param mixed $value Time value (string "HH:MM" or numeric timestamp)
+     * @return string|null "HH:MM" format or null if invalid
+     */
+    private function normalizeTimeValue($value): ?string
+    {
+        if (empty($value) || $value === '0' || $value === 0) {
+            return null;
+        }
+
+        // Already a time string "HH:MM" - return as-is
+        if (is_string($value) && preg_match('/^\d{2}:\d{2}$/', $value)) {
+            return $value;
+        }
+
+        // Legacy Unix timestamp (9+ digits)
+        if (is_numeric($value) && strlen((string)$value) >= 9) {
+            return date('H:i', (int)$value);
+        }
+
+        return null;
     }
 }

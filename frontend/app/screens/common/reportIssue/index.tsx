@@ -51,7 +51,7 @@ const ReportIssue = () => {
       || 'unknown';
   }, []);
 
-  const deviceModel = Device.modelName || 'unknown';
+  const deviceModel = [Device.brand, Device.modelName].filter(Boolean).join(' ') || 'unknown';
   const osVersion = `${Platform.OS} ${String(Platform.Version)}`;
   const appEnv = Constants.expoConfig?.extra?.APP_ENV || 'production';
 
@@ -98,12 +98,14 @@ const ReportIssue = () => {
       <Container backMode={true} title="Report Issue">
         <KeyboardAwareScrollView contentContainerStyle={styles.pageView}>
           <StyledTextInput
+            testID="reportIssue.subjectInput"
             label="Subject"
             placeholder="What went wrong?"
             onChangeText={setSubject}
             value={subject}
           />
           <StyledTextInput
+            testID="reportIssue.descriptionInput"
             label="Describe the issue"
             placeholder="Include what you expected and what happened."
             onChangeText={setMessage}
@@ -115,7 +117,7 @@ const ReportIssue = () => {
           <StyledPhotoPicker
             onPhoto={setScreenshotPath}
             content={
-              <View style={styles.photoButton}>
+              <View testID="reportIssue.photoPickerButton" style={styles.photoButton}>
                 <Text style={styles.photoButtonText}>
                   {screenshotPath ? 'Change Screenshot' : 'Add Screenshot'}
                 </Text>
@@ -126,7 +128,7 @@ const ReportIssue = () => {
           {screenshotPath ? (
             <View style={styles.previewWrap}>
               <Image source={{ uri: screenshotPath }} style={styles.previewImage} />
-              <TouchableOpacity onPress={() => setScreenshotPath('')}>
+              <TouchableOpacity testID="reportIssue.removeScreenshotButton" onPress={() => setScreenshotPath('')}>
                 <Text style={styles.removeText}>Remove screenshot</Text>
               </TouchableOpacity>
             </View>
@@ -141,7 +143,7 @@ const ReportIssue = () => {
           </View>
 
           <View style={styles.vcenter}>
-            <StyledButton title={'SUBMIT ISSUE'} onPress={handleSubmit} />
+            <StyledButton testID="reportIssue.submitButton" title={'SUBMIT ISSUE'} onPress={handleSubmit} />
           </View>
         </KeyboardAwareScrollView>
       </Container>

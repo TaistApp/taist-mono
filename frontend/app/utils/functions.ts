@@ -58,8 +58,9 @@ export const Delay = (ms: number) => {
   });
 };
 
-export const formatDisplayName = (firstName?: string, lastName?: string) => {
+export const formatDisplayName = (firstName?: string, lastName?: string, includeLastInitial: boolean = true) => {
   const first = firstName || '';
+  if (!includeLastInitial) return first;
   const lastInitial = lastName?.substring(0, 1) || '';
   if (!first && !lastInitial) return '';
   if (!lastInitial) return first;

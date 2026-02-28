@@ -54,10 +54,49 @@ export const styles = StyleSheet.create({
     lineHeight: 22,
   },
   
-  // Calendar section
-  calendarWrapper: {
-    marginVertical: Spacing.md,
+  // Date pills
+  datePillRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingVertical: Spacing.xs,
+    marginTop: Spacing.sm,
   },
+  datePill: {
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: AppColors.background,
+    borderWidth: 1,
+    borderColor: AppColors.border,
+    minWidth: 56,
+  },
+  datePillSelected: {
+    backgroundColor: AppColors.primary,
+    borderColor: AppColors.primary,
+  },
+  datePillDisabled: {
+    opacity: 0.35,
+  },
+  datePillDay: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: AppColors.textSecondary,
+  },
+  datePillNum: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: AppColors.text,
+    marginTop: 2,
+  },
+  datePillTextSelected: {
+    color: AppColors.textOnPrimary,
+  },
+  datePillTextDisabled: {
+    color: AppColors.disabledText,
+  },
+
+  // Time pills
   timeLabel: {
     fontSize: 15,
     fontWeight: '600',
@@ -65,10 +104,28 @@ export const styles = StyleSheet.create({
     marginTop: Spacing.md,
     marginBottom: Spacing.sm,
   },
-  timeContainer: {
+  timePillRow: {
     flexDirection: 'row',
-    gap: Spacing.sm,
+    gap: 8,
     paddingVertical: Spacing.xs,
+  },
+  timePill: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: AppColors.background,
+    ...Shadows.xs,
+  },
+  timePillSelected: {
+    backgroundColor: AppColors.primary,
+  },
+  timePillText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: AppColors.text,
+  },
+  timePillTextSelected: {
+    color: AppColors.textOnPrimary,
   },
   noTimesText: {
     fontSize: 14,

@@ -205,6 +205,66 @@ This behavior is controlled by comparison operators (`<` for exclusive) in:
 
 ---
 
+## Time Blockout Logic
+
+When customers browse a chef's available time slots, the system filters out slots that conflict with existing orders. This prevents double-booking and ensures chefs have adequate prep time.
+
+### Same-Day 2-Hour Minimum
+
+For same-day orders, slots must be at least 2 hours away. This is calculated using the **chef's timezone** (derived from `$chef->state` via `TimezoneHelper::getTimezoneForState()`), not UTC. "Today" is also defined by the chef's clock. The comparison is a pure HH:MM string comparison — no UTC timestamp math.
+
+### How It Works
+
+1. Customer requests available timeslots for a chef on a specific date
+2. Backend fetches all active orders for that chef on that date (statuses: Accepted=2, On My Way=7). Requested orders do NOT block slots since the chef hasn't committed to them yet.
+3. For each order, a "blocked window" is calculated:
+   - **Start**: `order_time - estimated_time` (prep start)
+   - **End**: `order_time + ORDER_BUFFER_MINUTES` (30 min post-delivery buffer)
+4. Any timeslot that falls within a blocked window is removed from the result
+
+### Constants
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `BLOCKOUT_ORDER_STATUSES` | `[2, 7]` | Statuses that block timeslots (Accepted, On My Way) |
+| `ORDER_BUFFER_MINUTES` | `30` | Buffer after order time |
+| `DEFAULT_ORDER_DURATION_MINUTES` | `120` | Fallback if no estimated_time on menu |
+
+### Example
+
+Chef has an order at 12:00 with a 20-minute prep item:
+- Blocked window: 11:40 (12:00 - 20min) to 12:30 (12:00 + 30min)
+- Slots removed: 11:30, 12:00, 12:30 (any slot starting within the blocked window)
+
+### API Endpoint
+
+```
+GET /mapi/get_available_timeslots/{chef_id}?date=YYYY-MM-DD
+```
+
+Returns an array of available time strings: `["09:00", "09:30", "10:00", ...]`
+
+### Backend Code
+
+| File | Method | Description |
+|------|--------|-------------|
+| `MapiController.php` | `getAvailableTimeslots()` | Main endpoint |
+| `MapiController.php` | `filterSlotsByOrders()` | Blockout filtering logic |
+
+### Frontend: Availability Section
+
+The chef detail screen includes an interactive availability section where customers can browse dates and times before adding items to cart.
+
+**File:** `frontend/app/screens/customer/chefDetail/components/availabilitySection.tsx`
+
+Features:
+- Horizontal scrollable date pills (next 14 days)
+- Time slot pills fetched from `GetAvailableTimeslotsAPI`
+- Selected time is passed through to checkout for pre-selection
+- Loading and empty states
+
+---
+
 ## 24-Hour Confirmation Reminders
 
 Chefs receive reminders 24 hours before their scheduled availability to confirm/modify/cancel.
@@ -213,8 +273,9 @@ Chefs receive reminders 24 hours before their scheduled availability to confirm/
 
 1. **Scheduled Command**: `chef:send-confirmation-reminders` runs hourly
 2. **Logic**: Finds chefs with weekly schedule for tomorrow who don't have an override yet
-3. **Notification**: Sends SMS + push notification
-4. **Actions**: Chef can confirm (creates override), modify times, or cancel
+3. **Notification**: Sends SMS + push notification (data includes `type: availability_confirmation`)
+4. **Tap behavior**: Tapping the push notification navigates to the Profile tab and auto-opens the GoLiveToggle's "Tomorrow's Hours" modal, pre-populated with the chef's weekly schedule times. Implemented via Redux flag (`goLiveAutoOpen`) dispatched in `firebase/index.ts` and consumed by `GoLiveToggle/index.tsx`.
+5. **Actions**: Chef can confirm (creates override), modify times, or cancel
 
 ### SMS Content
 ```
@@ -231,35 +292,65 @@ Taist: You're scheduled [Day], [Time Range] tomorrow. If plans changed, open the
 |------|-------------|
 | `backend/app/Models/AvailabilityOverride.php` | Override model with scopes and methods |
 | `backend/app/Listener.php` | `isAvailableForOrder()` method |
-| `backend/app/Http/Controllers/MapiController.php` | API endpoints |
+| `backend/app/Http/Controllers/MapiController.php` | API endpoints, timeslot generation, blockout filtering |
 | `backend/app/Services/ChefConfirmationReminderService.php` | 24-hour reminders |
 | `backend/app/Console/Commands/SendConfirmationReminders.php` | Reminder command |
 | `backend/app/Console/Commands/CleanupOldOverrides.php` | Cleanup command |
+| `frontend/app/screens/customer/chefDetail/components/availabilitySection.tsx` | Chef detail availability UI |
 
 ### Listener::isAvailableForOrder()
 
 Core availability check used by order creation and chef search.
 
 ```php
-public function isAvailableForOrder($orderDate)
+public function isAvailableForOrder($orderDate, $orderTimeStr = null, $timezone = null)
 {
-    $orderDateOnly = date('Y-m-d', $orderTimestamp);
-    $orderTime = date('H:i', $orderTimestamp);
-    $today = date('Y-m-d');
+    // Preferred: pass date string (YYYY-MM-DD) + time string (HH:mm)
+    // This avoids UTC timezone bugs with Unix timestamps on the server
+    if ($orderTimeStr && preg_match('/^\d{4}-\d{2}-\d{2}$/', $orderDate)) {
+        $orderDateOnly = $orderDate;
+        $orderTime = $orderTimeStr;
+    } else {
+        // Legacy fallback: Unix timestamp (subject to UTC conversion)
+        $orderTimestamp = is_numeric($orderDate) ? (int)$orderDate : strtotime($orderDate);
+        $orderDateOnly = date('Y-m-d', $orderTimestamp);
+        $orderTime = date('H:i', $orderTimestamp);
+    }
 
     // Check for override first
     $override = AvailabilityOverride::forChef($this->id)
-        ->forDate($orderDateOnly)
-        ->first();
+        ->forDate($orderDateOnly)->first();
 
     if ($override) {
         return $override->isAvailableAt($orderTime);
     }
 
     // No override - fall back to weekly schedule
-    return $this->hasScheduleForDateTime($orderTimestamp, $orderTime);
+    return $this->hasScheduleForDateTime($orderDateOnly, $orderTime);
 }
 ```
+
+---
+
+## Timestamp Convention (IMPORTANT)
+
+**All availability and order time logic uses HH:mm strings and YYYY-MM-DD date strings, NOT Unix timestamps.**
+
+The Railway server runs in UTC. If you convert a Unix timestamp to a date/time using PHP's `date()`, evening US orders (e.g. 7 PM EST) will resolve to the **next day** in UTC (midnight). This caused a production bug where Sunday evening orders failed because the backend checked Monday's schedule.
+
+**Rules:**
+- Frontend sends `order_date_string` (YYYY-MM-DD) and `order_time_string` (HH:mm) alongside the legacy `order_date` (Unix timestamp)
+- Backend uses the string fields for availability checks and stores them in `order_date_new` and `order_time` columns
+- The Unix `order_date` is kept for backward compatibility (receipts, refund timing)
+- The admin panel uses the string fields (`order_date_new`, `order_time`) for displaying order dates — not the legacy timestamp — to avoid browser timezone shifts
+- Never call `date('l', $unixTimestamp)` or `date('Y-m-d', $unixTimestamp)` for availability/scheduling logic — use the string fields instead
+
+**Database columns on tbl_orders:**
+| Column | Type | Purpose |
+|--------|------|---------|
+| `order_date` | bigint | Legacy Unix timestamp (kept for receipts/refunds) |
+| `order_date_new` | date | YYYY-MM-DD date string (used for availability, blockout) |
+| `order_time` | varchar(5) | HH:mm time string (used for availability, blockout) |
 
 ---
 
@@ -300,6 +391,29 @@ GetAvailabilityOverridesAPI({
 |---------|----------|-------------|
 | `chef:send-confirmation-reminders` | Hourly | Sends 24-hour reminders to chefs |
 | `chef:cleanup-old-overrides` | Daily 2am | Deletes overrides older than 7 days |
+
+---
+
+## Legacy Timestamp Conversion (One-Time Data Fix)
+
+Some chefs have Unix timestamps (e.g. `1764946800`) in `tbl_availabilities` schedule fields instead of `HH:MM` strings. This causes `Carbon::parse` crashes in any code that concatenates the raw value into a datetime string.
+
+**Code is protected:** `normalizeTimeValue()` handles both formats at runtime in `Listener.php` and `ChefConfirmationReminderService.php`. But the underlying data should still be converted.
+
+### Commands
+
+```bash
+# Dry-run: shows affected chefs and what would change
+php artisan availability:convert-timestamps
+
+# Apply: converts timestamps to HH:MM strings in-place
+php artisan availability:convert-timestamps --execute
+```
+
+### Deployment Checklist
+
+- [x] **Staging** — Run `availability:convert-timestamps --execute` (done 2026-02-28)
+- [ ] **Production** — Run `availability:convert-timestamps --execute` after deploying to main
 
 ---
 

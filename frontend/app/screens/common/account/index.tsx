@@ -545,6 +545,7 @@ const user: IUser = typeof params?.user === 'string'
             />
           </View>
           <StyledTextInput
+            testID="account.firstNameInput"
             label={userInfo.user_type === 1 ? "First Name (Optional)" : "First Name"}
             placeholder="First Name"
             onChangeText={val => {
@@ -553,12 +554,14 @@ const user: IUser = typeof params?.user === 'string'
             value={userInfo.first_name ?? ''}
           />
           <StyledTextInput
+            testID="account.lastNameInput"
             label={userInfo.user_type === 1 ? "Last Name (Optional)" : "Last Name"}
             placeholder="Last Name"
             onChangeText={val => setUserInfo({...userInfo, last_name: val})}
             value={userInfo.last_name ?? ''}
           />
           <StyledTextInput
+            testID="account.birthdayPicker"
             label={userInfo.user_type === 1 ? "Birthday (Optional)" : "Birthday"}
             placeholder="Birthday"
             onPress={() => setOpenBirthdayPicker(true)}
@@ -569,6 +572,7 @@ const user: IUser = typeof params?.user === 'string'
             }
           />
           <StyledTextInput
+            testID="account.phoneInput"
             label="Phone Number"
             placeholder="Phone Number"
             keyboardType={'phone-pad'}
@@ -586,8 +590,9 @@ const user: IUser = typeof params?.user === 'string'
             <Text style={styles.addressText}>
               {userInfo.user_type === 1 ? "ADDRESS (Optional for now)" : "ADDRESS"}
             </Text>
-            <Pressable 
-              onPress={handleUseCurrentLocation} 
+            <Pressable
+              testID="account.getLocationButton"
+              onPress={handleUseCurrentLocation}
               disabled={isGettingLocation}
               style={styles.locationIconButton}
             >
@@ -604,12 +609,14 @@ const user: IUser = typeof params?.user === 'string'
               : "Tap the ➤ icon above to auto-fill your address from your current location."}
           </Text>
           <StyledTextInput
+            testID="account.addressInput"
             label={userInfo.user_type === 1 ? "Address (Optional)" : "Address"}
             placeholder="123 Main St"
             onChangeText={val => setUserInfo({...userInfo, address: val})}
             value={userInfo.address ?? ''}
           />
           <StyledTextInput
+            testID="account.cityInput"
             label={userInfo.user_type === 1 ? "City (Optional)" : "City"}
             placeholder="City"
             onChangeText={val => setUserInfo({...userInfo, city: val})}
@@ -640,6 +647,7 @@ const user: IUser = typeof params?.user === 'string'
             }
           />
           <StyledTextInput
+            testID="account.zipInput"
             label="ZIP"
             placeholder="ZIP"
             onChangeText={val => setUserInfo({...userInfo, zip: val})}
@@ -648,6 +656,7 @@ const user: IUser = typeof params?.user === 'string'
 
           <View style={styles.switchWrapper}>
             <StyledSwitch
+              testID="account.pushNotificationsToggle"
               label="Push Notifications"
               value={pushNotifications}
               onPress={() => openSettings()}
@@ -655,6 +664,7 @@ const user: IUser = typeof params?.user === 'string'
           </View>
           <View style={styles.switchWrapper}>
             <StyledSwitch
+              testID="account.locationServicesToggle"
               label="Location Services"
               value={locationServices}
               onPress={() => {
@@ -664,6 +674,7 @@ const user: IUser = typeof params?.user === 'string'
           </View>
           <View style={styles.vcenter}>
             <StyledButton
+              testID="account.saveButton"
               title={from == 'Signup' ? 'Sign Up' : 'SAVE'}
               onPress={() => {
                 from == 'Signup'
@@ -708,6 +719,7 @@ const user: IUser = typeof params?.user === 'string'
                   }
                   mode="date"
                   display="spinner"
+                  themeVariant="light"
                   onChange={onDateChange}
                   maximumDate={new Date()}
                   minimumDate={moment().subtract(120, 'years').toDate()}

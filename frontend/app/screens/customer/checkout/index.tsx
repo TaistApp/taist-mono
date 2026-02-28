@@ -29,7 +29,6 @@ import { useAppDispatch, useAppSelector } from '../../../hooks/useRedux';
 import { useStripe } from '@stripe/stripe-react-native';
 import moment, { Moment } from 'moment';
 import StyledSwitch from '../../../components/styledSwitch';
-import StyledTabButton from '../../../components/styledTabButton';
 import { AddressCollectionModal } from '../../../components/AddressCollectionModal';
 import DiscountCodeInput from '../../../components/DiscountCodeInput';
 import Container from '../../../layout/Container';
@@ -49,10 +48,11 @@ import { Delay } from '../../../utils/functions';
 import { goBack, navigate } from '../../../utils/navigation';
 import { ShowErrorToast, ShowSuccessToast } from '../../../utils/toast';
 import { getFormattedDateTime } from '../../../utils/validations';
-import CustomCalendar from './components/customCalendar';
 import OrderItem from './components/orderItem';
 import { styles } from './styles';
+import { AppColors } from '../../../../constants/theme';
 import { getApplianceById } from '../../../constants/appliances';
+import FadingScrollView from '../../../components/FadingScrollView';
 
 const Checkout = () => {
   const self = useAppSelector(x => x.user.user);
@@ -66,6 +66,7 @@ const Checkout = () => {
   const weekDay: number = params.weekDay ? parseInt(params.weekDay as string) : 0;
   const chefProfile: IChefProfile = params.chefProfile ? JSON.parse(params.chefProfile as string) : {};
   const selectedDateParam: string = (params.selectedDate as string) || '';
+  const selectedTimeParam: string = (params.selectedTime as string) || '';
 
   const [DAY, onChangeDay] = useState(moment());
   const [times, onChangeTimes] = useState<Array<any>>([]);
@@ -78,6 +79,11 @@ const Checkout = () => {
 
   // Ref to track current timeslot request and prevent race conditions
   const currentTimeslotRequestRef = useRef<string | null>(null);
+  // Track whether we've applied the pre-selected time from chef detail
+  const hasAppliedPreselection = useRef(false);
+  // Ref for auto-scrolling time pills to pre-selected time
+  const timeScrollRef = useRef<ScrollView>(null);
+  const timePillOffsetsRef = useRef<Record<string, number>>({});
 
   // Discount code state
   const [discountCode, setDiscountCode] = useState<string>('');
@@ -124,10 +130,6 @@ const Checkout = () => {
 
   const chefWorkingDays = getChefWorkingDays();
   console.log('[CHECKOUT] Final chefWorkingDays:', chefWorkingDays);
-
-  // Simple date range: today to 1 month from now
-  const startDate = moment().startOf('day');
-  const endDate = moment().add(1, 'months').endOf('day');
 
   var price_total = 0;
   orders.map((o, idx) => {
@@ -259,6 +261,23 @@ const Checkout = () => {
         });
 
         onChangeTimes(timeslots);
+
+        // Pre-select time from chef detail screen (only on first load)
+        if (selectedTimeParam && !hasAppliedPreselection.current) {
+          hasAppliedPreselection.current = true;
+          const [preH, preM] = selectedTimeParam.split(':').map(Number);
+          const match = timeslots.find((t: any) => t.h === preH && t.m === preM);
+          if (match) {
+            onChangeTimeId(match.id);
+            // Auto-scroll to the selected time pill after render
+            setTimeout(() => {
+              const offset = timePillOffsetsRef.current[match.id];
+              if (offset !== undefined) {
+                timeScrollRef.current?.scrollTo({ x: offset - 16, animated: true });
+              }
+            }, 300);
+          }
+        }
       } else {
         // No timeslots available (chef cancelled or no times within 3 hours)
         onChangeTimes([]);
@@ -406,6 +425,8 @@ const Checkout = () => {
 
   const handleCheckoutProcess = async (day: Moment) => {
     const order_datetime = day.toDate().getTime() / 1000;
+    const order_date_string = moment(DAY).format('YYYY-MM-DD');
+    const order_time_string = day.format('HH:mm');
 
     dispatch(showLoading());
     var newOrders: Array<IOrder> = [];
@@ -446,6 +467,8 @@ const Checkout = () => {
         ...o,
         address: self.address,
         order_date: order_datetime,
+        order_date_string,
+        order_time_string,
         discount_code: (i === 0 && appliedDiscount) ? appliedDiscount.code : undefined,
       };
       
@@ -546,57 +569,98 @@ const Checkout = () => {
           <View style={styles.checkoutBlock}>
             <Text style={styles.checkoutSubheading}>Order Date & Time</Text>
             <Text style={styles.checkoutText}>
-              Select the time for your chef to arrive.
+              Confirm the time for your chef to arrive.
             </Text>
             <Text style={styles.checkoutText}>
               Completion times may vary depending on your appliances.
             </Text>
-            <CustomCalendar
-              selectedDate={DAY}
-              onDateSelect={handleDayPress}
-              minDate={startDate}
-              maxDate={endDate}
-              datesWhitelist={(date: moment.Moment) => {
-                // Allow any day the chef works within the date range
+            {/* Date pills */}
+            <FadingScrollView contentContainerStyle={styles.datePillRow}>
+              {Array.from({ length: 30 }, (_, i) => {
+                const date = moment().add(i, 'days');
+                const dateStr = date.format('YYYY-MM-DD');
+                const isSelected = DAY.format('YYYY-MM-DD') === dateStr;
+                const isWorking = chefWorkingDays.includes(date.weekday());
                 return (
-                  chefWorkingDays.includes(date.weekday()) &&
-                  date.isSameOrAfter(startDate, 'day') &&
-                  date.isSameOrBefore(endDate, 'day')
+                  <TouchableOpacity
+                    key={dateStr}
+                    style={[
+                      styles.datePill,
+                      isSelected && styles.datePillSelected,
+                      !isWorking && styles.datePillDisabled,
+                    ]}
+                    onPress={() => handleDayPress(date.clone())}
+                    disabled={!isWorking}
+                  >
+                    <Text
+                      style={[
+                        styles.datePillDay,
+                        isSelected && styles.datePillTextSelected,
+                        !isWorking && styles.datePillTextDisabled,
+                      ]}
+                    >
+                      {i === 0 ? 'Today' : date.format('ddd')}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.datePillNum,
+                        isSelected && styles.datePillTextSelected,
+                        !isWorking && styles.datePillTextDisabled,
+                      ]}
+                    >
+                      {date.format('D')}
+                    </Text>
+                  </TouchableOpacity>
                 );
-              }}
-            />
-            <Text style={styles.timeLabel}>Select a time:</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.timeContainer}>
-                {isLoadingTimes ? (
-                  <View style={styles.loadingTimesContainer}>
-                    <ActivityIndicator size="small" color="#fa4616" />
-                    <Text style={styles.loadingTimesText}>Loading available times...</Text>
-                  </View>
-                ) : times.length === 0 ? (
-                  <Text style={styles.noTimesText}>
-                    {DAY.isSame(moment(), 'day')
-                      ? '* This chef has no remaining availability today'
-                      : '* This chef is not available on this date'}
-                  </Text>
-                ) : (
-                  times.map((item, idx) => {
-                    const day = moment(DAY);
-                    day.hour(item?.h);
-                    day.minute(item?.m);
-                    if (day < moment()) return null;
-                    return (
-                      <StyledTabButton
-                        title={item.label}
-                        disabled={item.id != timeId}
-                        onPress={() => onChangeTimeId(item.id)}
-                        key={`time_${idx}`}
-                      />
-                    );
-                  })
-                )}
+              })}
+            </FadingScrollView>
+
+            {/* Time pills */}
+            <Text style={styles.timeLabel}>Confirm time:</Text>
+            {isLoadingTimes ? (
+              <View style={styles.loadingTimesContainer}>
+                <ActivityIndicator size="small" color={AppColors.primary} />
+                <Text style={styles.loadingTimesText}>Loading available times...</Text>
               </View>
-            </ScrollView>
+            ) : times.length === 0 ? (
+              <Text style={styles.noTimesText}>
+                {DAY.isSame(moment(), 'day')
+                  ? '* This chef has no remaining availability today'
+                  : '* This chef is not available on this date'}
+              </Text>
+            ) : (
+              <FadingScrollView
+                ref={timeScrollRef}
+                contentContainerStyle={styles.timePillRow}
+              >
+                {times.map((item, idx) => {
+                  const day = moment(DAY);
+                  day.hour(item?.h);
+                  day.minute(item?.m);
+                  if (day < moment()) return null;
+                  const isSelected = item.id === timeId;
+                  return (
+                    <TouchableOpacity
+                      key={`time_${idx}`}
+                      style={[styles.timePill, isSelected && styles.timePillSelected]}
+                      onPress={() => onChangeTimeId(item.id)}
+                      onLayout={(e) => {
+                        timePillOffsetsRef.current[item.id] = e.nativeEvent.layout.x;
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.timePillText,
+                          isSelected && styles.timePillTextSelected,
+                        ]}
+                      >
+                        {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </FadingScrollView>
+            )}
             <Text style={styles.estimated}>
               {`* Estimated completion time is ${getEstimatedTime()}`}
             </Text>
@@ -688,6 +752,8 @@ const Checkout = () => {
           <View style={styles.checkoutBlock}>
             <Text style={styles.checkoutSubheading}>Payment Information</Text>
             <TouchableOpacity
+              testID="checkout.paymentMethodSelector"
+              accessible={false}
               onPress={handleCreditCard}
               style={styles.checkoutPaymentItemWrapper}>
               <View>
@@ -740,6 +806,7 @@ const Checkout = () => {
           <View style={styles.checkoutBlock}>
             <View style={styles.switchWrapper}>
               <StyledSwitch
+                testID="checkout.applianceSwitch"
                 label={`I have the following appliances available for the Chef: ${getAppliances().join(
                   ', ',
                 )}`}
@@ -751,6 +818,7 @@ const Checkout = () => {
           </View>
           <View style={styles.vcenter}>
             <TouchableOpacity
+              testID="checkout.placeOrderButton"
               style={appliance ? GlobalStyles.btn : GlobalStyles.btnDisabled}
               onPress={() => handleCheckout()}
               disabled={!appliance}>

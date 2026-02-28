@@ -175,10 +175,14 @@ class WeeklyOrderReminderService
         $totalSlots = $weekdayCount * $slotsPerDay;
 
         $slotA = $this->deterministicIndex($userId . '|' . $weekKey . '|A', $totalSlots);
-        $slotB = $this->deterministicIndex($userId . '|' . $weekKey . '|B', $totalSlots);
-        if ($slotB === $slotA) {
-            $slotB = ($slotB + 1) % $totalSlots;
-        }
+        $dayA = intdiv($slotA, $slotsPerDay);
+
+        // Slot B must land on a different day than slot A
+        $remainingDays = array_values(array_diff(range(0, $weekdayCount - 1), [$dayA]));
+        $dayBIdx = $this->deterministicIndex($userId . '|' . $weekKey . '|B-day', count($remainingDays));
+        $dayB = $remainingDays[$dayBIdx];
+        $timeB = $this->deterministicIndex($userId . '|' . $weekKey . '|B-time', $slotsPerDay);
+        $slotB = $dayB * $slotsPerDay + $timeB;
 
         return [
             $this->slotIndexToKey($slotA, $weekdaySet, $slotsPerDay),

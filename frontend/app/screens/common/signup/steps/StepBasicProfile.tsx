@@ -83,6 +83,7 @@ export const StepBasicProfile: React.FC<StepBasicProfileProps> = ({
       subtitle="We'll use this to keep you updated on your orders"
     >
       <StyledTextInput
+        testID="signup.profile.phoneInput"
         label="Phone Number"
         placeholder="(555) 123-4567"
         value={userInfo.phone ?? ''}
@@ -93,11 +94,12 @@ export const StepBasicProfile: React.FC<StepBasicProfileProps> = ({
 
       <View style={styles.buttonContainer}>
         <StyledButton
+          testID="signup.profile.continueButton"
           title={isSendingCode ? "Sending code..." : "Continue"}
           onPress={validateAndProceed}
           disabled={isSendingCode}
         />
-        <Pressable onPress={onBack} style={styles.backButton} disabled={isSendingCode}>
+        <Pressable testID="signup.profile.backButton" onPress={onBack} style={styles.backButton} disabled={isSendingCode}>
           <Text style={styles.backButtonText}>Back</Text>
         </Pressable>
       </View>
@@ -115,6 +117,7 @@ export const StepBasicProfile: React.FC<StepBasicProfileProps> = ({
             </Text>
 
             <StyledTextInput
+              testID="signup.profile.verifyCodeInput"
               label="Verification Code"
               value={verificationCode}
               onChangeText={setVerificationCode}
@@ -125,12 +128,14 @@ export const StepBasicProfile: React.FC<StepBasicProfileProps> = ({
 
             <View style={styles.modalButtons}>
               <StyledButton
+                testID="signup.profile.verifyButton"
                 title={isVerifying ? "Verifying..." : "Verify"}
                 onPress={handleVerify}
                 disabled={isVerifying || verificationCode.length !== 6}
               />
 
               <Pressable
+                testID="signup.profile.resendButton"
                 onPress={handleVerifyPhone}
                 style={styles.resendButton}
                 disabled={isSendingCode}

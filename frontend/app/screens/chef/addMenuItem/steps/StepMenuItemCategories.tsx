@@ -79,6 +79,7 @@ export const StepMenuItemCategories: React.FC<StepMenuItemCategoriesProps> = ({
             const isSelected = categoryIds.includes(category.id ?? 0);
             return (
               <TouchableOpacity
+                testID={`menuWizard.category.${idx}`}
                 style={isSelected ? styles.tab : styles.tabDisabled}
                 key={`category_${idx}`}
                 onPress={() => handleCategoryPress(category.id ?? 0)}
@@ -97,6 +98,7 @@ export const StepMenuItemCategories: React.FC<StepMenuItemCategoriesProps> = ({
 
       <View style={styles.newCategorySection}>
         <StyledSwitch
+          testID="menuWizard.newCategorySwitch"
           label="Request a new Category?"
           value={isNewCategory}
           onPress={() => {
@@ -106,6 +108,7 @@ export const StepMenuItemCategories: React.FC<StepMenuItemCategoriesProps> = ({
 
         {isNewCategory && (
           <StyledTextInput
+            testID="menuWizard.newCategoryInput"
             placeholder="New Category Name"
             onChangeText={(val) => onUpdateMenuItemData({ new_category_name: val })}
             value={newCategoryName}
@@ -130,10 +133,11 @@ export const StepMenuItemCategories: React.FC<StepMenuItemCategoriesProps> = ({
 
       <View style={styles.buttonContainer}>
         <StyledButton
+          testID="menuWizard.continueButton"
           title="Continue"
           onPress={validateAndProceed}
         />
-        <Pressable onPress={onBack} style={styles.backButton}>
+        <Pressable testID="menuWizard.backButton" onPress={onBack} style={styles.backButton}>
           <Text style={styles.backButtonText}>Back</Text>
         </Pressable>
       </View>

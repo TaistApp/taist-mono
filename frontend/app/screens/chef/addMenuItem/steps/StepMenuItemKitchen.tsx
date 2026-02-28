@@ -109,6 +109,7 @@ export const StepMenuItemKitchen: React.FC<StepMenuItemKitchenProps> = ({
 
             return (
               <TouchableOpacity
+                testID={`menuWizard.appliance.${idx}`}
                 style={[
                   styles.applianceItem,
                   { width: applianceItemWidth },
@@ -156,6 +157,7 @@ export const StepMenuItemKitchen: React.FC<StepMenuItemKitchenProps> = ({
             const isSelected = ct.id === completionTimeId;
             return (
               <TouchableOpacity
+                testID={`menuWizard.completionTime.${idx}`}
                 style={isSelected ? styles.tab : styles.tabDisabled}
                 key={`ct_${idx}`}
                 onPress={() => handleCompletionTimePress(ct.id)}
@@ -174,10 +176,11 @@ export const StepMenuItemKitchen: React.FC<StepMenuItemKitchenProps> = ({
 
       <View style={styles.buttonContainer}>
         <StyledButton
+          testID="menuWizard.continueButton"
           title="Continue"
           onPress={validateAndProceed}
         />
-        <Pressable onPress={onBack} style={styles.backButton}>
+        <Pressable testID="menuWizard.backButton" onPress={onBack} style={styles.backButton}>
           <Text style={styles.backButtonText}>Back</Text>
         </Pressable>
       </View>

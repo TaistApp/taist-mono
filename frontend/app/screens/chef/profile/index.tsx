@@ -365,6 +365,7 @@ const Profile = () => {
           <Text style={styles.sectionTitle}>Bio</Text>
           <Text style={styles.sectionSubtitle}>Introduce yourself to customers.</Text>
           <StyledTextInput
+            testID="chefProfile.bioInput"
             label="My Bio"
             placeholder="Tell customers about your cooking style, experience, and specialties..."
             onChangeText={onChangeBio}
@@ -391,6 +392,7 @@ const Profile = () => {
               <View key={day.id} style={styles.dayRow}>
                 {/* Day checkbox and name */}
                 <TouchableOpacity
+                  testID={`chefProfile.dayToggle.${day.id}`}
                   style={styles.dayToggle}
                   onPress={() => handleDayToggle(day.id)}
                   activeOpacity={0.7}
@@ -417,6 +419,7 @@ const Profile = () => {
                 {/* Time inputs */}
                 <View style={styles.timeInputs}>
                   <TouchableOpacity
+                    testID={`chefProfile.startTime.${day.id}`}
                     style={[
                       styles.timeButton,
                       !day.checked && styles.timeButtonDisabled
@@ -436,6 +439,7 @@ const Profile = () => {
                   <Text style={styles.timeSeparator}>to</Text>
 
                   <TouchableOpacity
+                    testID={`chefProfile.endTime.${day.id}`}
                     style={[
                       styles.timeButton,
                       !day.checked && styles.timeButtonDisabled
@@ -461,7 +465,7 @@ const Profile = () => {
 
         {/* Fixed Save Button */}
         <View style={styles.fixedButtonContainer}>
-          <StyledButton title="Save Changes" onPress={handleSubmit} />
+          <StyledButton testID="chefProfile.saveButton" title="Save Changes" onPress={handleSubmit} />
         </View>
       </KeyboardAvoidingView>
 
@@ -492,6 +496,7 @@ const Profile = () => {
               <DateTimePicker
                 mode="time"
                 display="spinner"
+                themeVariant="light"
                 value={tempTime}
                 minimumDate={new Date(2030, 0, 15, 0, 0, 0)}
                 maximumDate={new Date(2030, 0, 15, 23, 59, 59)}

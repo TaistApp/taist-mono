@@ -11,12 +11,13 @@ type Props = {
   value: boolean;
   containerStyle?: ViewStyle;
   onPress: () => void;
+  testID?: string;
 };
 
-const StyledCheckBox = ({label, value, containerStyle, onPress}: Props) => {
+const StyledCheckBox = ({label, value, containerStyle, onPress, testID}: Props) => {
   return (
     <View style={[styles.container, containerStyle]}>
-      <TouchableOpacity onPress={onPress} style={[styles.box, value && styles.boxChecked]}>
+      <TouchableOpacity testID={testID} onPress={onPress} style={[styles.box, value && styles.boxChecked]}>
         {value && <FontAwesomeIcon icon={faCheck} size={15} color="#ffffff" />}
       </TouchableOpacity>
       <Text style={styles.label} numberOfLines={1}>

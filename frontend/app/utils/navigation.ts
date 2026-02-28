@@ -6,6 +6,11 @@ import { IMenu, IOrder, IUser } from '../types';
 export const navigationRef: any = createRef();
 export const isReadyRef: any = createRef();
 
+// Track currently viewed order detail to prevent duplicate navigation from notifications
+let _activeOrderDetailId: number | null = null;
+export const setActiveOrderDetailId = (id: number | null) => { _activeOrderDetailId = id; };
+export const getActiveOrderDetailId = () => _activeOrderDetailId;
+
 // Navigation helper functions
 export const navigateToScreen = (name: string, params?: any) => {
   if (router.canGoBack()) {

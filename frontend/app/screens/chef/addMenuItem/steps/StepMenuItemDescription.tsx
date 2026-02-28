@@ -127,6 +127,7 @@ export const StepMenuItemDescription: React.FC<StepMenuItemDescriptionProps> = (
       <View style={styles.textAreaContainer}>
         <Text style={styles.textAreaLabel}>Description</Text>
         <TextInput
+          testID="menuWizard.descriptionInput"
           style={styles.textArea}
           placeholder=""
           placeholderTextColor={AppColors.textSecondary}
@@ -162,6 +163,7 @@ export const StepMenuItemDescription: React.FC<StepMenuItemDescriptionProps> = (
 
       <View style={styles.buttonContainer}>
         <StyledButton
+          testID="menuWizard.continueButton"
           title={isEnhancing ? "Enhancing..." : isProcessing ? "Processing..." : "Continue"}
           onPress={validateAndProceed}
           disabled={isEnhancing || isProcessing}
@@ -174,7 +176,7 @@ export const StepMenuItemDescription: React.FC<StepMenuItemDescriptionProps> = (
             </Text>
           </View>
         )}
-        <Pressable onPress={onBack} style={styles.backButton} disabled={isEnhancing || isProcessing}>
+        <Pressable testID="menuWizard.backButton" onPress={onBack} style={styles.backButton} disabled={isEnhancing || isProcessing}>
           <Text style={[styles.backButtonText, (isEnhancing || isProcessing) && { opacity: 0.5 }]}>Back</Text>
         </Pressable>
       </View>

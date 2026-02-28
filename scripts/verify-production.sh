@@ -24,7 +24,7 @@ BACKEND_DIR="$SCRIPT_DIR/../backend"
 
 # Determine base URL
 if [ "$ENV" = "staging" ]; then
-    BASE_URL="https://taist-mono-staging.up.railway.app"
+    BASE_URL="https://api-staging.taist.app"
 else
     BASE_URL="https://api.taist.app"
 fi

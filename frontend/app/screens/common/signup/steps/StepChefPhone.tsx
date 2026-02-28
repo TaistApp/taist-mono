@@ -83,6 +83,7 @@ export const StepChefPhone: React.FC<StepChefPhoneProps> = ({
       subtitle="We'll use this to contact you about orders and important updates."
     >
       <StyledTextInput
+        testID="signup.chefPhone.phoneInput"
         label="Phone Number"
         placeholder="(555) 123-4567"
         value={userInfo.phone ?? ''}
@@ -93,11 +94,12 @@ export const StepChefPhone: React.FC<StepChefPhoneProps> = ({
 
       <View style={styles.buttonContainer}>
         <StyledButton
+          testID="signup.chefPhone.continueButton"
           title={isSendingCode ? "Sending code..." : "Continue"}
           onPress={validateAndProceed}
           disabled={isSendingCode}
         />
-        <Pressable onPress={onBack} style={styles.backButton} disabled={isSendingCode}>
+        <Pressable testID="signup.chefPhone.backButton" onPress={onBack} style={styles.backButton} disabled={isSendingCode}>
           <Text style={styles.backButtonText}>Back</Text>
         </Pressable>
       </View>
@@ -115,6 +117,7 @@ export const StepChefPhone: React.FC<StepChefPhoneProps> = ({
             </Text>
 
             <StyledTextInput
+              testID="signup.chefPhone.verifyCodeInput"
               label="Verification Code"
               value={verificationCode}
               onChangeText={setVerificationCode}
@@ -125,12 +128,14 @@ export const StepChefPhone: React.FC<StepChefPhoneProps> = ({
 
             <View style={styles.modalButtons}>
               <StyledButton
+                testID="signup.chefPhone.verifyButton"
                 title={isVerifying ? "Verifying..." : "Verify"}
                 onPress={handleVerify}
                 disabled={isVerifying || verificationCode.length !== 6}
               />
 
               <Pressable
+                testID="signup.chefPhone.resendButton"
                 onPress={handleVerifyPhone}
                 style={styles.resendButton}
                 disabled={isSendingCode}

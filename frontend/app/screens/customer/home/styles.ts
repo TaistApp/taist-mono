@@ -82,6 +82,10 @@ export const styles = StyleSheet.create({
     padding: Spacing.md,
     ...Shadows.sm,
   },
+  chefCardHot: {
+    borderWidth: 1.5,
+    borderColor: '#FF6B35',
+  },
   chefCardMain: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -146,5 +150,22 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
     marginTop: Spacing.xs,
+  },
+  hotBadge: {
+    position: 'absolute',
+    bottom: -6,
+    left: -10,
+    right: -10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FF6B35',
+    paddingVertical: 3,
+    borderRadius: 8,
+    zIndex: 1,
+  },
+  hotBadgeText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
   },
 });

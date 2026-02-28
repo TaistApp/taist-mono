@@ -242,8 +242,8 @@ class TwilioService
             return null;
         }
 
-        // Remove all whitespace, parentheses, dashes, dots
-        $cleaned = preg_replace('/[\s\(\)\-\.]/', '', $phoneNumber);
+        // Strip everything except digits and leading +
+        $cleaned = preg_replace('/[^\d+]/', '', $phoneNumber);
 
         // If doesn't start with +, assume US number and add +1
         if (substr($cleaned, 0, 1) !== '+') {

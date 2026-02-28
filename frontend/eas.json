@@ -7,6 +7,7 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "channel": "development",
       "env": {
         "APP_ENV": "development"
       },
@@ -15,12 +16,13 @@
       }
     },
     "preview": {
+      "channel": "preview",
       "env": {
         "APP_ENV": "staging"
       },
       "ios": {
         "resourceClass": "m-medium",
-        "image": "macos-sequoia-15.6-xcode-16.4"
+        "image": "macos-sequoia-15.6-xcode-26.2"
       },
       "android": {
         "buildType": "apk",
@@ -28,11 +30,13 @@
       }
     },
     "production": {
+      "channel": "production",
       "env": {
         "APP_ENV": "production"
       },
       "ios": {
-        "resourceClass": "m-medium"
+        "resourceClass": "m-medium",
+        "image": "macos-sequoia-15.6-xcode-26.2"
       },
       "android": {
         "buildType": "app-bundle",

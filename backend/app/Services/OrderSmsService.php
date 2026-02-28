@@ -315,7 +315,7 @@ class OrderSmsService
             'chef_name' => $this->formatUserName($chef->first_name, $chef->last_name, 'Chef'),
             'chef_state' => $chef->state,
             'customer_user_id' => $customer->id,
-            'customer_name' => $this->formatUserName($customer->first_name, $customer->last_name, 'Customer'),
+            'customer_name' => $this->formatUserName($customer->first_name, $customer->last_name, 'Customer', false),
             'menu_id' => $menu->id,
             'menu_title' => $menu->title,
             'amount' => $order->amount,
@@ -325,6 +325,25 @@ class OrderSmsService
             'order_time' => $orderDateTime['time'],
             'timezone' => $orderDateTime['timezone'],
         ];
+    }
+
+    /**
+     * Format a user's name for SMS display.
+     * With last initial: "FirstName L." (used for chef names shown to customers)
+     * Without: "FirstName" only (used for customer names shown to chefs)
+     */
+    private function formatUserName(?string $firstName, ?string $lastName, string $fallback, bool $includeLastInitial = true): string
+    {
+        $first = trim($firstName ?? '');
+        $last = trim($lastName ?? '');
+
+        if ($first && $last && $includeLastInitial) {
+            return $first . ' ' . strtoupper(substr($last, 0, 1)) . '.';
+        }
+        if ($first) {
+            return $first;
+        }
+        return $fallback;
     }
 
 }

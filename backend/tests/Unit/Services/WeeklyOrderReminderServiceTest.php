@@ -181,4 +181,24 @@ class WeeklyOrderReminderServiceTest extends TestCase
         $this->assertEquals(1, $stats['skipped_cap']);
         $this->assertEquals(2, DB::table('weekly_order_reminder_logs')->count());
     }
+
+    public function test_two_weekly_slots_always_land_on_different_days()
+    {
+        $service = new WeeklyOrderReminderService(null);
+
+        // Test across many user IDs and weeks to confirm no same-day collisions
+        $violations = 0;
+        foreach (range(1, 500) as $userId) {
+            foreach (['2026-W08', '2026-W09', '2026-W10', '2026-W11'] as $weekKey) {
+                $slots = $service->getWeeklySlotKeysForUser($userId, $weekKey);
+                $dayA = explode(':', $slots[0])[0];
+                $dayB = explode(':', $slots[1])[0];
+                if ($dayA === $dayB) {
+                    $violations++;
+                }
+            }
+        }
+
+        $this->assertEquals(0, $violations, "Found {$violations} same-day slot collisions out of 2000 user-weeks");
+    }
 }

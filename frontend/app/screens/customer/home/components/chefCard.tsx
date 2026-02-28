@@ -10,6 +10,7 @@ import { styles } from '../styles';
 import ChefMenuItem from './chefMenuItem';
 
 type Props = {
+  testID?: string;
   chefInfo: IUser;
   reviews: Array<IReview>;
   menus: Array<IMenu>;
@@ -20,6 +21,7 @@ type Props = {
 const STAR_STYLE = { marginHorizontal: 0 };
 
 const ChefCard = ({
+  testID,
   chefInfo,
   reviews,
   menus,
@@ -45,14 +47,23 @@ const ChefCard = ({
   }, []);
 
   return (
-    <View style={styles.chefCard}>
+    <View style={[styles.chefCard, chefInfo.is_hot && styles.chefCardHot]}>
       <TouchableOpacity
+        testID={testID}
+        accessible={false}
         style={styles.chefCardMain}
         onPress={handleChefPress}>
-        <StyledProfileImage url={getImageURL(chefInfo.photo)} size={80} />
+        <View style={{position: 'relative', overflow: 'visible'}}>
+          <StyledProfileImage url={getImageURL(chefInfo.photo)} size={80} />
+          {chefInfo.is_hot && (
+            <View style={styles.hotBadge}>
+              <Text style={styles.hotBadgeText}>🔥 Popular</Text>
+            </View>
+          )}
+        </View>
         <View style={styles.chefCardInfo}>
           <View style={{flex: 1}}>
-            <Text style={styles.chefCardTitle}>{`${
+            <Text style={styles.chefCardTitle} numberOfLines={1}>{`${
               chefInfo.first_name
             } ${chefInfo.last_name?.substring(0, 1)}. `}</Text>
             <Text style={styles.chefCardDescription} numberOfLines={2}>
@@ -72,6 +83,7 @@ const ChefCard = ({
           )}
         </View>
         <TouchableOpacity
+          testID={testID ? `${testID}.toggleMenu` : undefined}
           onPress={handleToggleMenu}
           style={{
             padding: 20,
@@ -110,7 +122,9 @@ const ChefCard = ({
 // This avoids deep comparison while ensuring meaningful changes trigger re-renders
 const arePropsEqual = (prevProps: Props, nextProps: Props): boolean => {
   return (
+    prevProps.testID === nextProps.testID &&
     prevProps.chefInfo.id === nextProps.chefInfo.id &&
+    prevProps.chefInfo.is_hot === nextProps.chefInfo.is_hot &&
     prevProps.reviews.length === nextProps.reviews.length &&
     prevProps.menus.length === nextProps.menus.length &&
     prevProps.onNavigate === nextProps.onNavigate
