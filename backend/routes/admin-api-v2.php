@@ -52,4 +52,13 @@ Route::group(['middleware' => ['auth:adminapi']], function () {
     Route::post('adminapi/delete_stripe_accounts', 'AdminapiController@deleteStripeAccounts');
     Route::post('adminapi/orders/{id}/cancel', 'AdminapiController@adminCancelOrder');
     Route::post('adminapi/create-authentic-review', 'AdminapiController@createAuthenticReview');
+
+    // TEMPORARY: one-time timestamp migration — remove after running
+    Route::post('run-convert-timestamps', function () {
+        $exitCode = \Illuminate\Support\Facades\Artisan::call('availability:convert-timestamps', ['--execute' => true]);
+        return response()->json([
+            'exit_code' => $exitCode,
+            'output' => \Illuminate\Support\Facades\Artisan::output(),
+        ]);
+    });
 });
