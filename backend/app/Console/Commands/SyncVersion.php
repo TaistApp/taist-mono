@@ -43,11 +43,11 @@ class SyncVersion extends Command
             return 0;
         }
 
-        // Single source of truth: frontend/app.json
-        // This eliminates version drift between frontend and backend.
-        // Falls back to config/version.php if app.json isn't available.
-        $currentVersion = $this->getVersionFromAppJson()
-            ?? config('version.version', '29.0.0');
+        // Single source of truth: config/version.php
+        // Railway's rootDirectory=/backend means frontend/app.json is not
+        // available in the deploy container, so we hardcode the version in
+        // config/version.php and update it alongside app.json during version bumps.
+        $currentVersion = config('version.version', '29.0.0');
 
         // Get existing record if it exists
         $existingRecord = DB::table('versions')->where('id', 1)->first();
@@ -66,37 +66,6 @@ class SyncVersion extends Command
         return 0;
     }
 
-    /**
-     * Read the app version from frontend/app.json.
-     *
-     * Both backend and frontend live in the same monorepo, so app.json
-     * is always at ../frontend/app.json relative to the backend root.
-     * This runs on every deploy via the Procfile, keeping the DB version
-     * in sync automatically — no manual env vars or config updates needed.
-     *
-     * @return string|null
-     */
-    private function getVersionFromAppJson(): ?string
-    {
-        $appJsonPath = base_path('../frontend/app.json');
-
-        if (!file_exists($appJsonPath)) {
-            $this->warn("frontend/app.json not found at {$appJsonPath}, falling back to config.");
-            return null;
-        }
-
-        $appJson = json_decode(file_get_contents($appJsonPath), true);
-
-        if (!$appJson || !isset($appJson['expo']['version'])) {
-            $this->warn('Could not parse version from frontend/app.json, falling back to config.');
-            return null;
-        }
-
-        $version = $appJson['expo']['version'];
-        $this->info("Read version {$version} from frontend/app.json");
-
-        return $version;
-    }
 }
 
 

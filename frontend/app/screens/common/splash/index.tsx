@@ -206,7 +206,19 @@ const Splash = () => {
         return;
       }
 
-      if (versionResponse?.success === 1 && versionResponse?.data?.[0]?.version != CURRENT_VERSION) {
+      const requiredVersion = versionResponse?.data?.[0]?.version;
+      // Only block if the installed app is OLDER than the minimum required version.
+      // A newer app version (e.g. after a bump before the DB is updated) should not be blocked.
+      const isOlderVersion = (installed: string, required: string): boolean => {
+        const iParts = installed.split('.').map(Number);
+        const rParts = required.split('.').map(Number);
+        for (let i = 0; i < 3; i++) {
+          if ((iParts[i] || 0) < (rParts[i] || 0)) return true;
+          if ((iParts[i] || 0) > (rParts[i] || 0)) return false;
+        }
+        return false; // equal = not older
+      };
+      if (versionResponse?.success === 1 && isOlderVersion(CURRENT_VERSION, requiredVersion)) {
         setIsOutdated(true);
         console.log('---->>>App version is outdated. Please update to continue.');
         Alert.alert(
