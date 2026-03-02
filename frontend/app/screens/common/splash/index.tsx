@@ -37,7 +37,6 @@ const DEV_TEST_ACCOUNTS = __DEV__ ? {
 // No need for PropsType with Expo Router
 const Splash = () => {
   const [splash, setSplash] = useState(true);
-  const [isOutdated, setIsOutdated] = useState(false);
   const dispatch = useAppDispatch();
   const handleLogin = () => {
     navigate.toCommon.login();
@@ -132,8 +131,9 @@ const Splash = () => {
     return () => clearTimeout(fallbackTimer);
   }, []);
 
-  // Get version from app.json dynamically
-  const CURRENT_VERSION = Constants.expoConfig?.version || '29.0.0';
+  // Get version: nativeAppVersion is always available in production builds,
+  // expoConfig?.version can be null in production EAS builds
+  const CURRENT_VERSION = Constants.nativeAppVersion || Constants.expoConfig?.version || '29.0.0';
   // Get environment to skip version check in local development
   const APP_ENV = Constants.expoConfig?.extra?.APP_ENV || 'production';
 
@@ -219,7 +219,6 @@ const Splash = () => {
         return false; // equal = not older
       };
       if (versionResponse?.success === 1 && isOlderVersion(CURRENT_VERSION, requiredVersion)) {
-        setIsOutdated(true);
         console.log('---->>>App version is outdated. Please update to continue.');
         Alert.alert(
           'Update Required',
@@ -267,13 +266,6 @@ const Splash = () => {
           style={styles.splashLogo}
           source={require('../../../assets/images/splashLogo.png')}
         />
-        {isOutdated && (
-          <View style={{ width: '100%', paddingHorizontal: 20  }}>
-            <Text style={styles.outdatedText}>
-              Your app version is outdated. Please update to continue.
-            </Text>
-          </View>
-        )}
       </View>
     );
   }
