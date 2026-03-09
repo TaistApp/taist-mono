@@ -294,7 +294,10 @@ const Signup = () => {
                   mode="outlined"
                   onChangeText={onChangePassword}
                   value={password}
-                  textContentType="password"
+                  // Disable iOS strong password autofill — it breaks the layout
+                  // (yellow highlight, displaced checkmark). Known RN issue #21911.
+                  textContentType="oneTimeCode"
+                  autoComplete="off"
                   secureTextEntry={!showPassword}
                   style={styles.input}
                   returnKeyType="done"
