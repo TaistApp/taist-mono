@@ -1,35 +1,38 @@
-import { navigate } from '@/app/utils/navigation';
-import { Text, TextInput } from 'react-native-paper';
-import React, { useRef } from 'react';
-import { Image, Pressable, View } from 'react-native';
-import { router } from 'expo-router';
-import KeyboardAwareScrollView from '../../../components/KeyboardAwareScrollView';
-import { IUser } from '../../../types/index';
-import { ShowErrorToast } from '../../../utils/toast';
-import { emailValidation, passwordValidation } from '../../../utils/validations';
-import Onboarding from './onBoarding';
-import { styles } from './styles';
-import { ProgressIndicator } from './components/ProgressIndicator';
-import { StepBasicProfile } from './steps/StepBasicProfile';
-import { StepLocation } from './steps/StepLocation';
-import { StepPreferences } from './steps/StepPreferences';
-import { StepChefPhone } from './steps/StepChefPhone';
-import { StepChefBasicInfo } from './steps/StepChefBasicInfo';
-import { StepChefBirthday } from './steps/StepChefBirthday';
-import { StepChefLocation } from './steps/StepChefLocation';
-import { StepChefPhoto } from './steps/StepChefPhoto';
-import { useAppDispatch } from '../../../hooks/useRedux';
-import { showLoading, hideLoading } from '../../../reducers/loadingSlice';
-import { RegisterAPI, LoginAPI } from '../../../services/api';
+import { navigate } from "@/app/utils/navigation";
+import { Text, TextInput } from "react-native-paper";
+import React, { useRef } from "react";
+import { Image, Pressable, View } from "react-native";
+import { router } from "expo-router";
+import KeyboardAwareScrollView from "../../../components/KeyboardAwareScrollView";
+import { IUser } from "../../../types/index";
+import { ShowErrorToast } from "../../../utils/toast";
+import {
+  emailValidation,
+  passwordValidation,
+} from "../../../utils/validations";
+import Onboarding from "./onBoarding";
+import { styles } from "./styles";
+import { ProgressIndicator } from "./components/ProgressIndicator";
+import { StepBasicProfile } from "./steps/StepBasicProfile";
+import { StepLocation } from "./steps/StepLocation";
+import { StepPreferences } from "./steps/StepPreferences";
+import { StepChefPhone } from "./steps/StepChefPhone";
+import { StepChefBasicInfo } from "./steps/StepChefBasicInfo";
+import { StepChefBirthday } from "./steps/StepChefBirthday";
+import { StepChefLocation } from "./steps/StepChefLocation";
+import { StepChefPhoto } from "./steps/StepChefPhoto";
+import { useAppDispatch } from "../../../hooks/useRedux";
+import { showLoading, hideLoading } from "../../../reducers/loadingSlice";
+import { RegisterAPI, LoginAPI } from "../../../services/api";
 
 const Signup = () => {
   const dispatch = useAppDispatch();
   const [step, setStep] = React.useState(0);
   const [userType, setUserType] = React.useState(1);
-  const [errors, setErrors] = React.useState('');
-  const [successMessage, setSuccessMessage] = React.useState('');
-  const [email, onChangeEmail] = React.useState('');
-  const [password, onChangePassword] = React.useState('');
+  const [errors, setErrors] = React.useState("");
+  const [successMessage, setSuccessMessage] = React.useState("");
+  const [email, onChangeEmail] = React.useState("");
+  const [password, onChangePassword] = React.useState("");
   const [userInfo, setUserInfo] = React.useState<IUser>({});
   const [showPassword, setShowPassword] = React.useState(false);
 
@@ -44,12 +47,12 @@ const Signup = () => {
 
   const handleEmailPasswordSubmit = () => {
     var errorMsg = emailValidation(email);
-    if (errorMsg !== '') {
+    if (errorMsg !== "") {
       ShowErrorToast(errorMsg);
       return;
     }
     errorMsg = passwordValidation(password);
-    if (errorMsg !== '') {
+    if (errorMsg !== "") {
       ShowErrorToast(errorMsg);
       return;
     }
@@ -92,7 +95,7 @@ const Signup = () => {
       // Auto-login after registration
       const resp_login = await LoginAPI(
         { email, password, remember: true },
-        dispatch
+        dispatch,
       );
 
       if (resp_login.success === 0) {
@@ -104,11 +107,11 @@ const Signup = () => {
       dispatch(hideLoading());
 
       // Navigate to customer home
-      router.replace('/screens/customer/home');
+      router.replace("/screens/customer/home");
     } catch (error) {
       dispatch(hideLoading());
-      ShowErrorToast('An error occurred during signup. Please try again.');
-      console.error('Signup error:', error);
+      ShowErrorToast("An error occurred during signup. Please try again.");
+      console.error("Signup error:", error);
     }
   };
 
@@ -126,12 +129,15 @@ const Signup = () => {
     // Format photo for upload if it's a local path
     const photoPath = userInfo.photo;
     if (photoPath && photoPath.length > 0) {
-      const isLocalPath = photoPath.indexOf('http://') !== 0 && photoPath.indexOf('https://') !== 0 && photoPath.length > 50;
+      const isLocalPath =
+        photoPath.indexOf("http://") !== 0 &&
+        photoPath.indexOf("https://") !== 0 &&
+        photoPath.length > 50;
       if (isLocalPath) {
         registrationData.photo = {
           uri: photoPath,
-          type: 'image/jpeg',
-          name: 'photo.jpg',
+          type: "image/jpeg",
+          name: "photo.jpg",
         } as any;
       }
     }
@@ -148,7 +154,7 @@ const Signup = () => {
       // Auto-login after registration
       const resp_login = await LoginAPI(
         { email, password, remember: true },
-        dispatch
+        dispatch,
       );
 
       if (resp_login.success === 0) {
@@ -160,11 +166,11 @@ const Signup = () => {
       dispatch(hideLoading());
 
       // Navigate to chef home (they'll see pending approval message)
-      router.replace('/screens/chef/(tabs)/home');
+      router.replace("/screens/chef/(tabs)/home");
     } catch (error) {
       dispatch(hideLoading());
-      ShowErrorToast('An error occurred during signup. Please try again.');
-      console.error('Chef signup error:', error);
+      ShowErrorToast("An error occurred during signup. Please try again.");
+      console.error("Chef signup error:", error);
     }
   };
 
@@ -178,14 +184,14 @@ const Signup = () => {
     if (step === 0) return 1; // Onboarding
     if (step === 1) return 2; // User Type
     if (step === 2) return 3; // Email/Password
-    
+
     // Customer flow (steps 3-5)
     if (userType === 1) {
       if (step === 3) return 4; // Phone
       if (step === 4) return 5; // Location
       if (step === 5) return 6; // Preferences
     }
-    
+
     // Chef flow (steps 3-7)
     if (userType === 2) {
       if (step === 3) return 4; // Phone
@@ -194,75 +200,83 @@ const Signup = () => {
       if (step === 6) return 7; // Location
       if (step === 7) return 8; // Photo
     }
-    
+
     return 1;
   };
 
   return (
-    <KeyboardAwareScrollView 
-      style={styles.container}
-    >
-        <View style={styles.center}>
-          <Image
-            style={styles.logo}
-            source={require('../../../assets/images/logo-2.png')}
-          />
-        </View>
+    <KeyboardAwareScrollView style={styles.container}>
+      <View style={styles.center}>
+        <Image
+          style={styles.logo}
+          source={require("../../../assets/images/logo-2.png")}
+        />
+      </View>
 
-        {/* Show progress indicator for steps 2+ */}
-        {step >= 2 && (
-          <ProgressIndicator 
-            currentStep={getCurrentStepNumber()} 
-            totalSteps={getTotalSteps()} 
-          />
-        )}
+      {/* Show progress indicator for steps 2+ */}
+      {step >= 2 && (
+        <ProgressIndicator
+          currentStep={getCurrentStepNumber()}
+          totalSteps={getTotalSteps()}
+        />
+      )}
 
-        {/* Step 0: Onboarding */}
-        {step === 0 && (
-          <Onboarding
-            onStart={() => {
-              setStep(1);
-            }}
-          />
-        )}
+      {/* Step 0: Onboarding */}
+      {step === 0 && (
+        <Onboarding
+          onStart={() => {
+            setStep(1);
+          }}
+        />
+      )}
 
-        {/* Step 1: User Type Selection */}
-        {step === 1 && (
-          <View style={styles.signupOptionWrapper}>
-            <View style={styles.signupOption}>
-              <Text style={styles.signupOptionHeading}>
-                Have a taist for something?
-              </Text>
-              <Text style={styles.signupOptionText}>
-                Choose from people in your area to craft delicious dishes out of
-                your kitchen.
-              </Text>
-              <Pressable testID="signup.customerButton" style={styles.button} onPress={() => handleUserType(1)}>
-                <Text style={styles.buttonText}>I am a customer</Text>
-              </Pressable>
-            </View>
-            <View style={styles.signupOption}>
-              <Text style={styles.signupOptionHeading}>
-                Looking to bring a new taist?
-              </Text>
-              <Text style={styles.signupOptionText}>
-                Be your own boss and create something special for people right
-                from their kitchen.
-              </Text>
-              <Pressable testID="signup.chefButton" style={styles.button} onPress={() => handleUserType(2)}>
-                <Text style={styles.buttonText}>I want to be a chef</Text>
-              </Pressable>
-            </View>
+      {/* Step 1: User Type Selection */}
+      {step === 1 && (
+        <View style={styles.signupOptionWrapper}>
+          <View style={styles.signupOption}>
+            <Text style={styles.signupOptionHeading}>
+              Have a taist for something?
+            </Text>
+            <Text style={styles.signupOptionText}>
+              Choose from people in your area to craft delicious dishes out of
+              your kitchen.
+            </Text>
+            <Pressable
+              testID="signup.customerButton"
+              style={styles.button}
+              onPress={() => handleUserType(1)}
+            >
+              <Text style={styles.buttonText}>I am a customer</Text>
+            </Pressable>
           </View>
-        )}
+          <View style={styles.signupOption}>
+            <Text style={styles.signupOptionHeading}>
+              Looking to bring a new taist?
+            </Text>
+            <Text style={styles.signupOptionText}>
+              Be your own boss and create something special for people right
+              from their kitchen.
+            </Text>
+            <Pressable
+              testID="signup.chefButton"
+              style={styles.button}
+              onPress={() => handleUserType(2)}
+            >
+              <Text style={styles.buttonText}>I want to be a chef</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
 
-        {/* Step 2: Email & Password */}
-        {step === 2 && (
-          <>
+      {/* Step 2: Email & Password */}
+      {step === 2 && (
+        <>
           <View style={styles.formContainer}>
             <View>
               <Text style={styles.heading}>Sign Up</Text>
-              <Text style={styles.subheading}>Create your account to get started</Text>
+              <Text style={styles.subheading}>
+                Create your account to get started
+              </Text>
             </View>
             <View style={styles.formContent}>
               <View style={styles.inputWrapper}>
@@ -270,12 +284,12 @@ const Signup = () => {
                 <TextInput
                   testID="signup.emailInput"
                   placeholder="Enter your email"
-                  placeholderTextColor={'#999999'}
+                  placeholderTextColor={"#999999"}
                   mode="outlined"
-                  onChangeText={txt => onChangeEmail(txt.toLowerCase())}
+                  onChangeText={(txt) => onChangeEmail(txt.toLowerCase())}
                   value={email}
                   keyboardType="email-address"
-                  autoCapitalize={'none'}
+                  autoCapitalize={"none"}
                   style={styles.input}
                   returnKeyType="next"
                   onSubmitEditing={() => {
@@ -290,7 +304,7 @@ const Signup = () => {
                   testID="signup.passwordInput"
                   ref={passwordInputRef}
                   placeholder="Enter your password"
-                  placeholderTextColor={'#999999'}
+                  placeholderTextColor={"#999999"}
                   mode="outlined"
                   onChangeText={onChangePassword}
                   value={password}
@@ -305,7 +319,7 @@ const Signup = () => {
                   right={
                     <TextInput.Icon
                       testID="signup.togglePassword"
-                      icon={showPassword ? 'eye-off' : 'eye'}
+                      icon={showPassword ? "eye-off" : "eye"}
                       onPress={() => setShowPassword(!showPassword)}
                     />
                   }
@@ -314,28 +328,38 @@ const Signup = () => {
             </View>
           </View>
           <View style={styles.buttonContainer}>
-              <Pressable testID="signup.continueButton" style={styles.signupButton} onPress={handleEmailPasswordSubmit}>
-                <Text style={styles.signupButtonText}>Continue</Text>
+            <Pressable
+              testID="signup.continueButton"
+              style={styles.signupButton}
+              onPress={handleEmailPasswordSubmit}
+            >
+              <Text style={styles.signupButtonText}>Continue</Text>
             </Pressable>
             <Pressable
               testID="signup.loginLink"
               style={styles.loginLink}
-              onPress={() => navigate.toCommon.login()}>
-              <Text style={styles.loginLinkText}>Already have an account? Log in</Text>
+              onPress={() => navigate.toCommon.login()}
+            >
+              <Text style={styles.loginLinkText}>
+                Already have an account? Log in
+              </Text>
             </Pressable>
           </View>
           <View style={styles.termsContainer}>
             <View style={styles.terms}>
-              <Text style={styles.termsText}>By signing up, you agree to Taist's </Text>
+              <Text style={styles.termsText}>
+                By signing up, you agree to Taist's{" "}
+              </Text>
               <Text
                 style={styles.termsLink}
-                onPress={() => navigate.toCommon.terms()}>
+                onPress={() => navigate.toCommon.terms()}
+              >
                 Terms and Conditions
               </Text>
             </View>
           </View>
-          </>
-        )}
+        </>
+      )}
 
       {/* Step 3: Basic Profile (Customer only) */}
       {step === 3 && userType === 1 && (
@@ -367,7 +391,7 @@ const Signup = () => {
       )}
 
       {/* Chef Multi-Step Flow */}
-      
+
       {/* Step 3: Phone (Chef only) */}
       {step === 3 && userType === 2 && (
         <StepChefPhone

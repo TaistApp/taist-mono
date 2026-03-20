@@ -62,10 +62,7 @@
               "scheme": "exp+taist-expo"
             }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
+          "category": ["BROWSABLE", "DEFAULT"]
         }
       ]
     },
@@ -110,9 +107,7 @@
           "color": "#fa4616",
           "androidMode": "default",
           "androidCollapsedTitle": "Taist",
-          "sounds": [
-            "./assets/sounds/notification.wav"
-          ]
+          "sounds": ["./assets/sounds/notification.wav"]
         }
       ],
       [
@@ -145,9 +140,7 @@
             "enableProguardInReleaseBuilds": true,
             "enableShrinkResourcesInReleaseBuilds": true,
             "packagingOptions": {
-              "pickFirst": [
-                "**/libc++_shared.so"
-              ]
+              "pickFirst": ["**/libc++_shared.so"]
             },
             "extraProguardRules": "-keep class com.swmansion.reanimated.** { *; }\n-keep class com.facebook.react.turbomodule.** { *; }\n-dontwarn com.stripe.android.pushProvisioning.**\n-keep class com.stripe.android.** { *; }\n-keep class com.reactnativestripesdk.** { *; }",
             "enableMinifyInReleaseBuilds": true

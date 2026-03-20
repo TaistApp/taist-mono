@@ -1,13 +1,21 @@
-import React, { useState } from 'react';
-import { View, Text, Pressable, Modal, StyleSheet, ActivityIndicator } from 'react-native';
-import { TextInput } from 'react-native-paper';
-import { SignupStepContainer } from '../components/SignupStepContainer';
-import { AppColors, Spacing, Shadows } from '../../../../../constants/theme';
-import { IUser } from '../../../../types/index';
-import { ShowErrorToast, ShowSuccessToast } from '../../../../utils/toast';
-import StyledTextInput from '../../../../components/styledTextInput';
-import StyledButton from '../../../../components/styledButton';
-import { VerifyPhoneAPI } from '../../../../services/api';
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  Pressable,
+  Modal,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
+import { TextInput } from "react-native-paper";
+import { SignupStepContainer } from "../components/SignupStepContainer";
+import { AppColors, Spacing, Shadows } from "../../../../../constants/theme";
+import { IUser } from "../../../../types/index";
+import { ShowErrorToast, ShowSuccessToast } from "../../../../utils/toast";
+import StyledTextInput from "../../../../components/styledTextInput";
+import StyledButton from "../../../../components/styledButton";
+import OTPInput from "../../../../components/OTPInput";
+import { VerifyPhoneAPI } from "../../../../services/api";
 
 interface StepBasicProfileProps {
   userInfo: IUser;
@@ -23,21 +31,21 @@ export const StepBasicProfile: React.FC<StepBasicProfileProps> = ({
   onBack,
 }) => {
   const [visibleVerifyCode, setVisibleVerifyCode] = useState(false);
-  const [verificationCode, setVerificationCode] = useState('');
-  const [serverCode, setServerCode] = useState('');
+  const [verificationCode, setVerificationCode] = useState("");
+  const [serverCode, setServerCode] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSendingCode, setIsSendingCode] = useState(false);
 
   const validateAndProceed = async () => {
     if (!userInfo.phone || userInfo.phone.trim().length === 0) {
-      ShowErrorToast('Please enter your phone number');
+      ShowErrorToast("Please enter your phone number");
       return;
     }
 
     // Basic phone validation - must be at least 10 digits
-    const phoneDigits = userInfo.phone.replace(/\D/g, '');
+    const phoneDigits = userInfo.phone.replace(/\D/g, "");
     if (phoneDigits.length < 10) {
-      ShowErrorToast('Please enter a valid 10-digit phone number');
+      ShowErrorToast("Please enter a valid 10-digit phone number");
       return;
     }
 
@@ -53,27 +61,32 @@ export const StepBasicProfile: React.FC<StepBasicProfileProps> = ({
       if (response.success === 1) {
         setServerCode(response.data.code);
         setVisibleVerifyCode(true);
-        ShowSuccessToast('Verification code sent to your phone!');
+        ShowSuccessToast("Verification code sent to your phone!");
       } else {
-        ShowErrorToast(response.error || 'Failed to send verification code');
+        ShowErrorToast(response.error || "Failed to send verification code");
       }
     } catch (error) {
-      console.error('Error sending verification code:', error);
-      ShowErrorToast('Failed to send verification code. Please try again.');
+      console.error("Error sending verification code:", error);
+      ShowErrorToast("Failed to send verification code. Please try again.");
     } finally {
       setIsSendingCode(false);
     }
   };
 
   const handleVerify = () => {
-    console.log('Verifying code:', verificationCode, 'Server code:', serverCode);
+    console.log(
+      "Verifying code:",
+      verificationCode,
+      "Server code:",
+      serverCode,
+    );
 
     if (verificationCode.trim() !== serverCode.toString().trim()) {
-      ShowErrorToast('Incorrect verification code');
+      ShowErrorToast("Incorrect verification code");
       return;
     }
     setVisibleVerifyCode(false);
-    ShowSuccessToast('Phone verified successfully!');
+    ShowSuccessToast("Phone verified successfully!");
     onNext();
   };
 
@@ -86,7 +99,7 @@ export const StepBasicProfile: React.FC<StepBasicProfileProps> = ({
         testID="signup.profile.phoneInput"
         label="Phone Number"
         placeholder="(555) 123-4567"
-        value={userInfo.phone ?? ''}
+        value={userInfo.phone ?? ""}
         onChangeText={(val) => onUpdateUserInfo({ phone: val })}
         keyboardType="phone-pad"
         autoComplete="tel"
@@ -99,7 +112,12 @@ export const StepBasicProfile: React.FC<StepBasicProfileProps> = ({
           onPress={validateAndProceed}
           disabled={isSendingCode}
         />
-        <Pressable testID="signup.profile.backButton" onPress={onBack} style={styles.backButton} disabled={isSendingCode}>
+        <Pressable
+          testID="signup.profile.backButton"
+          onPress={onBack}
+          style={styles.backButton}
+          disabled={isSendingCode}
+        >
           <Text style={styles.backButtonText}>Back</Text>
         </Pressable>
       </View>
@@ -116,13 +134,10 @@ export const StepBasicProfile: React.FC<StepBasicProfileProps> = ({
               Enter the 6-digit code sent to {userInfo.phone}
             </Text>
 
-            <StyledTextInput
+            <OTPInput
               testID="signup.profile.verifyCodeInput"
-              label="Verification Code"
               value={verificationCode}
               onChangeText={setVerificationCode}
-              keyboardType="number-pad"
-              maxLength={6}
               autoFocus
             />
 
@@ -158,54 +173,52 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
   },
   backButton: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: Spacing.md,
   },
   backButtonText: {
     color: AppColors.textSecondary,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   modalBG: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
     padding: Spacing.xl,
   },
   modal: {
     backgroundColor: AppColors.surface,
     borderRadius: 16,
     padding: Spacing.xl,
-    width: '100%',
+    width: "100%",
     maxWidth: 400,
     gap: Spacing.lg,
     ...Shadows.lg,
   },
   modalTitle: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: "700",
     color: AppColors.text,
-    textAlign: 'center',
+    textAlign: "center",
   },
   modalSubtext: {
     fontSize: 14,
     color: AppColors.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: -Spacing.sm,
   },
   modalButtons: {
     gap: Spacing.md,
   },
   resendButton: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: Spacing.md,
   },
   resendButtonText: {
     color: AppColors.primary,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
-
-
