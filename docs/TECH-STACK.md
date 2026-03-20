@@ -13,6 +13,7 @@
 - [Admin Panel](#admin-panel)
 - [Database](#database)
 - [Third-Party Services](#third-party-services)
+- [Accounts & Access](#accounts--access)
 - [Infrastructure & Deployment](#infrastructure--deployment)
 - [Environment Configuration](#environment-configuration)
 - [Background Jobs & Scheduling](#background-jobs--scheduling)
@@ -357,6 +358,7 @@ Mobile API covers: auth, allergens, appliances, availability, categories, conver
 - **Frontend:** `@stripe/stripe-react-native` 0.50.3
 - **Features:** Customer charges, chef payouts (Stripe Connect), refunds, saved payment methods
 - **Config:** `STRIPE_KEY`, `STRIPE_SECRET`
+- **Account:** Dayne/Daryl — account ID prefix `51KWXqK...`
 - **Dashboard:** https://dashboard.stripe.com/apikeys
 - **Environments:** Test keys (local/staging), live keys (production)
 
@@ -365,6 +367,7 @@ Mobile API covers: auth, allergens, appliances, availability, categories, conver
 - **SDK:** `twilio/sdk` ^8.1
 - **Features:** Phone verification, order reminders (24hr), chef confirmation reminders, chat SMS alerts
 - **Config:** `TWILIO_SID`, `TWILIO_TOKEN`, `TWILIO_FROM`
+- **Account:** Dayne/Daryl — SID `ACdb49fd...`, Phone: +1 (317) 854-6026
 - **Console:** https://www.twilio.com/console
 - **Feature toggles:**
   - `SMS_AVAILABILITY_REMINDERS_ENABLED`
@@ -375,6 +378,7 @@ Mobile API covers: auth, allergens, appliances, availability, categories, conver
 - **Integration:** API-based (replaced SendGrid)
 - **From:** `Taist <contact@taist.app>`
 - **Config:** `RESEND_API_KEY`
+- **Account:** contact@taist.app
 - **Dashboard:** https://resend.com/api-keys
 - **DKIM:** Configured (`resend._domainkey.taist.app`)
 - **SPF:** Needs update at Network Solutions (see memory)
@@ -385,6 +389,7 @@ Mobile API covers: auth, allergens, appliances, availability, categories, conver
 - **Frontend:** `@react-native-firebase/messaging` ^23.5.0
 - **Features:** Cloud Messaging, dynamic links
 - **Config:** `FIREBASE_CREDENTIALS` (JSON file or env var)
+- **Account:** Dayne/Daryl — GCP project `taist-mobile-app`
 - **Console:** https://console.firebase.google.com
 
 ### Google Maps — Geocoding & Maps
@@ -392,6 +397,7 @@ Mobile API covers: auth, allergens, appliances, availability, categories, conver
 - **Backend:** API for geocoding chef/customer addresses
 - **Frontend:** `expo-maps` with Google Maps provider
 - **Config:** `GOOGLE_MAPS_API_KEY`
+- **Account:** Dayne/Daryl — likely under same GCP project `taist-mobile-app`
 - **Console:** https://console.cloud.google.com/apis/credentials
 
 ### SafeScreener — Background Checks
@@ -399,6 +405,7 @@ Mobile API covers: auth, allergens, appliances, availability, categories, conver
 - **Service:** InstaScreen
 - **Purpose:** Chef background verification during admin registration
 - **Config:** `SAFESCREENER_GUID`, `SAFESCREENER_PASSWORD`, `SAFESCREENER_PACKAGE`
+- **Account:** Dayne/Daryl — currently in sandbox mode (`api-sandbox.instascreen.net`)
 - **Portal:** https://www.instascreen.net
 
 ### Firebase Crashlytics — Crash Reporting
@@ -407,7 +414,26 @@ Mobile API covers: auth, allergens, appliances, availability, categories, conver
 
 ### OpenAI — AI Features
 
+- **Account:** contact@taist.app
 - **Config:** `OPENAI_API_KEY`
+
+---
+
+## Accounts & Access
+
+| Service           | Account                                 | Owner                                        |
+| ----------------- | --------------------------------------- | -------------------------------------------- |
+| App Store Connect | billygroble@gmail.com                   | Billy — Apple Team ID: WXY2PMFQB7            |
+| Expo / EAS        | billygroble@gmail.com                   | Billy — owner: `bgroble`                     |
+| Railway           | TaistApp GitHub org                     | Linked via GitHub SSO                        |
+| Stripe            | Dayne/Daryl                             | Account prefix: `51KWXqK...`                 |
+| Twilio            | Dayne/Daryl                             | SID: `ACdb49fd...`, Phone: +1 (317) 854-6026 |
+| Firebase / GCP    | Dayne/Daryl                             | Project: `taist-mobile-app`                  |
+| Google Maps       | Dayne/Daryl                             | Likely same GCP project `taist-mobile-app`   |
+| Resend            | contact@taist.app                       | Email delivery                               |
+| OpenAI            | contact@taist.app                       | AI features                                  |
+| SafeScreener      | Dayne/Daryl                             | Background checks — currently sandbox mode   |
+| Domain DNS        | arnettfinancial.com (Network Solutions) | `taist.app` domain management                |
 
 ---
 
