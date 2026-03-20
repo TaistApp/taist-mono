@@ -134,15 +134,19 @@ These run automatically on a schedule with no manual intervention:
 
 ## Key Accounts & Access
 
-| Service           | Account Email         | Notes                                |
-| ----------------- | --------------------- | ------------------------------------ |
-| App Store Connect | billygroble@gmail.com | Apple Team ID: WXY2PMFQB7            |
-| Expo / EAS        | billygroble@gmail.com | Build service for mobile apps        |
-| Stripe            | —                     | Contact team for access              |
-| Twilio            | —                     | Contact team for access              |
-| Railway           | —                     | Backend hosting                      |
-| Firebase          | —                     | Push notifications + crash reporting |
-| Domain DNS        | Network Solutions     | `taist.app` domain management        |
+| Service           | Account                                 | Notes                                                              |
+| ----------------- | --------------------------------------- | ------------------------------------------------------------------ |
+| App Store Connect | billygroble@gmail.com                   | Apple Team ID: WXY2PMFQB7                                          |
+| Expo / EAS        | billygroble@gmail.com                   | Owner: `bgroble`                                                   |
+| Railway           | TaistApp GitHub org                     | Linked via GitHub SSO — same org as the repo                       |
+| Stripe            | Dayne/Daryl (ask them)                  | Account ID prefix: `51KWXqK...`                                    |
+| Twilio            | Dayne/Daryl (ask them)                  | SID: `ACdb49fd...`, Phone: +1 (317) 854-6026                       |
+| Firebase / GCP    | Dayne/Daryl (ask them)                  | Project: `taist-mobile-app` (likely same GCP project for Maps API) |
+| Google Maps       | Dayne/Daryl (ask them)                  | Likely under same GCP project `taist-mobile-app`                   |
+| Resend            | contact@taist.app                       | Email delivery service                                             |
+| OpenAI            | contact@taist.app                       | AI features                                                        |
+| SafeScreener      | Dayne/Daryl (ask them)                  | Chef background checks — currently sandbox mode                    |
+| Domain DNS        | arnettfinancial.com (Network Solutions) | `taist.app` domain management                                      |
 
 ---
 
