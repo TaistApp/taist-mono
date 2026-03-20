@@ -1,38 +1,74 @@
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Alert, Image, Linking, LogBox, Platform, Pressable, SafeAreaView, Text, View } from 'react-native';
-import Constants from 'expo-constants';
-import * as SplashScreen from 'expo-splash-screen';
+import { router } from "expo-router";
+import { useEffect, useState } from "react";
+import {
+  Alert,
+  Image,
+  Linking,
+  LogBox,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  Text,
+  View,
+} from "react-native";
+import Constants from "expo-constants";
+import * as SplashScreen from "expo-splash-screen";
 
 // Types & Services
 // Note: NavigationStackType is not needed with Expo Router
 
 // Hooks
-import { useAppDispatch } from '../../../hooks/useRedux';
-import { setUser } from '../../../reducers/userSlice';
-import { updateMenus } from '../../../reducers/tableSlice';
+import { useAppDispatch } from "../../../hooks/useRedux";
+import { setUser } from "../../../reducers/userSlice";
+import { updateMenus } from "../../../reducers/tableSlice";
 
-import { navigate } from '@/app/utils/navigation';
-import { GETVERSIONAPICALL, LoginAPI } from '../../../services/api';
-import { ClearStorage, ReadLoginData } from '../../../utils/storage';
-import { styles } from './styles';
+import { navigate } from "@/app/utils/navigation";
+import { GETVERSIONAPICALL, LoginAPI } from "../../../services/api";
+import { ClearStorage, ReadLoginData } from "../../../utils/storage";
+import { styles } from "./styles";
+
+/**
+ * Compare two semver strings (e.g. "31.0.0" < "32.1.0").
+ * Returns true if version a is less than version b.
+ */
+const isVersionLessThan = (a: string, b: string): boolean => {
+  const partsA = a.split(".").map(Number);
+  const partsB = b.split(".").map(Number);
+  for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+    const numA = partsA[i] || 0;
+    const numB = partsB[i] || 0;
+    if (numA < numB) return true;
+    if (numA > numB) return false;
+  }
+  return false;
+};
 LogBox.ignoreLogs([
-  'RCTBridge required dispatch_sync to load RCTAccessibilityManager',
+  "RCTBridge required dispatch_sync to load RCTAccessibilityManager",
 ]);
 
 // Dev screen preview config - only works in __DEV__ mode
 // Ensure DEV_SCREEN is a valid non-empty string, not an empty object or falsy value
 const rawDevScreen = __DEV__ ? Constants.expoConfig?.extra?.devScreen : null;
-const DEV_SCREEN = typeof rawDevScreen === 'string' && rawDevScreen.length > 0 ? rawDevScreen : null;
-const rawDevUserType = __DEV__ ? Constants.expoConfig?.extra?.devUserType : null;
-const DEV_USER_TYPE = typeof rawDevUserType === 'string' && rawDevUserType.length > 0 ? rawDevUserType : null;
+const DEV_SCREEN =
+  typeof rawDevScreen === "string" && rawDevScreen.length > 0
+    ? rawDevScreen
+    : null;
+const rawDevUserType = __DEV__
+  ? Constants.expoConfig?.extra?.devUserType
+  : null;
+const DEV_USER_TYPE =
+  typeof rawDevUserType === "string" && rawDevUserType.length > 0
+    ? rawDevUserType
+    : null;
 
 // Test accounts for dev screen preview (only used in __DEV__ mode)
 // Update these with real test account credentials on staging
-const DEV_TEST_ACCOUNTS = __DEV__ ? {
-  chef: { email: 'testchef@taist.com', password: 'Test123!' },
-  customer: { email: 'testcustomer@taist.com', password: 'Test123!' },
-} : null;
+const DEV_TEST_ACCOUNTS = __DEV__
+  ? {
+      chef: { email: "testchef@taist.com", password: "Test123!" },
+      customer: { email: "testcustomer@taist.com", password: "Test123!" },
+    }
+  : null;
 
 // No need for PropsType with Expo Router
 const Splash = () => {
@@ -56,56 +92,75 @@ const Splash = () => {
 
     // DEV SCREEN PREVIEW: Skip normal flow and go directly to specified screen
     if (DEV_SCREEN) {
-      console.log(`[DEV] Navigating directly to: ${DEV_SCREEN} as ${DEV_USER_TYPE || 'guest'}`);
+      console.log(
+        `[DEV] Navigating directly to: ${DEV_SCREEN} as ${DEV_USER_TYPE || "guest"}`,
+      );
 
       const performDevLogin = async () => {
-        const testAccount = DEV_USER_TYPE === 'chef'
-          ? DEV_TEST_ACCOUNTS?.chef
-          : DEV_TEST_ACCOUNTS?.customer;
+        const testAccount =
+          DEV_USER_TYPE === "chef"
+            ? DEV_TEST_ACCOUNTS?.chef
+            : DEV_TEST_ACCOUNTS?.customer;
 
         if (testAccount) {
           try {
-            console.log(`[DEV] Attempting login with test account: ${testAccount.email}`);
+            console.log(
+              `[DEV] Attempting login with test account: ${testAccount.email}`,
+            );
             const response = await LoginAPI(
-              { email: testAccount.email, password: testAccount.password, remember: false },
-              dispatch
+              {
+                email: testAccount.email,
+                password: testAccount.password,
+                remember: false,
+              },
+              dispatch,
             );
 
             if (response.success === 1) {
-              console.log('[DEV] Login successful, navigating to screen');
+              console.log("[DEV] Login successful, navigating to screen");
               router.replace(DEV_SCREEN);
               return;
             } else {
-              console.warn('[DEV] Login failed, falling back to mock user:', response);
+              console.warn(
+                "[DEV] Login failed, falling back to mock user:",
+                response,
+              );
             }
           } catch (error) {
-            console.warn('[DEV] Login error, falling back to mock user:', error);
+            console.warn(
+              "[DEV] Login error, falling back to mock user:",
+              error,
+            );
           }
         }
 
         // Fallback to mock user if login fails or no test account
-        console.log('[DEV] Using mock user (no API access)');
-        if (DEV_USER_TYPE === 'chef') {
-          dispatch(setUser({
-            id: 999,
-            first_name: 'Dev',
-            last_name: 'Chef',
-            email: 'dev@chef.test',
-            user_type: 2, // Chef
-            is_pending: 0,
-            quiz_completed: 1,
-            verified: 1,
-          }));
+        console.log("[DEV] Using mock user (no API access)");
+        if (DEV_USER_TYPE === "chef") {
+          dispatch(
+            setUser({
+              id: 999,
+              first_name: "Dev",
+              last_name: "Chef",
+              email: "dev@chef.test",
+              user_type: 2, // Chef
+              is_pending: 0,
+              quiz_completed: 1,
+              verified: 1,
+            }),
+          );
           dispatch(updateMenus([]));
-        } else if (DEV_USER_TYPE === 'customer') {
-          dispatch(setUser({
-            id: 999,
-            first_name: 'Dev',
-            last_name: 'Customer',
-            email: 'dev@customer.test',
-            user_type: 1, // Customer
-            verified: 1,
-          }));
+        } else if (DEV_USER_TYPE === "customer") {
+          dispatch(
+            setUser({
+              id: 999,
+              first_name: "Dev",
+              last_name: "Customer",
+              email: "dev@customer.test",
+              user_type: 1, // Customer
+              verified: 1,
+            }),
+          );
         }
 
         setTimeout(() => {
@@ -119,7 +174,7 @@ const Splash = () => {
 
     // Fallback: if auto-login takes too long, show login buttons
     const fallbackTimer = setTimeout(() => {
-      console.warn('Auto-login timeout - showing login screen');
+      console.warn("Auto-login timeout - showing login screen");
       setSplash(false);
     }, 35000); // 35 second max wait
 
@@ -133,9 +188,9 @@ const Splash = () => {
   }, []);
 
   // Get version from app.json dynamically
-  const CURRENT_VERSION = Constants.expoConfig?.version || '29.0.0';
+  const CURRENT_VERSION = Constants.expoConfig?.version || "29.0.0";
   // Get environment to skip version check in local development
-  const APP_ENV = Constants.expoConfig?.extra?.APP_ENV || 'production';
+  const APP_ENV = Constants.expoConfig?.extra?.APP_ENV || "production";
 
   /**
    * Performs auto-login by validating stored credentials with the server.
@@ -144,12 +199,20 @@ const Splash = () => {
    *
    * @returns true if login succeeded, false otherwise
    */
-  const performAutoLogin = async (loginData: { email: string; password: string; role: number }): Promise<boolean> => {
+  const performAutoLogin = async (loginData: {
+    email: string;
+    password: string;
+    role: number;
+  }): Promise<boolean> => {
     try {
       // Validate credentials with server - this also fetches fresh user data
       const response = await LoginAPI(
-        { email: loginData.email, password: loginData.password, remember: true },
-        dispatch
+        {
+          email: loginData.email,
+          password: loginData.password,
+          remember: true,
+        },
+        dispatch,
       );
 
       if (response.success === 1) {
@@ -163,9 +226,11 @@ const Splash = () => {
         return true;
       } else {
         // Login failed - account deleted, password changed, etc.
-        console.log('Auto-login failed: Account no longer valid, clearing stored data');
+        console.log(
+          "Auto-login failed: Account no longer valid, clearing stored data",
+        );
         // Clear Redux state first (removes in-memory user data)
-        dispatch({ type: 'USER_LOGOUT' });
+        dispatch({ type: "USER_LOGOUT" });
         // Then clear persisted storage
         await ClearStorage();
         setSplash(false);
@@ -174,7 +239,7 @@ const Splash = () => {
     } catch (error) {
       // Network error or other issue - don't clear storage, just show login
       // This prevents users from being logged out due to temporary network issues
-      console.error('Auto-login error (network issue):', error);
+      console.error("Auto-login error (network issue):", error);
       setSplash(false);
       return false;
     }
@@ -185,7 +250,7 @@ const Splash = () => {
       // Skip version check in local development and staging
       // Staging testers get builds directly (TestFlight/APK), not from the store,
       // so the "Update Required" flow can't help them — it just blocks them.
-      if (APP_ENV === 'local' || APP_ENV === 'staging') {
+      if (APP_ENV === "local" || APP_ENV === "staging") {
         console.log(`${APP_ENV} mode: Skipping version check`);
         const loginData = await ReadLoginData();
         if (loginData == null || !loginData.email || !loginData.password) {
@@ -198,33 +263,41 @@ const Splash = () => {
       }
 
       const versionResponse = await GETVERSIONAPICALL();
-      console.log('Version API Response:', versionResponse);
+      console.log("Version API Response:", versionResponse);
 
       if (!versionResponse?.data?.[0]?.version) {
-        console.error('Version information is missing from the API response.');
+        console.error("Version information is missing from the API response.");
         setSplash(false);
         return;
       }
 
-      if (versionResponse?.success === 1 && versionResponse?.data?.[0]?.version != CURRENT_VERSION) {
+      const minimumVersion = versionResponse?.data?.[0]?.version;
+      if (
+        versionResponse?.success === 1 &&
+        isVersionLessThan(CURRENT_VERSION, minimumVersion)
+      ) {
         setIsOutdated(true);
-        console.log('---->>>App version is outdated. Please update to continue.');
+        console.log(
+          `---->>>App version ${CURRENT_VERSION} is below minimum ${minimumVersion}. Please update.`,
+        );
         Alert.alert(
-          'Update Required',
+          "Update Required",
           `This app version is outdated. Please update to the latest version to continue.`,
           [
             {
-              text: 'OK',
+              text: "OK",
               onPress: () => {
-                if (Platform.OS === 'ios') {
-                  Linking.openURL('https://apps.apple.com/app/1598624809'); // Replace with your App Store URL
-                } else if (Platform.OS === 'android') {
-                  Linking.openURL('https://play.google.com/store/apps/details?id=com.taist.app'); // Replace with your Play Store URL
+                if (Platform.OS === "ios") {
+                  Linking.openURL("https://apps.apple.com/app/1598624809"); // Replace with your App Store URL
+                } else if (Platform.OS === "android") {
+                  Linking.openURL(
+                    "https://play.google.com/store/apps/details?id=com.taist.app",
+                  ); // Replace with your Play Store URL
                 }
               },
             },
           ],
-          { cancelable: false }
+          { cancelable: false },
         );
         return; // Prevent further execution
       }
@@ -238,11 +311,11 @@ const Splash = () => {
       // This handles cases where account was deleted, password changed, etc.
       await performAutoLogin(loginData);
     } catch (error) {
-      console.error('Error during version check or auto-login:', error);
+      console.error("Error during version check or auto-login:", error);
       Alert.alert(
-        'Error',
-        'Unable to check the app version. Please try again later.',
-        [{ text: 'OK' }]
+        "Error",
+        "Unable to check the app version. Please try again later.",
+        [{ text: "OK" }],
       );
       setSplash(false); // Handle gracefully by stopping the splash screen
     }
@@ -253,10 +326,10 @@ const Splash = () => {
       <View style={[styles.splash]}>
         <Image
           style={styles.splashLogo}
-          source={require('../../../assets/images/splashLogo.png')}
+          source={require("../../../assets/images/splashLogo.png")}
         />
         {isOutdated && (
-          <View style={{ width: '100%', paddingHorizontal: 20  }}>
+          <View style={{ width: "100%", paddingHorizontal: 20 }}>
             <Text style={styles.outdatedText}>
               Your app version is outdated. Please update to continue.
             </Text>
@@ -270,7 +343,7 @@ const Splash = () => {
     <SafeAreaView style={styles.main}>
       <Image
         style={styles.logo}
-        source={require('../../../assets/images/logo-2.png')}
+        source={require("../../../assets/images/logo-2.png")}
       />
       <View style={styles.buttonsWrapper}>
         <Pressable style={styles.button} onPress={handleLogin}>
