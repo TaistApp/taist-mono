@@ -43,59 +43,38 @@ class SyncVersion extends Command
             return 0;
         }
 
-        // Single source of truth: frontend/app.json
-        // This eliminates version drift between frontend and backend.
-        // Falls back to config/version.php if app.json isn't available.
-        $currentVersion = $this->getVersionFromAppJson()
-            ?? config('version.version', '29.0.0');
+        // MIN_VERSION is the single source of truth for the minimum app version
+        // users must have installed. Only raise this AFTER the new version is
+        // live on the App Store — never during development.
+        // Set MIN_VERSION in Railway environment variables to control this.
+        $minVersion = env('MIN_VERSION');
+
+        if (!$minVersion) {
+            $this->warn('MIN_VERSION env var not set — skipping version sync to avoid overwriting DB.');
+            return 0;
+        }
 
         // Get existing record if it exists
         $existingRecord = DB::table('versions')->where('id', 1)->first();
+
+        // Only update if the version has actually changed
+        if ($existingRecord && $existingRecord->version === $minVersion) {
+            $this->info("Version already at {$minVersion} — no update needed.");
+            return 0;
+        }
 
         // Sync version - update or insert
         DB::table('versions')->updateOrInsert(
             ['id' => 1],
             [
-                'version' => $currentVersion,
+                'version' => $minVersion,
                 'created_at' => $existingRecord->created_at ?? now(),
                 'updated_at' => now(),
             ]
         );
 
-        $this->info("Version synced to database: {$currentVersion}");
+        $this->info("Minimum version synced to database: {$minVersion}");
         return 0;
-    }
-
-    /**
-     * Read the app version from frontend/app.json.
-     *
-     * Both backend and frontend live in the same monorepo, so app.json
-     * is always at ../frontend/app.json relative to the backend root.
-     * This runs on every deploy via the Procfile, keeping the DB version
-     * in sync automatically — no manual env vars or config updates needed.
-     *
-     * @return string|null
-     */
-    private function getVersionFromAppJson(): ?string
-    {
-        $appJsonPath = base_path('../frontend/app.json');
-
-        if (!file_exists($appJsonPath)) {
-            $this->warn("frontend/app.json not found at {$appJsonPath}, falling back to config.");
-            return null;
-        }
-
-        $appJson = json_decode(file_get_contents($appJsonPath), true);
-
-        if (!$appJson || !isset($appJson['expo']['version'])) {
-            $this->warn('Could not parse version from frontend/app.json, falling back to config.');
-            return null;
-        }
-
-        $version = $appJson['expo']['version'];
-        $this->info("Read version {$version} from frontend/app.json");
-
-        return $version;
     }
 }
 

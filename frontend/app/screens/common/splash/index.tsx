@@ -187,8 +187,8 @@ const Splash = () => {
     return () => clearTimeout(fallbackTimer);
   }, []);
 
-  // Get version from app.json dynamically
-  const CURRENT_VERSION = Constants.expoConfig?.version || "29.0.0";
+  // Get version from app.json — undefined if config isn't loaded yet
+  const CURRENT_VERSION = Constants.expoConfig?.version ?? null;
   // Get environment to skip version check in local development
   const APP_ENV = Constants.expoConfig?.extra?.APP_ENV || "production";
 
@@ -274,6 +274,7 @@ const Splash = () => {
       const minimumVersion = versionResponse?.data?.[0]?.version;
       if (
         versionResponse?.success === 1 &&
+        CURRENT_VERSION !== null &&
         isVersionLessThan(CURRENT_VERSION, minimumVersion)
       ) {
         setIsOutdated(true);
