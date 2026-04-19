@@ -281,7 +281,7 @@ railway login
 # Initialize project
 railway init
 # Project name: taist-backend
-# Link to GitHub: yes → bgroble14/taist-mono
+# Link to GitHub: yes → TaistApp/taist-mono
 ```
 
 #### Step 1.2: Create Environments

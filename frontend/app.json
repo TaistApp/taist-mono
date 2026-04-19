@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Taist",
-    "slug": "Taist",
+    "slug": "taist",
     "version": "32.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -186,15 +186,15 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "0bad62e8-4a7c-46bd-9d4c-931018151fae"
+        "projectId": "db11fb8c-995e-4b39-8fa5-8b426fada4dd"
       }
     },
-    "owner": "bgroble",
+    "owner": "taistapp",
     "runtimeVersion": {
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/0bad62e8-4a7c-46bd-9d4c-931018151fae"
+      "url": "https://u.expo.dev/db11fb8c-995e-4b39-8fa5-8b426fada4dd"
     }
   }
 }

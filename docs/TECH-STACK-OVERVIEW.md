@@ -136,8 +136,8 @@ These run automatically on a schedule with no manual intervention:
 
 | Service           | Account                                 | Notes                                                              |
 | ----------------- | --------------------------------------- | ------------------------------------------------------------------ |
-| App Store Connect | billygroble@gmail.com                   | Apple Team ID: WXY2PMFQB7                                          |
-| Expo / EAS        | billygroble@gmail.com                   | Owner: `bgroble`                                                   |
+| App Store Connect | a.daynearnett@gmail.com                 | Apple Team ID: WXY2PMFQB7                                          |
+| Expo / EAS        | a.daynearnett@gmail.com                 | Owner: `taistapp`                                                  |
 | Railway           | TaistApp GitHub org                     | Linked via GitHub SSO — same org as the repo                       |
 | Stripe            | Dayne/Daryl (ask them)                  | Account ID prefix: `51KWXqK...`                                    |
 | Twilio            | Dayne/Daryl (ask them)                  | SID: `ACdb49fd...`, Phone: +1 (317) 854-6026                       |

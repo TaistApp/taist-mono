@@ -410,7 +410,7 @@ npm run format
 
 ### EAS Build Setup
 
-**Current Expo Project:** `@bgroble/Taist`  
+**Current Expo Project:** `@taistapp/taist`  
 **Bundle Identifier:** `org.taist.taist`  
 **Apple Team:** Taist, Inc. (WXY2PMFQB7)
 
@@ -424,7 +424,7 @@ npm install -g eas-cli
 npx eas-cli login
 
 # Login to Apple Developer account (for iOS builds)
-# You'll be prompted during build: billygroble@gmail.com
+# You'll be prompted during build: a.daynearnett@gmail.com
 ```
 
 #### Apple Developer Requirements
@@ -597,8 +597,8 @@ If you're a new developer taking over this project:
 ### 1. Access Requirements
 
 **Required Accounts:**
-- **GitHub**: Access to `bgroble14/taist-mono` repository
-- **Expo**: Account with access to `@bgroble/Taist` project
+- **GitHub**: Access to `TaistApp/taist-mono` repository
+- **Expo**: Account with access to `@taistapp/taist` project
 - **Apple Developer**: Admin role in Taist, Inc. team (for iOS builds)
 - **Google Play Console**: Access for Android builds
 - **App Store Connect**: Access for TestFlight and App Store management
@@ -607,7 +607,7 @@ If you're a new developer taking over this project:
 
 ```bash
 # Clone repository
-git clone https://github.com/bgroble14/taist-mono.git
+git clone https://github.com/TaistApp/taist-mono.git
 cd taist-mono/frontend
 
 # Install dependencies
@@ -632,7 +632,7 @@ npx eas-cli project:info
 npx eas-cli build --platform ios --profile preview
 
 # When prompted for Apple credentials:
-# - Apple ID: billygroble@gmail.com
+# - Apple ID: a.daynearnett@gmail.com
 # - Select Team: Taist, Inc. (WXY2PMFQB7)
 
 # For credentials prompts:
@@ -644,7 +644,7 @@ npx eas-cli build --platform ios --profile preview
 
 **"Entity not authorized" error:**
 - You don't have access to the Expo project
-- Contact admin to add you to `@bgroble/Taist`
+- Contact admin to add you to `@taistapp/taist`
 
 **"You don't have the required permissions" from Apple:**
 - Check you have **Admin** role in App Store Connect
