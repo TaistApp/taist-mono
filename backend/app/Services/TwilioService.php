@@ -59,7 +59,7 @@ class TwilioService
         }
 
         try {
-            $message = "Your Taist verification code is: " . $code;
+            $message = "Your Taist verification code is: " . $code . "\n\n@taist.app #" . $code;
 
             $this->client->messages->create(
                 $phone,
