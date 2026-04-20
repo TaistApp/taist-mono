@@ -205,7 +205,7 @@ php artisan cleanup:null-coordinates
 
 **File:** `backend/app/Console/Commands/SyncVersion.php`
 
-Syncs app version information.
+Reads `MIN_VERSION` from Railway env vars and writes it to the `versions` DB table. Skips safely if `MIN_VERSION` is not set or if the DB already has the correct value. See `frontend/VERSION-BUMP-GUIDE.md` for how to use this to force user updates.
 
 ```bash
 php artisan version:sync

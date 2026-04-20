@@ -10,6 +10,18 @@ When any account, credential, or ownership detail is changed (Expo, Apple, GitHu
 - `frontend/DEPLOYMENT.md` — Required Access section and any hardcoded account references
 - `frontend/CHANGELOG.md` — If the change is infrastructure-level
 
+## Forcing App Updates (Minimum Version)
+
+To force users to update to a new version:
+1. Confirm the new version is **live on the App Store**
+2. Go to Railway → taist-mono service → Variables → set `MIN_VERSION` to the new version
+3. Railway redeploys automatically — `version:sync` writes it to the DB
+
+**Never raise `MIN_VERSION` before the new version is available on the App Store.**
+The app version in `app.json` and `MIN_VERSION` are intentionally separate — bumping `app.json` during development must never affect users.
+
+See `frontend/VERSION-BUMP-GUIDE.md` for full details.
+
 ## Current Account Ownership
 
 | Service           | Account                   | Owner  |
