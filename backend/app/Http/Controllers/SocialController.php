@@ -53,7 +53,8 @@ class SocialController extends Controller
      * Picks a single eligible menu for a Menu Item social post:
      *   - tbl_menus.is_live = 1       (Available in admin)
      *   - tbl_users.user_type = 2     (chef, not customer)
-     *   - tbl_users.verified = 1      (active chef)
+     *   - tbl_users.verified = 1      (phone/email verified)
+     *   - tbl_users.is_pending = 0    (Active in admin, not Pending)
      *   - menu id NOT in last `excludeDays` of social_posted_receipts (kind='menu-item')
      *
      * If the exclude filter empties the pool (rare with ~10 chefs but
@@ -73,6 +74,7 @@ class SocialController extends Controller
             ->where('m.is_live', 1)
             ->where('u.user_type', 2)
             ->where('u.verified', 1)
+            ->where('u.is_pending', 0)
             ->select(
                 'm.id as menu_id',
                 'm.title as menu_title',
