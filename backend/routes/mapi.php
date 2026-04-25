@@ -14,6 +14,14 @@ Route::post('complete_chef_quiz', 'MapiController@completeChefQuiz');
 Route::get('background_check_order_status', 'MapiController@backgroundCheckOrderStatus');
 Route::get('get-version', 'MapiController@getVersion');
 
+// Social-media automation endpoints (taist-social on Vercel + Make.com).
+// Auth: `apiKey` request header — validated inside SocialController, same
+// pattern as MapiController::getAvailableTimeslots. See SocialController
+// docblock for the full flow.
+Route::get('social/menu-items/random', 'SocialController@menuItemsRandom');
+Route::get('social/posted-ids', 'SocialController@postedIds');
+Route::post('social/posted-receipt', 'SocialController@postedReceipt');
+
 Route::group(['middleware' => ['auth:mapi']], function () {
 
 	Route::get('logout', 'MapiController@logout');
