@@ -110,6 +110,58 @@ class SocialController extends Controller
     }
 
     /**
+     * GET /mapi/social/menu-lookup?id=123
+     *
+     * Resolves a menu id back to its chef + status. Used to answer
+     * "who posted that?" without needing direct DB access.
+     */
+    public function menuLookup(Request $request)
+    {
+        if (!$this->checkApiKey($request)) {
+            return response()->json(['success' => 0, 'error' => 'Access denied.'], 401);
+        }
+
+        $id = (int) $request->query('id', 0);
+        if ($id <= 0) {
+            return response()->json(['success' => 0, 'error' => 'positive id is required'], 422);
+        }
+
+        $row = DB::table('tbl_menus as m')
+            ->leftJoin('tbl_users as u', 'u.id', '=', 'm.user_id')
+            ->where('m.id', $id)
+            ->select(
+                'm.id as menu_id',
+                'm.title as menu_title',
+                'm.is_live',
+                'm.user_id as chef_id',
+                'u.first_name',
+                'u.last_name',
+                'u.user_type',
+                'u.verified',
+                'u.is_pending'
+            )
+            ->first();
+
+        if (!$row) {
+            return response()->json(['success' => 0, 'error' => 'Menu not found'], 404);
+        }
+
+        return response()->json([
+            'success' => 1,
+            'menuId' => (int) $row->menu_id,
+            'menuTitle' => $row->menu_title,
+            'isLive' => (int) $row->is_live,
+            'chefId' => (int) $row->chef_id,
+            'chefName' => trim(($row->first_name ?? '') . ' ' . ($row->last_name ?? '')),
+            'chefStatus' => [
+                'userType' => (int) ($row->user_type ?? 0),
+                'verified' => (int) ($row->verified ?? 0),
+                'isPending' => (int) ($row->is_pending ?? 0),
+            ],
+        ]);
+    }
+
+    /**
      * GET /mapi/social/posted-ids?kind=review&excludeDays=60
      *
      * Returns the IDs Make.com should pass to the taist-social

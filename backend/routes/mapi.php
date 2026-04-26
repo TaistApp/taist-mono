@@ -19,6 +19,7 @@ Route::get('get-version', 'MapiController@getVersion');
 // pattern as MapiController::getAvailableTimeslots. See SocialController
 // docblock for the full flow.
 Route::get('social/menu-items/random', 'SocialController@menuItemsRandom');
+Route::get('social/menu-lookup', 'SocialController@menuLookup');
 Route::get('social/posted-ids', 'SocialController@postedIds');
 Route::post('social/posted-receipt', 'SocialController@postedReceipt');
 
