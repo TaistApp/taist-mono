@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   Linking,
@@ -13,6 +14,7 @@ import {
 } from "react-native";
 import Constants from "expo-constants";
 import * as SplashScreen from "expo-splash-screen";
+import * as AppleAuthentication from "expo-apple-authentication";
 
 // Types & Services
 // Note: NavigationStackType is not needed with Expo Router
@@ -23,8 +25,20 @@ import { setUser } from "../../../reducers/userSlice";
 import { updateMenus } from "../../../reducers/tableSlice";
 
 import { navigate } from "@/app/utils/navigation";
-import { GETVERSIONAPICALL, LoginAPI } from "../../../services/api";
+import {
+  GETVERSIONAPICALL,
+  LoginAPI,
+  SocialLoginAPI,
+} from "../../../services/api";
 import { ClearStorage, ReadLoginData } from "../../../utils/storage";
+import {
+  SocialAuthCancelled,
+  SocialAuthPayload,
+  SocialProvider,
+  signInWithApple,
+  signInWithFacebook,
+  signInWithGoogle,
+} from "../../../services/socialAuth";
 import { styles } from "./styles";
 
 /**
@@ -74,6 +88,8 @@ const DEV_TEST_ACCOUNTS = __DEV__
 const Splash = () => {
   const [splash, setSplash] = useState(true);
   const [isOutdated, setIsOutdated] = useState(false);
+  const [socialBusy, setSocialBusy] = useState<SocialProvider | null>(null);
+  const [appleAvailable, setAppleAvailable] = useState(false);
   const dispatch = useAppDispatch();
   const handleLogin = () => {
     navigate.toCommon.login();
@@ -82,6 +98,57 @@ const Splash = () => {
   const handleSignup = () => {
     navigate.toCommon.signup();
   };
+
+  useEffect(() => {
+    if (Platform.OS === "ios") {
+      AppleAuthentication.isAvailableAsync()
+        .then(setAppleAvailable)
+        .catch(() => setAppleAvailable(false));
+    }
+  }, []);
+
+  const runSocialFlow = async (
+    provider: SocialProvider,
+    fn: () => Promise<SocialAuthPayload>,
+  ) => {
+    if (socialBusy) return;
+    setSocialBusy(provider);
+    try {
+      const payload = await fn();
+      const response = await SocialLoginAPI(payload, dispatch);
+      if (response.success === 1) {
+        const userType = response.data?.user?.user_type;
+        if (userType === 2) {
+          navigate.toChef.home();
+        } else {
+          navigate.toCustomer.home();
+        }
+        return;
+      }
+      Alert.alert(
+        "Sign-in failed",
+        response.error || response.message || "Please try again.",
+      );
+    } catch (e: any) {
+      if (e instanceof SocialAuthCancelled) {
+        // User cancelled — silent.
+        return;
+      }
+      console.error(`[social-login:${provider}]`, e);
+      Alert.alert(
+        "Sign-in failed",
+        typeof e?.message === "string"
+          ? e.message
+          : "Something went wrong signing you in.",
+      );
+    } finally {
+      setSocialBusy(null);
+    }
+  };
+
+  const handleGoogle = () => runSocialFlow("google", signInWithGoogle);
+  const handleApple = () => runSocialFlow("apple", signInWithApple);
+  const handleFacebook = () => runSocialFlow("facebook", signInWithFacebook);
 
   useEffect(() => {
     // Hide native splash screen once React component is mounted
@@ -347,6 +414,52 @@ const Splash = () => {
         source={require("../../../assets/images/logo-2.png")}
       />
       <View style={styles.buttonsWrapper}>
+        {Platform.OS === "ios" && appleAvailable && (
+          <AppleAuthentication.AppleAuthenticationButton
+            buttonType={
+              AppleAuthentication.AppleAuthenticationButtonType.CONTINUE
+            }
+            buttonStyle={
+              AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+            }
+            cornerRadius={12}
+            style={styles.appleNativeButton}
+            onPress={handleApple}
+          />
+        )}
+        <Pressable
+          style={[styles.socialButton, styles.googleButton]}
+          onPress={handleGoogle}
+          disabled={socialBusy !== null}
+        >
+          {socialBusy === "google" ? (
+            <ActivityIndicator color="#3c4043" />
+          ) : (
+            <Text style={[styles.socialButtonText, styles.googleButtonText]}>
+              Continue with Google
+            </Text>
+          )}
+        </Pressable>
+        <Pressable
+          style={[styles.socialButton, styles.facebookButton]}
+          onPress={handleFacebook}
+          disabled={socialBusy !== null}
+        >
+          {socialBusy === "facebook" ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={[styles.socialButtonText, styles.facebookButtonText]}>
+              Continue with Facebook
+            </Text>
+          )}
+        </Pressable>
+
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>or</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
         <Pressable style={styles.button} onPress={handleLogin}>
           <Text style={styles.buttonText}>Login With Email</Text>
         </Pressable>

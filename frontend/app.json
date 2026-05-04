@@ -11,8 +11,9 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "org.taist.taist",
-      "buildNumber": "24",
+      "buildNumber": "25",
       "googleServicesFile": "./GoogleService-Info.plist",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "UIBackgroundModes": [
           "remote-notification",
@@ -178,6 +179,25 @@
         {
           "enableGoogleMaps": true
         }
+      ],
+      "expo-apple-authentication",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.370030528124-d2qntnrqsa62j2giqa9o9e84ie165dot"
+        }
+      ],
+      [
+        "react-native-fbsdk-next",
+        {
+          "appID": "2239965926757774",
+          "clientToken": "879a5a7caece935726e6b83f9dc0f1a5",
+          "displayName": "Taist",
+          "scheme": "fb2239965926757774",
+          "advertiserIDCollectionEnabled": false,
+          "autoLogAppEventsEnabled": false,
+          "isAutoInitEnabled": true
+        }
       ]
     ],
     "experiments": {
@@ -187,7 +207,11 @@
       "router": {},
       "eas": {
         "projectId": "db11fb8c-995e-4b39-8fa5-8b426fada4dd"
-      }
+      },
+      "GOOGLE_IOS_CLIENT_ID": "370030528124-d2qntnrqsa62j2giqa9o9e84ie165dot.apps.googleusercontent.com",
+      "GOOGLE_WEB_CLIENT_ID": "370030528124-4ie1ns4jfiq3fg0ppa14aqqjv3a9701e.apps.googleusercontent.com",
+      "FACEBOOK_APP_ID": "2239965926757774",
+      "FACEBOOK_CLIENT_TOKEN": "879a5a7caece935726e6b83f9dc0f1a5"
     },
     "owner": "taistapp",
     "runtimeVersion": {

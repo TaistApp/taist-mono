@@ -61,5 +61,55 @@ export const styles = StyleSheet.create({
 		letterSpacing: 0.5,
 		includeFontPadding: false,
 		textAlignVertical: 'center',
-	}
+	},
+
+	// Social sign-in buttons
+	socialButton: {
+		width: '100%',
+		borderRadius: 12,
+		paddingVertical: 16,
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'center',
+		...Shadows.md,
+	},
+	socialButtonText: {
+		fontSize: 16,
+		fontWeight: '600',
+		letterSpacing: 0.3,
+		includeFontPadding: false,
+	},
+	appleNativeButton: {
+		width: '100%',
+		height: 52,
+	},
+	googleButton: {
+		backgroundColor: '#fff',
+		borderWidth: 1,
+		borderColor: '#dadce0',
+	},
+	googleButtonText: {
+		color: '#3c4043',
+	},
+	facebookButton: {
+		backgroundColor: '#1877f2',
+	},
+	facebookButtonText: {
+		color: '#fff',
+	},
+	divider: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		marginVertical: Spacing.sm,
+	},
+	dividerLine: {
+		flex: 1,
+		height: 1,
+		backgroundColor: '#e0e0e0',
+	},
+	dividerText: {
+		marginHorizontal: 12,
+		color: '#888',
+		fontSize: 14,
+	},
 });

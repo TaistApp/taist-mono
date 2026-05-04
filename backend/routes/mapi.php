@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('register', 'MapiController@register');
 Route::post('login', 'MapiController@login');
+Route::post('social-login', 'SocialAuthController@login');
 Route::post('forgot', 'MapiController@forgot');
 Route::post('reset_password', 'MapiController@resetpassword');
 Route::post('verify_phone', 'MapiController@verifyPhone');

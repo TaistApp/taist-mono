@@ -20,7 +20,7 @@ class Listener extends Authenticatable
      * @var array
      */
     protected $fillable = [
-        'first_name', 'last_name', 'email', 'password', 'phone', 'birthday', 'address', 'city', 'state', 'zip', 'user_type', 'is_pending', 'quiz_completed', 'verified', 'photo', 'api_token', 'code', 'token_date', 'applicant_guid', 'order_guid', 'fcm_token', 'latitude', 'longitude', 'is_online', 'online_start', 'online_until', 'last_toggled_online_at', 'last_toggled_offline_at', 'last_online_reminder_sent_at'
+        'first_name', 'last_name', 'email', 'password', 'phone', 'birthday', 'address', 'city', 'state', 'zip', 'user_type', 'is_pending', 'quiz_completed', 'verified', 'photo', 'api_token', 'code', 'token_date', 'applicant_guid', 'order_guid', 'fcm_token', 'latitude', 'longitude', 'is_online', 'online_start', 'online_until', 'last_toggled_online_at', 'last_toggled_offline_at', 'last_online_reminder_sent_at', 'social_provider', 'social_id', 'email_verified'
     ];
 
     /**
@@ -37,6 +37,12 @@ class Listener extends Authenticatable
      */
     public function setPasswordAttribute($password)
     {
+        // Social-auth users have no password — store an empty string so the
+        // password-based login attempt path can never succeed for them.
+        if ($password === null || $password === '') {
+            $this->attributes['password'] = '';
+            return;
+        }
         $this->attributes['password'] = bcrypt($password);
     }
 
