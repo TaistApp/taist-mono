@@ -15,6 +15,40 @@ import {
 import Constants from "expo-constants";
 import * as SplashScreen from "expo-splash-screen";
 import * as AppleAuthentication from "expo-apple-authentication";
+import Svg, { Path } from "react-native-svg";
+
+// Official Google "G" logo, multi-color, per Google branding guidelines
+// (https://developers.google.com/identity/branding-guidelines).
+const GoogleIcon = () => (
+  <Svg width={20} height={20} viewBox="0 0 20 20">
+    <Path
+      fill="#4285F4"
+      d="M19.6 10.23c0-.71-.06-1.39-.18-2.05H10v3.88h5.38a4.6 4.6 0 0 1-2 3.02v2.51h3.24c1.9-1.74 3-4.31 3-7.36z"
+    />
+    <Path
+      fill="#34A853"
+      d="M10 20c2.7 0 4.97-.9 6.62-2.43l-3.24-2.51a6.13 6.13 0 0 1-9.07-3.13H1v2.6A10 10 0 0 0 10 20z"
+    />
+    <Path
+      fill="#FBBC05"
+      d="M4.31 11.93a5.93 5.93 0 0 1 0-3.86V5.47H1a10 10 0 0 0 0 9.06l3.31-2.6z"
+    />
+    <Path
+      fill="#EA4335"
+      d="M10 3.96c1.49 0 2.82.51 3.87 1.51L16.74 2.6A9.95 9.95 0 0 0 10 0 10 10 0 0 0 1 5.47l3.31 2.6A6.04 6.04 0 0 1 10 3.96z"
+    />
+  </Svg>
+);
+
+// Official Facebook "f" logo, white-on-blue per Meta branding guidelines.
+const FacebookIcon = () => (
+  <Svg width={20} height={20} viewBox="0 0 20 20">
+    <Path
+      fill="#fff"
+      d="M11.67 20v-7.6h2.55l.38-2.97h-2.93V7.55c0-.86.24-1.45 1.47-1.45h1.57V3.45c-.27-.04-1.2-.12-2.28-.12-2.26 0-3.81 1.38-3.81 3.91v2.18H6.05v2.97h2.57V20h3.05z"
+    />
+  </Svg>
+);
 
 // Types & Services
 // Note: NavigationStackType is not needed with Expo Router
@@ -430,9 +464,14 @@ const Splash = () => {
           {socialBusy === "google" ? (
             <ActivityIndicator color="#3c4043" />
           ) : (
-            <Text style={[styles.socialButtonText, styles.googleButtonText]}>
-              Continue with Google
-            </Text>
+            <>
+              <View style={styles.socialIcon}>
+                <GoogleIcon />
+              </View>
+              <Text style={[styles.socialButtonText, styles.googleButtonText]}>
+                Continue with Google
+              </Text>
+            </>
           )}
         </Pressable>
         <Pressable
@@ -443,9 +482,14 @@ const Splash = () => {
           {socialBusy === "facebook" ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={[styles.socialButtonText, styles.facebookButtonText]}>
-              Continue with Facebook
-            </Text>
+            <>
+              <View style={styles.socialIcon}>
+                <FacebookIcon />
+              </View>
+              <Text style={[styles.socialButtonText, styles.facebookButtonText]}>
+                Continue with Facebook
+              </Text>
+            </>
           )}
         </Pressable>
 
