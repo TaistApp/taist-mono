@@ -239,6 +239,17 @@ class SocialAuthController extends Controller
         }
 
         $keys = JWK::parseKeySet($jwks);
+
+        // DIAGNOSTIC: log token shape so we can see why JWT decode fails.
+        $segments = explode('.', $identityToken);
+        Log::info('[social-auth] apple token shape', [
+            'len' => strlen($identityToken),
+            'segments' => count($segments),
+            'prefix' => substr($identityToken, 0, 20),
+            'suffix' => substr($identityToken, -20),
+            'segment_lens' => array_map('strlen', $segments),
+        ]);
+
         $decoded = (array) JWT::decode($identityToken, $keys);
 
         if (($decoded['iss'] ?? '') !== 'https://appleid.apple.com') {
