@@ -267,6 +267,71 @@ export const LoginAPI = async (params: IUser, dispatch?: any) => {
   return response;
 };
 
+/**
+ * Social-login round-trip: posts a provider token to /mapi/social-login.
+ * On success, mirrors LoginAPI's side-effects (token storage, Redux user,
+ * FCM token sync, geolocation, downstream data fetches) so the rest of the
+ * app sees the same post-login state regardless of how the user authenticated.
+ */
+export const SocialLoginAPI = async (
+  params: {
+    provider: "google" | "apple" | "facebook";
+    token: string;
+    email?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
+  },
+  dispatch?: any,
+) => {
+  const response = await POSTAPICALL("social-login", params);
+  console.log("SOCIAL LOGIN====", response);
+  if (response.success == 0) {
+    return response;
+  }
+  StoreDataToStorage("API_TOKEN", response.data.api_token);
+  // We intentionally do NOT call StoreLoginData() — there is no email/password
+  // to remember for social-auth users. Auto-login will fall back to the splash
+  // login screen, which now offers the same provider buttons.
+  dispatch(setUser(response.data.user));
+
+  await GetCategoriesAPI({}, dispatch);
+  await GetAllergensAPI({}, dispatch);
+  await GetUsersAPI({}, dispatch);
+  await GetZipCodes({}, dispatch);
+  if (response.data.user.user_type == 2) {
+    await GetChefProfileAPI({ user_id: response.data.user.id }, dispatch);
+    await GetChefMenusAPI({ user_id: response.data.user.id }, dispatch);
+    const resp_paymentMethod = await GetPaymentMethodAPI();
+    if (resp_paymentMethod.success == 1) {
+      const tmp = resp_paymentMethod.data.find((x: IPayment) => x.active == 1);
+      dispatch(updateChefPaymentMthod(tmp));
+    }
+  }
+
+  const token = await GetFCMToken();
+  if (token !== "") {
+    await UpdateFCMTokenAPI(token);
+  }
+
+  Geolocation.getCurrentPosition(
+    async (position) => {
+      await UpdateUserAPI(
+        {
+          id: response.data.user.id,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        },
+        dispatch,
+      );
+    },
+    (error) => {
+      console.warn("GelocationError", error);
+    },
+  );
+
+  return response;
+};
+
 export const LogOutAPI = async () => {
   var response = await GETAPICALL("logout", {});
   return response;

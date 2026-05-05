@@ -43,29 +43,39 @@ class SyncVersion extends Command
             return 0;
         }
 
-        // Single source of truth: config/version.php
-        // Railway's rootDirectory=/backend means frontend/app.json is not
-        // available in the deploy container, so we hardcode the version in
-        // config/version.php and update it alongside app.json during version bumps.
-        $currentVersion = config('version.version', '29.0.0');
+        // MIN_VERSION is the single source of truth for the minimum app version
+        // users must have installed. Only raise this AFTER the new version is
+        // live on the App Store — never during development.
+        // Set MIN_VERSION in Railway environment variables to control this.
+        $minVersion = env('MIN_VERSION');
+
+        if (!$minVersion) {
+            $this->warn('MIN_VERSION env var not set — skipping version sync to avoid overwriting DB.');
+            return 0;
+        }
 
         // Get existing record if it exists
         $existingRecord = DB::table('versions')->where('id', 1)->first();
+
+        // Only update if the version has actually changed
+        if ($existingRecord && $existingRecord->version === $minVersion) {
+            $this->info("Version already at {$minVersion} — no update needed.");
+            return 0;
+        }
 
         // Sync version - update or insert
         DB::table('versions')->updateOrInsert(
             ['id' => 1],
             [
-                'version' => $currentVersion,
+                'version' => $minVersion,
                 'created_at' => $existingRecord->created_at ?? now(),
                 'updated_at' => now(),
             ]
         );
 
-        $this->info("Version synced to database: {$currentVersion}");
+        $this->info("Minimum version synced to database: {$minVersion}");
         return 0;
     }
-
 }
 
 

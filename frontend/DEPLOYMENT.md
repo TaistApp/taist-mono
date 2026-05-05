@@ -37,10 +37,10 @@ Requires: Apple Admin access
 
 ### Required Access
 
-- ✅ **Expo Account**: Access to `@bgroble/Taist` project
+- ✅ **Expo Account**: Access to `@taistapp/taist` project
 - ✅ **Apple Developer**: Admin role in Taist, Inc. (WXY2PMFQB7)
 - ✅ **App Store Connect**: Access to Taist app
-- ✅ **GitHub**: Push access to `bgroble14/taist-mono`
+- ✅ **GitHub**: Push access to `TaistApp/taist-mono`
 
 ### Required Tools
 
@@ -84,7 +84,7 @@ cd frontend
 npx eas-cli build --platform ios --profile preview
 
 # You'll be prompted:
-# - Apple ID: billygroble@gmail.com
+# - Apple ID: a.daynearnett@gmail.com
 # - Team: Taist, Inc. (WXY2PMFQB7)
 # - Generate Provisioning Profile: Y (if needed)
 # - Generate Push Notifications Key: Y (if needed)
@@ -106,7 +106,7 @@ npx eas-cli build:list
 npx eas-cli build:view [BUILD_ID]
 ```
 
-Or visit: https://expo.dev/accounts/bgroble/projects/Taist/builds
+Or visit: https://expo.dev/accounts/taistapp/projects/taist/builds
 
 ### Step 4: Add TestFlight Testers
 
@@ -470,8 +470,8 @@ npx eas-cli build:cancel [BUILD_ID]
 - **EAS Build Docs**: https://docs.expo.dev/build/introduction/
 - **TestFlight Docs**: https://developer.apple.com/testflight/
 - **App Store Connect**: https://appstoreconnect.apple.com
-- **EAS Dashboard**: https://expo.dev/accounts/bgroble/projects/Taist
-- **GitHub Issues**: https://github.com/bgroble14/taist-mono/issues
+- **EAS Dashboard**: https://expo.dev/accounts/taistapp/projects/taist
+- **GitHub Issues**: https://github.com/TaistApp/taist-mono/issues
 
 ---
 

@@ -423,8 +423,8 @@ Mobile API covers: auth, allergens, appliances, availability, categories, conver
 
 | Service           | Account                                 | Owner                                        |
 | ----------------- | --------------------------------------- | -------------------------------------------- |
-| App Store Connect | billygroble@gmail.com                   | Billy — Apple Team ID: WXY2PMFQB7            |
-| Expo / EAS        | billygroble@gmail.com                   | Billy — owner: `bgroble`                     |
+| App Store Connect | a.daynearnett@gmail.com                 | Dayne — Apple Team ID: WXY2PMFQB7            |
+| Expo / EAS        | a.daynearnett@gmail.com                 | Dayne — owner: `taistapp`                    |
 | Railway           | TaistApp GitHub org                     | Linked via GitHub SSO                        |
 | Stripe            | Dayne/Daryl                             | Account prefix: `51KWXqK...`                 |
 | Twilio            | Dayne/Daryl                             | SID: `ACdb49fd...`, Phone: +1 (317) 854-6026 |

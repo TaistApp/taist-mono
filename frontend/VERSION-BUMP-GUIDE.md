@@ -1,112 +1,100 @@
 # Version Bump Guide
 
-## TL;DR — Just Update `app.json`
+## TL;DR
 
-```json
-// frontend/app.json
-{
-  "expo": {
-    "version": "31.0.0",           // ← bump this
-    "ios": {
-      "buildNumber": "15"          // ← increment for each TestFlight/App Store submission
-    },
-    "android": {
-      "versionCode": 147           // ← increment for each Play Store/APK build (never reset)
-    }
-  }
-}
-```
+Bumping the app version and forcing users to update are now **two separate actions**:
 
-Then deploy the backend. That's it. The backend reads `app.json` automatically.
+1. **Bump app version** → update `app.json` (version, buildNumber, versionCode), commit, build
+2. **Force users to update** → change `MIN_VERSION` in Railway env vars (only after new version is live on App Store)
 
 ---
 
 ## How It Works
 
-### Frontend → Backend Version Sync (Automatic)
+### App Version vs Minimum Version
 
-The backend's `php artisan version:sync` command reads the version directly from `frontend/app.json` at deploy time. This runs automatically on every Railway deploy via the Procfile. No manual database updates, no env vars, no second config file.
+| What | Where | When to change |
+|------|-------|---------------|
+| App version | `frontend/app.json` | When building a new release |
+| Minimum required version | `MIN_VERSION` Railway env var | Only after new version is live on App Store/Play Store |
+
+The backend's `php artisan version:sync` runs on every deploy and reads `MIN_VERSION` from Railway's environment variables. It writes that value to the `versions` DB table. The app calls `GET /mapi/get-version` on launch and compares it against its own version.
 
 ```
-frontend/app.json  →  version:sync reads it on deploy  →  writes to `versions` DB table
-                                                                    ↓
-                                              App calls GET /mapi/get-version
-                                                                    ↓
-                                              Compares against app.json version → match
+MIN_VERSION (Railway env var)
+        ↓
+  version:sync (on deploy)
+        ↓
+  versions DB table
+        ↓
+  App calls GET /mapi/get-version on launch
+        ↓
+  Compares against Constants.expoConfig.version
+        ↓
+  Shows "Update Required" if app version < MIN_VERSION
 ```
-
-### Native Files (iOS plist, Android gradle)
-
-EAS Build runs `expo prebuild` before building, which regenerates native files from `app.json`. So the checked-in `Info.plist` and `build.gradle` values are overwritten at build time.
-
-**However**, keeping them in sync locally avoids confusion during local development. After bumping `app.json`, run:
-
-```bash
-cd frontend && npx expo prebuild
-```
-
-This updates:
-- `ios/Taist/Info.plist` → `CFBundleShortVersionString` and `CFBundleVersion`
-- `ios/Taist.xcodeproj/project.pbxproj` → `MARKETING_VERSION`
-- `android/app/build.gradle` → `versionName` and `versionCode`
 
 ---
 
-## Step-by-Step: Bumping a Version
+## Step-by-Step: Releasing a New Version
 
 ### 1. Update `frontend/app.json`
 
-```bash
-# Edit the version, buildNumber, and versionCode
+```json
+{
+  "expo": {
+    "version": "33.0.0",      // ← bump this
+    "ios": {
+      "buildNumber": "24"      // ← increment for each App Store submission
+    },
+    "android": {
+      "versionCode": 154       // ← always increment, never reset
+    }
+  }
+}
 ```
 
 **Version number rules:**
-- `version`: Semantic versioning — `MAJOR.MINOR.PATCH` (e.g., `31.0.0` → `32.0.0`)
-- `buildNumber` (iOS): Increment for each TestFlight/App Store submission. Can reset to "1" for new major versions.
-- `versionCode` (Android): Always increment, never reset. Apple and Google both reject builds with duplicate or lower numbers.
+- `version`: Semantic versioning — `MAJOR.MINOR.PATCH` (e.g., `32.0.0` → `33.0.0`)
+- `buildNumber` (iOS): Increment for each TestFlight/App Store submission
+- `versionCode` (Android): Always increment, never reset
 
-### 2. Sync native files (optional but recommended)
-
-```bash
-cd frontend && npx expo prebuild
-```
-
-### 3. Commit and push
+### 2. Commit and push
 
 ```bash
-git add frontend/app.json frontend/ios frontend/android
+git add frontend/app.json
 git commit -m "Bump version to X.X.X"
-git push origin staging
+git push origin main
 ```
 
-### 4. Deploy backend
-
-Push to `staging` (auto-deploys to Railway staging) or `main` (auto-deploys to Railway production). The Procfile runs `version:sync` which reads the new version from `app.json` and writes it to the database.
-
-### 5. Build the app
+### 3. Build and submit
 
 ```bash
 cd frontend
-
-# Staging (TestFlight + APK)
-npx eas-cli build --platform ios --profile preview --auto-submit
-npx eas-cli build --platform android --profile preview
 
 # Production (App Store + Play Store)
 npx eas-cli build --platform ios --profile production --auto-submit
 npx eas-cli build --platform android --profile production
 ```
 
+### 4. Wait for App Store approval
+
+Do NOT change `MIN_VERSION` until the new version is approved and live.
+
+### 5. Force users to update (optional)
+
+Only do this if you want to block users on older versions. In Railway:
+- Go to **Taist project → taist-mono service → Variables**
+- Update `MIN_VERSION` to the new version (e.g., `33.0.0`)
+- Railway redeploys automatically → `version:sync` writes the new minimum to DB
+
 ---
 
 ## What You Do NOT Need To Do
 
-These used to be required but are now automated:
-
-- ~~Update `backend/config/version.php`~~ — fallback only, not used in normal flow
-- ~~Set `APP_VERSION` env var on Railway~~ — version:sync reads app.json directly
-- ~~Run SQL UPDATE on the versions table~~ — version:sync handles this on deploy
-- ~~Update native files manually~~ — `expo prebuild` or EAS handles this
+- ~~Update `backend/config/version.php`~~ — not used
+- ~~Update the versions table manually~~ — `version:sync` handles this
+- ~~Update `APP_VERSION` env var~~ — replaced by `MIN_VERSION`
 
 ---
 
@@ -118,58 +106,35 @@ These used to be required but are now automated:
 | `staging` | Skipped | App goes straight to login |
 | `production` | Active | "Update Required" alert, links to App Store/Play Store |
 
-Staging builds skip the version check because testers receive builds directly via TestFlight/APK — the "go to App Store" prompt can never help them.
+Staging builds skip the version check because testers receive builds via TestFlight/APK — the "go to App Store" prompt can't help them.
+
+If `Constants.expoConfig.version` is unavailable on launch (rare edge case), the version check is skipped entirely rather than incorrectly blocking the user.
 
 ---
 
 ## Troubleshooting
 
-### "Update Required" on production
+### "Update Required" showing incorrectly on production
 
-**Cause:** The `versions` table in the production database has an older version than the app.
+**Cause:** `MIN_VERSION` in Railway is set higher than the version currently on the App Store.
 
-**Fix:** Deploy the backend (which runs `version:sync` and updates the DB). If you need an immediate fix without a deploy, set the Railway env var:
-```bash
-railway variables set APP_VERSION=X.X.X --service taist-mono --environment production
-```
-Then trigger a redeploy.
+**Fix:** Lower `MIN_VERSION` in Railway back to the version that's actually live on the App Store. Railway redeploys and the DB is updated automatically.
 
-### Version shows wrong in TestFlight/Play Store
+### How to check current minimum version
 
-**Cause:** Native files weren't synced before the EAS build.
-
-**Fix:** EAS should handle this automatically via prebuild, but if not:
-```bash
-cd frontend && npx expo prebuild
-# Commit the updated native files
-# Rebuild with EAS
-```
-
-### How to check current database version
-
-```sql
-SELECT * FROM versions WHERE id = 1;
-```
-
-Or hit the API directly:
 ```bash
 curl https://api.taist.app/mapi/get-version
 curl https://api-staging.taist.app/mapi/get-version
 ```
 
+Or check directly in Railway: **taist-mono service → Variables → MIN_VERSION**
+
 ---
 
 ## Architecture Notes
 
-### Current: Exact Match (good for now)
+The app version (what you're building) and the minimum required version (what users must have) are intentionally decoupled. This prevents the common mistake of bumping the dev version mid-sprint and accidentally blocking all users on the current App Store version.
 
-The app blocks if the API version doesn't exactly equal the app version. This works because we have a small user base and distribute builds directly.
-
-### Future: Minimum Supported Version (when we go public)
-
-When the app is in the public App Store with users updating on their own schedules, we'll need to switch to a minimum version floor. See `docs/sprint2-tester-issues-analysis.md` for the full roadmap on that transition.
-
----
-
-**Last Updated:** February 21, 2026
-**Current Version:** 31.0.0
+**Last Updated:** April 19, 2026
+**Current App Version:** 32.0.0
+**Current MIN_VERSION:** 31.0.0

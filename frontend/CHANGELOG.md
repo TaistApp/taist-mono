@@ -73,7 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated all icon colors for visibility on white backgrounds
 
 ### 🚀 Infrastructure
-- **New Expo Project**: Migrated to `@bgroble/Taist` under new developer account
+- **New Expo Project**: Migrated to `@taistapp/taist` under new developer account
 - Updated project ID: `d34b1b26-c5a5-4ba8-be5b-04cdcef4a370`
 - Configured for TestFlight deployment workflow
 - Added EAS build pre-hook for Firebase config in monorepo structure
