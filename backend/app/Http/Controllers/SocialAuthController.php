@@ -152,6 +152,17 @@ class SocialAuthController extends Controller
         // Re-fetch so the response includes the latest fields.
         $user = Listener::find($user->id);
 
+        // DIAGNOSTIC: log shape of returned user so we can compare providers.
+        Log::info('[social-auth] login success', [
+            'provider' => $provider,
+            'user_id' => $user->id,
+            'user_type' => $user->user_type,
+            'verified' => $user->verified,
+            'is_pending' => $user->is_pending,
+            'has_api_token' => !empty($user->api_token),
+            'email' => $user->email,
+        ]);
+
         return response()->json([
             'success' => 1,
             'data' => [
