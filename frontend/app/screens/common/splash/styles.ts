@@ -79,6 +79,9 @@ export const styles = StyleSheet.create({
 		letterSpacing: 0.3,
 		includeFontPadding: false,
 	},
+	socialIcon: {
+		marginRight: 12,
+	},
 	appleNativeButton: {
 		width: '100%',
 		height: 52,
