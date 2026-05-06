@@ -365,6 +365,8 @@ class AdminApiV2Controller extends Controller
                 'verified' => $c->verified,
                 'latitude' => $c->latitude,
                 'longitude' => $c->longitude,
+                'social_provider' => $c->social_provider,
+                'social_id' => $c->social_id,
                 'created_at' => $c->created_at,
             ];
         });
