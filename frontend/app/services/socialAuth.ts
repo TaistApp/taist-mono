@@ -7,6 +7,7 @@ import {
 } from "@react-native-google-signin/google-signin";
 import {
   AccessToken,
+  AuthenticationToken,
   LoginManager,
   Profile,
   Settings as FBSettings,
@@ -131,33 +132,52 @@ function initializeFacebook() {
 
 export async function signInWithFacebook(): Promise<SocialAuthPayload> {
   initializeFacebook();
-  const result = await LoginManager.logInWithPermissions([
-    "public_profile",
-    "email",
-  ]);
+
+  const nonce = [...Array(32)]
+    .map(() => Math.random().toString(36)[2])
+    .join("");
+
+  const result = await LoginManager.logInWithPermissions(
+    ["public_profile", "email"],
+    "limited",
+    nonce,
+  );
   if (result.isCancelled) {
     throw new SocialAuthCancelled();
   }
+
+  if (Platform.OS === "ios") {
+    const authToken = await AuthenticationToken.getAuthenticationTokenIOS();
+    if (!authToken?.authenticationToken) {
+      throw new Error("Facebook did not return an authentication token");
+    }
+    return {
+      provider: "facebook",
+      token: authToken.authenticationToken,
+      email: null,
+      first_name: null,
+      last_name: null,
+    };
+  }
+
+  // Android: Limited Login is iOS-only; falls back to classic flow
   const accessToken = await AccessToken.getCurrentAccessToken();
   if (!accessToken?.accessToken) {
     throw new Error("Facebook did not return an access token");
   }
-  let email: string | null = null;
   let firstName: string | null = null;
   let lastName: string | null = null;
   try {
     const profile = await Profile.getCurrentProfile();
     firstName = profile?.firstName ?? null;
     lastName = profile?.lastName ?? null;
-    // Profile.getCurrentProfile does not include email; the backend will
-    // hit /me to fetch it during verification.
   } catch {
-    // Non-fatal — backend re-fetches profile data anyway.
+    // Non-fatal
   }
   return {
     provider: "facebook",
     token: accessToken.accessToken,
-    email,
+    email: null,
     first_name: firstName,
     last_name: lastName,
   };

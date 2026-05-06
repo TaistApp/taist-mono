@@ -18,6 +18,7 @@ use Illuminate\Support\Str;
  *   1. Mobile client runs the native sign-in flow with the provider and obtains
  *      an ID token (Google, Apple) or access token (Facebook).
  *   2. Client POSTs that token here along with the provider name.
+ *      Facebook on iOS uses Limited Login (OIDC JWT); Android uses classic access tokens.
  *   3. We verify the token server-side with the provider, extract the
  *      provider's stable user id and email, then either look up an existing
  *      user or create a new customer (`user_type = 1`).
@@ -300,10 +301,75 @@ class SocialAuthController extends Controller
     }
 
     /**
-     * Facebook: validate the user access token by calling /debug_token with the
-     * app token, then fetch the profile fields.
+     * Facebook: detect JWT (Limited Login, iOS) vs classic access token (Android)
+     * and route to the appropriate verification method.
      */
-    private function verifyFacebookToken(string $accessToken): array
+    private function verifyFacebookToken(string $token): array
+    {
+        if (substr_count($token, '.') === 2) {
+            return $this->verifyFacebookOIDCToken($token);
+        }
+        return $this->verifyFacebookClassicToken($token);
+    }
+
+    /**
+     * Facebook Limited Login (iOS): verify the OIDC JWT against Facebook's
+     * public JWKS keys.
+     */
+    private function verifyFacebookOIDCToken(string $jwt): array
+    {
+        $appId = env('FACEBOOK_APP_ID');
+        if (!$appId) {
+            throw new \RuntimeException('FACEBOOK_APP_ID env not configured');
+        }
+
+        $client = new GuzzleClient(['timeout' => 10]);
+        $resp = $client->get(
+            'https://www.facebook.com/.well-known/oauth/openid/jwks/',
+            ['http_errors' => false]
+        );
+        if ($resp->getStatusCode() !== 200) {
+            throw new \RuntimeException('Facebook JWKS endpoint returned ' . $resp->getStatusCode());
+        }
+        $jwks = json_decode((string) $resp->getBody(), true);
+        if (!is_array($jwks) || empty($jwks['keys'])) {
+            throw new \RuntimeException('Facebook JWKS endpoint returned no keys');
+        }
+
+        $keys = JWK::parseKeySet($jwks);
+        $decoded = (array) JWT::decode($jwt, $keys);
+
+        if (($decoded['iss'] ?? '') !== 'https://www.facebook.com') {
+            throw new \RuntimeException('Facebook OIDC token issuer invalid');
+        }
+        if (($decoded['aud'] ?? '') !== (string) $appId) {
+            throw new \RuntimeException('Facebook OIDC token audience mismatch');
+        }
+        if (empty($decoded['sub'])) {
+            throw new \RuntimeException('Facebook OIDC token missing sub claim');
+        }
+
+        $firstName = $decoded['given_name'] ?? null;
+        $lastName  = $decoded['family_name'] ?? null;
+        if (!$firstName && !$lastName && !empty($decoded['name'])) {
+            $parts = explode(' ', $decoded['name'], 2);
+            $firstName = $parts[0] ?? null;
+            $lastName  = $parts[1] ?? null;
+        }
+
+        return [
+            'id'             => $decoded['sub'],
+            'email'          => $decoded['email'] ?? null,
+            'email_verified' => !empty($decoded['email']),
+            'first_name'     => $firstName,
+            'last_name'      => $lastName,
+        ];
+    }
+
+    /**
+     * Facebook Classic Login (Android): validate via debug_token + /me.
+     */
+    private function verifyFacebookClassicToken(string $accessToken): array
     {
         $appId = env('FACEBOOK_APP_ID');
         $appSecret = env('FACEBOOK_APP_SECRET');
@@ -354,7 +420,6 @@ class SocialAuthController extends Controller
         return [
             'id' => $me['id'],
             'email' => $me['email'] ?? null,
-            // Facebook returns email only when the user granted the email permission.
             'email_verified' => !empty($me['email']),
             'first_name' => $me['first_name'] ?? null,
             'last_name' => $me['last_name'] ?? null,
