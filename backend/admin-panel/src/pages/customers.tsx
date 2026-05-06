@@ -34,6 +34,8 @@ interface Customer {
   verified: number;
   latitude: string;
   longitude: string;
+  social_provider: string | null;
+  social_id: string | null;
   created_at: number;
 }
 
@@ -158,6 +160,43 @@ const columns: ColumnDef<Customer>[] = [
     },
   },
   {
+    accessorKey: "social_provider",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Social Provider" />
+    ),
+    cell: ({ row }) => {
+      const p = row.original.social_provider;
+      if (!p) return <span className="text-muted-foreground">—</span>;
+      const colors: Record<string, string> = {
+        google: "bg-blue-100 text-blue-800",
+        apple: "bg-gray-200 text-gray-900",
+        facebook: "bg-indigo-100 text-indigo-800",
+      };
+      return (
+        <Badge variant="outline" className={colors[p] ?? ""}>
+          {p}
+        </Badge>
+      );
+    },
+  },
+  {
+    accessorKey: "social_id",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Social ID" />
+    ),
+    cell: ({ row }) => {
+      const id = row.original.social_id;
+      if (!id) return <span className="text-muted-foreground">—</span>;
+      // Truncate long Apple/Google sub claims for readability.
+      const display = id.length > 24 ? `${id.slice(0, 12)}…${id.slice(-8)}` : id;
+      return (
+        <span className="font-mono text-xs" title={id}>
+          {display}
+        </span>
+      );
+    },
+  },
+  {
     accessorKey: "latitude",
     header: "Lat",
   },
@@ -247,6 +286,8 @@ export default function CustomersPage() {
       State: c.state,
       Zip: c.zip,
       Status: c.status,
+      "Social Provider": c.social_provider ?? "",
+      "Social ID": c.social_id ?? "",
       "Created At": formatTimestamp(c.created_at),
     }));
     const ws = XLSX.utils.json_to_sheet(exportData);
