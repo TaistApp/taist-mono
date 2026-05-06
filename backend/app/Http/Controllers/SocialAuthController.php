@@ -306,7 +306,14 @@ class SocialAuthController extends Controller
      */
     private function verifyFacebookToken(string $token): array
     {
-        if (substr_count($token, '.') === 2) {
+        $dotCount = substr_count($token, '.');
+        Log::info('[social-auth] facebook token inspect', [
+            'dot_count' => $dotCount,
+            'token_length' => strlen($token),
+            'token_prefix' => substr($token, 0, 40),
+            'is_jwt' => $dotCount === 2,
+        ]);
+        if ($dotCount === 2) {
             return $this->verifyFacebookOIDCToken($token);
         }
         return $this->verifyFacebookClassicToken($token);
