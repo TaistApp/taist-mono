@@ -40,16 +40,6 @@ const GoogleIcon = () => (
   </Svg>
 );
 
-// Official Facebook "f" logo, white-on-blue per Meta branding guidelines.
-const FacebookIcon = () => (
-  <Svg width={20} height={20} viewBox="0 0 20 20">
-    <Path
-      fill="#fff"
-      d="M11.67 20v-7.6h2.55l.38-2.97h-2.93V7.55c0-.86.24-1.45 1.47-1.45h1.57V3.45c-.27-.04-1.2-.12-2.28-.12-2.26 0-3.81 1.38-3.81 3.91v2.18H6.05v2.97h2.57V20h3.05z"
-    />
-  </Svg>
-);
-
 // Types & Services
 // Note: NavigationStackType is not needed with Expo Router
 
@@ -70,7 +60,6 @@ import {
   SocialAuthPayload,
   SocialProvider,
   signInWithApple,
-  signInWithFacebook,
   signInWithGoogle,
 } from "../../../services/socialAuth";
 import { styles } from "./styles";
@@ -208,7 +197,6 @@ const Splash = () => {
 
   const handleGoogle = () => runSocialFlow("google", signInWithGoogle);
   const handleApple = () => runSocialFlow("apple", signInWithApple);
-  const handleFacebook = () => runSocialFlow("facebook", signInWithFacebook);
 
   useEffect(() => {
     // Hide native splash screen once React component is mounted
@@ -500,25 +488,6 @@ const Splash = () => {
             </>
           )}
         </Pressable>
-        <Pressable
-          style={[styles.socialButton, styles.facebookButton]}
-          onPress={handleFacebook}
-          disabled={socialBusy !== null}
-        >
-          {socialBusy === "facebook" ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <View style={styles.socialIcon}>
-                <FacebookIcon />
-              </View>
-              <Text style={[styles.socialButtonText, styles.facebookButtonText]}>
-                Continue with Facebook
-              </Text>
-            </>
-          )}
-        </Pressable>
-
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
           <Text style={styles.dividerText}>or</Text>

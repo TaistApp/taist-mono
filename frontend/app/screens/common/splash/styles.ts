@@ -94,12 +94,6 @@ export const styles = StyleSheet.create({
 	googleButtonText: {
 		color: '#3c4043',
 	},
-	facebookButton: {
-		backgroundColor: '#1877f2',
-	},
-	facebookButtonText: {
-		color: '#fff',
-	},
 	divider: {
 		flexDirection: 'row',
 		alignItems: 'center',

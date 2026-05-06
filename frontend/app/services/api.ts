@@ -275,7 +275,7 @@ export const LoginAPI = async (params: IUser, dispatch?: any) => {
  */
 export const SocialLoginAPI = async (
   params: {
-    provider: "google" | "apple" | "facebook";
+    provider: "google" | "apple";
     token: string;
     email?: string | null;
     first_name?: string | null;
