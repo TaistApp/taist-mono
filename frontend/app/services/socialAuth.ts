@@ -5,14 +5,6 @@ import {
   GoogleSignin,
   statusCodes,
 } from "@react-native-google-signin/google-signin";
-import {
-  AccessToken,
-  AuthenticationToken,
-  LoginManager,
-  Profile,
-  Settings as FBSettings,
-} from "react-native-fbsdk-next";
-
 /**
  * Provider sign-in helpers.
  *
@@ -21,7 +13,7 @@ import {
  * client only needs to surface what the provider gives us.
  */
 
-export type SocialProvider = "google" | "apple" | "facebook";
+export type SocialProvider = "google" | "apple";
 
 export interface SocialAuthPayload {
   provider: SocialProvider;
@@ -118,67 +110,3 @@ export async function signInWithApple(): Promise<SocialAuthPayload> {
   }
 }
 
-let facebookInitialized = false;
-function initializeFacebook() {
-  if (facebookInitialized) return;
-  const appId = extra.FACEBOOK_APP_ID as string | undefined;
-  const clientToken = extra.FACEBOOK_CLIENT_TOKEN as string | undefined;
-  if (appId) FBSettings.setAppID(appId);
-  if (clientToken) FBSettings.setClientToken(clientToken);
-  // Required by the SDK before any login call.
-  FBSettings.initializeSDK();
-  facebookInitialized = true;
-}
-
-export async function signInWithFacebook(): Promise<SocialAuthPayload> {
-  initializeFacebook();
-
-  const nonce = [...Array(32)]
-    .map(() => Math.random().toString(36)[2])
-    .join("");
-
-  const result = await LoginManager.logInWithPermissions(
-    ["public_profile", "email"],
-    "limited",
-    nonce,
-  );
-  if (result.isCancelled) {
-    throw new SocialAuthCancelled();
-  }
-
-  if (Platform.OS === "ios") {
-    const authToken = await AuthenticationToken.getAuthenticationTokenIOS();
-    if (!authToken?.authenticationToken) {
-      throw new Error("Facebook did not return an authentication token");
-    }
-    return {
-      provider: "facebook",
-      token: authToken.authenticationToken,
-      email: null,
-      first_name: null,
-      last_name: null,
-    };
-  }
-
-  // Android: Limited Login is iOS-only; falls back to classic flow
-  const accessToken = await AccessToken.getCurrentAccessToken();
-  if (!accessToken?.accessToken) {
-    throw new Error("Facebook did not return an access token");
-  }
-  let firstName: string | null = null;
-  let lastName: string | null = null;
-  try {
-    const profile = await Profile.getCurrentProfile();
-    firstName = profile?.firstName ?? null;
-    lastName = profile?.lastName ?? null;
-  } catch {
-    // Non-fatal
-  }
-  return {
-    provider: "facebook",
-    token: accessToken.accessToken,
-    email: null,
-    first_name: firstName,
-    last_name: lastName,
-  };
-}
