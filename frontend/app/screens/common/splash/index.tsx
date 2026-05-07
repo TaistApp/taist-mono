@@ -136,39 +136,14 @@ const Splash = () => {
   ) => {
     if (socialBusy) return;
     setSocialBusy(provider);
-    // DEBUG: surface progression on-device. Remove after Apple flow is verified.
-    const dbg = (step: string, extra?: any) => {
-      console.log(`[social:${provider}] ${step}`, extra ?? "");
-      Alert.alert(
-        `DBG ${provider}`,
-        step + (extra ? "\n" + JSON.stringify(extra).slice(0, 200) : ""),
-      );
-    };
     try {
-      dbg("1. before SDK");
       const payload = await fn();
-      dbg("2. SDK returned", {
-        hasToken: !!payload.token,
-        tokenLen: payload.token?.length,
-      });
-      // Apple's native auth sheet keeps the UIKit view hierarchy busy during
-      // its dismiss animation; running our network/Redux work in that window
-      // can stall mid-chain. Defer so the sheet finishes first.
-      if (provider === "apple") {
-        await new Promise((r) => setTimeout(r, 350));
-      }
       const response = await SocialLoginAPI(payload, dispatch);
-      dbg("3. SocialLoginAPI returned", {
-        success: response?.success,
-        userType: response?.data?.user?.user_type,
-      });
       if (response.success === 1) {
         const userType = response.data?.user?.user_type;
         if (userType === 2) {
-          dbg("4. nav chef");
           navigate.toAuthorizedStacks.chefAuthorized();
         } else {
-          dbg("4. nav customer");
           navigate.toAuthorizedStacks.customerAuthorized();
         }
         return;
@@ -179,16 +154,14 @@ const Splash = () => {
       );
     } catch (e: any) {
       if (e instanceof SocialAuthCancelled) {
-        // User cancelled — silent.
         return;
       }
       console.error(`[social-login:${provider}]`, e);
       Alert.alert(
         "Sign-in failed",
-        (typeof e?.message === "string"
+        typeof e?.message === "string"
           ? e.message
-          : "Something went wrong signing you in.") +
-          `\n[caught at runSocialFlow]`,
+          : "Something went wrong signing you in.",
       );
     } finally {
       setSocialBusy(null);
