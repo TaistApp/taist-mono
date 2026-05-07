@@ -289,33 +289,35 @@ export const SocialLoginAPI = async (
     return response;
   }
   StoreDataToStorage("API_TOKEN", response.data.api_token);
-  // We intentionally do NOT call StoreLoginData() — there is no email/password
-  // to remember for social-auth users. Auto-login will fall back to the splash
-  // login screen, which now offers the same provider buttons.
   dispatch(setUser(response.data.user));
 
-  await GetCategoriesAPI({}, dispatch);
-  await GetAllergensAPI({}, dispatch);
-  await GetUsersAPI({}, dispatch);
-  await GetZipCodes({}, dispatch);
+  const fetches: Promise<any>[] = [
+    GetCategoriesAPI({}, dispatch),
+    GetAllergensAPI({}, dispatch),
+    GetUsersAPI({}, dispatch),
+    GetZipCodes({}, dispatch),
+  ];
   if (response.data.user.user_type == 2) {
-    await GetChefProfileAPI({ user_id: response.data.user.id }, dispatch);
-    await GetChefMenusAPI({ user_id: response.data.user.id }, dispatch);
-    const resp_paymentMethod = await GetPaymentMethodAPI();
-    if (resp_paymentMethod.success == 1) {
-      const tmp = resp_paymentMethod.data.find((x: IPayment) => x.active == 1);
-      dispatch(updateChefPaymentMthod(tmp));
-    }
+    fetches.push(
+      GetChefProfileAPI({ user_id: response.data.user.id }, dispatch),
+      GetChefMenusAPI({ user_id: response.data.user.id }, dispatch),
+      GetPaymentMethodAPI().then((resp_paymentMethod) => {
+        if (resp_paymentMethod.success == 1) {
+          const tmp = resp_paymentMethod.data.find((x: IPayment) => x.active == 1);
+          dispatch(updateChefPaymentMthod(tmp));
+        }
+      }),
+    );
   }
+  await Promise.all(fetches);
 
-  const token = await GetFCMToken();
-  if (token !== "") {
-    await UpdateFCMTokenAPI(token);
-  }
-
+  // Fire-and-forget: FCM and geolocation don't block navigation
+  GetFCMToken().then((token) => {
+    if (token !== "") UpdateFCMTokenAPI(token);
+  }).catch(() => {});
   Geolocation.getCurrentPosition(
-    async (position) => {
-      await UpdateUserAPI(
+    (position) => {
+      UpdateUserAPI(
         {
           id: response.data.user.id,
           latitude: position.coords.latitude,

@@ -435,19 +435,24 @@ const Splash = () => {
         source={require("../../../assets/images/logo-2.png")}
       />
       <View style={styles.buttonsWrapper}>
-        {Platform.OS === "ios" && appleAvailable && (
-          <AppleAuthentication.AppleAuthenticationButton
-            buttonType={
-              AppleAuthentication.AppleAuthenticationButtonType.CONTINUE
-            }
-            buttonStyle={
-              AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
-            }
-            cornerRadius={12}
-            style={styles.appleNativeButton}
-            onPress={handleApple}
-          />
-        )}
+        {Platform.OS === "ios" && appleAvailable &&
+          (socialBusy === "apple" ? (
+            <View style={[styles.socialButton, styles.appleButton]}>
+              <ActivityIndicator color="#fff" />
+            </View>
+          ) : (
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={
+                AppleAuthentication.AppleAuthenticationButtonType.CONTINUE
+              }
+              buttonStyle={
+                AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+              }
+              cornerRadius={12}
+              style={styles.appleNativeButton}
+              onPress={handleApple}
+            />
+          ))}
         <Pressable
           style={[styles.socialButton, styles.googleButton]}
           onPress={handleGoogle}
