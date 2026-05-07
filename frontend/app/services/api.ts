@@ -291,15 +291,19 @@ export const SocialLoginAPI = async (
   StoreDataToStorage("API_TOKEN", response.data.api_token);
   dispatch(setUser(response.data.user));
 
-  // Fetch app data in the background — don't block navigation
-  const fetches: Promise<any>[] = [
+  // Zip codes + categories determine what the home screen shows — wait for them
+  await Promise.all([
     GetCategoriesAPI({}, dispatch),
+    GetZipCodes({}, dispatch),
+  ]);
+
+  // Everything else loads in the background after navigation
+  const bgFetches: Promise<any>[] = [
     GetAllergensAPI({}, dispatch),
     GetUsersAPI({}, dispatch),
-    GetZipCodes({}, dispatch),
   ];
   if (response.data.user.user_type == 2) {
-    fetches.push(
+    bgFetches.push(
       GetChefProfileAPI({ user_id: response.data.user.id }, dispatch),
       GetChefMenusAPI({ user_id: response.data.user.id }, dispatch),
       GetPaymentMethodAPI().then((resp_paymentMethod) => {
@@ -310,7 +314,7 @@ export const SocialLoginAPI = async (
       }),
     );
   }
-  Promise.all(fetches).catch((e) => console.warn("[social-login] bg fetch", e));
+  Promise.all(bgFetches).catch((e) => console.warn("[social-login] bg fetch", e));
 
   GetFCMToken().then((token) => {
     if (token !== "") UpdateFCMTokenAPI(token);
