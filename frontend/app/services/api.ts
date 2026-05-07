@@ -291,6 +291,7 @@ export const SocialLoginAPI = async (
   StoreDataToStorage("API_TOKEN", response.data.api_token);
   dispatch(setUser(response.data.user));
 
+  // Fetch app data in the background — don't block navigation
   const fetches: Promise<any>[] = [
     GetCategoriesAPI({}, dispatch),
     GetAllergensAPI({}, dispatch),
@@ -309,9 +310,8 @@ export const SocialLoginAPI = async (
       }),
     );
   }
-  await Promise.all(fetches);
+  Promise.all(fetches).catch((e) => console.warn("[social-login] bg fetch", e));
 
-  // Fire-and-forget: FCM and geolocation don't block navigation
   GetFCMToken().then((token) => {
     if (token !== "") UpdateFCMTokenAPI(token);
   }).catch(() => {});
