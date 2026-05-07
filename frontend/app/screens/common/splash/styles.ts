@@ -86,6 +86,9 @@ export const styles = StyleSheet.create({
 		width: '100%',
 		height: 52,
 	},
+	appleButton: {
+		backgroundColor: '#000',
+	},
 	googleButton: {
 		backgroundColor: '#fff',
 		borderWidth: 1,
