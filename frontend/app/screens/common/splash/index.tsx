@@ -114,6 +114,13 @@ const Splash = () => {
   const [socialBusy, setSocialBusy] = useState<SocialProvider | null>(null);
   const [appleAvailable, setAppleAvailable] = useState(false);
   const dispatch = useAppDispatch();
+
+  // nativeAppVersion is always available in production EAS builds;
+  // expoConfig?.version can be null in production (discovered in prior fix 96db9fd).
+  const CURRENT_VERSION =
+    Constants.nativeAppVersion || Constants.expoConfig?.version || null;
+  const APP_ENV = Constants.expoConfig?.extra?.APP_ENV || "production";
+
   const handleLogin = () => {
     navigate.toCommon.login();
   };
@@ -275,11 +282,6 @@ const Splash = () => {
     return () => clearTimeout(fallbackTimer);
   }, []);
 
-  // Get version from app.json — undefined if config isn't loaded yet
-  const CURRENT_VERSION = Constants.expoConfig?.version ?? null;
-  // Get environment to skip version check in local development
-  const APP_ENV = Constants.expoConfig?.extra?.APP_ENV || "production";
-
   /**
    * Performs auto-login by validating stored credentials with the server.
    * If the account no longer exists or credentials are invalid, clears storage
@@ -367,28 +369,9 @@ const Splash = () => {
       ) {
         setIsOutdated(true);
         console.log(
-          `---->>>App version ${CURRENT_VERSION} is below minimum ${minimumVersion}. Please update.`,
+          `App version ${CURRENT_VERSION} is below minimum ${minimumVersion}. APP_ENV=${APP_ENV}`,
         );
-        Alert.alert(
-          "Update Required",
-          `This app version is outdated. Please update to the latest version to continue.`,
-          [
-            {
-              text: "OK",
-              onPress: () => {
-                if (Platform.OS === "ios") {
-                  Linking.openURL("https://apps.apple.com/app/1598624809"); // Replace with your App Store URL
-                } else if (Platform.OS === "android") {
-                  Linking.openURL(
-                    "https://play.google.com/store/apps/details?id=com.taist.app",
-                  ); // Replace with your Play Store URL
-                }
-              },
-            },
-          ],
-          { cancelable: false },
-        );
-        return; // Prevent further execution
+        return;
       }
 
       const loginData = await ReadLoginData();
@@ -410,6 +393,52 @@ const Splash = () => {
     }
   };
 
+  const openStore = () => {
+    if (Platform.OS === "ios") {
+      Linking.openURL("https://apps.apple.com/app/1598624809");
+    } else {
+      Linking.openURL(
+        "https://play.google.com/store/apps/details?id=com.taist.app",
+      );
+    }
+  };
+
+  const retryVersionCheck = () => {
+    setIsOutdated(false);
+    setSplash(true);
+    setTimeout(() => {
+      autoLogin();
+    }, 500);
+  };
+
+  if (isOutdated) {
+    return (
+      <View style={[styles.splash]}>
+        <Image
+          style={styles.splashLogo}
+          source={require("../../../assets/images/splashLogo.png")}
+        />
+        <View style={{ width: "100%", paddingHorizontal: 20, gap: 12 }}>
+          <Text style={styles.outdatedText}>
+            Update required — please install the latest version to continue.
+          </Text>
+          <Pressable
+            style={styles.updateButton}
+            onPress={openStore}
+          >
+            <Text style={styles.updateButtonText}>Update Now</Text>
+          </Pressable>
+          <Pressable
+            style={styles.retryButton}
+            onPress={retryVersionCheck}
+          >
+            <Text style={styles.retryButtonText}>I Already Updated</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
   if (splash) {
     return (
       <View style={[styles.splash]}>
@@ -417,13 +446,6 @@ const Splash = () => {
           style={styles.splashLogo}
           source={require("../../../assets/images/splashLogo.png")}
         />
-        {isOutdated && (
-          <View style={{ width: "100%", paddingHorizontal: 20 }}>
-            <Text style={styles.outdatedText}>
-              Your app version is outdated. Please update to continue.
-            </Text>
-          </View>
-        )}
       </View>
     );
   }

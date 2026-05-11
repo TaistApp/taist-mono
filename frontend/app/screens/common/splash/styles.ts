@@ -26,6 +26,29 @@ export const styles = StyleSheet.create({
 		marginTop: 20,
 		fontWeight: '600',
 	},
+	updateButton: {
+		backgroundColor: '#fff',
+		borderRadius: 12,
+		paddingVertical: 16,
+		alignItems: 'center',
+	},
+	updateButtonText: {
+		color: AppColors.primary,
+		fontSize: 16,
+		fontWeight: '700',
+	},
+	retryButton: {
+		borderRadius: 12,
+		borderWidth: 2,
+		borderColor: '#fff',
+		paddingVertical: 16,
+		alignItems: 'center',
+	},
+	retryButtonText: {
+		color: '#fff',
+		fontSize: 16,
+		fontWeight: '600',
+	},
 
 	// Main splash screen (white with buttons)
 	main: {
