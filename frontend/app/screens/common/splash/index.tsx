@@ -361,15 +361,15 @@ const Splash = () => {
         return;
       }
 
-      const minimumVersion = versionResponse?.data?.[0]?.version;
+      const requiredVersion = versionResponse?.data?.[0]?.version;
+      // Only block if the installed app is OLDER than the minimum required version.
+      // A newer app version (e.g. after a bump before the DB is updated) should not be blocked.
       if (
         versionResponse?.success === 1 &&
-        CURRENT_VERSION !== null &&
-        isVersionLessThan(CURRENT_VERSION, minimumVersion)
+        isVersionLessThan(CURRENT_VERSION, requiredVersion)
       ) {
-        setIsOutdated(true);
         console.log(
-          `App version ${CURRENT_VERSION} is below minimum ${minimumVersion}. APP_ENV=${APP_ENV}`,
+          `App version ${CURRENT_VERSION} is below minimum ${requiredVersion}. APP_ENV=${APP_ENV}`,
         );
         return;
       }
