@@ -2675,6 +2675,61 @@ Write only the review text:";
             ]);
         }
 
+        // Send admin email notification for new order
+        try {
+            $customer = app(Listener::class)->where('id', $request->customer_user_id)->first();
+            $menu = app(Menus::class)->where('id', $request->menu_id)->first();
+
+            $orderId = 'ORDER' . sprintf('%07d', $id);
+            $orderDateFormatted = ($orderDateString ?: date('Y-m-d', $orderTimestamp))
+                . ' at ' . ($orderTimeString ?: date('g:i A', $orderTimestamp));
+            $requestTime = date('M j, Y g:i A T');
+
+            $msg = "";
+            $msg .= "<p>Hi Taist Admin,</p>";
+            $msg .= "<p>A new order request has been placed.</p><br>";
+
+            $msg .= "<h3 style='margin-bottom:5px;'>Order Details</h3>";
+            $msg .= "<p><b>Order ID:</b> {$orderId}</p>";
+            $msg .= "<p><b>Request Time:</b> {$requestTime}</p>";
+            $msg .= "<p><b>Scheduled Date/Time:</b> {$orderDateFormatted}</p>";
+            $msg .= "<p><b>Menu Item:</b> " . ($menu ? $menu->title : 'N/A') . "</p>";
+            $msg .= "<p><b>Quantity:</b> {$request->amount}</p>";
+            if ($data->addons) {
+                $msg .= "<p><b>Add-ons:</b> {$data->addons}</p>";
+            }
+            $msg .= "<p><b>Order Total:</b> $" . number_format($finalTotalPrice, 2, '.', ',') . "</p>";
+            if ($discountCode) {
+                $msg .= "<p><b>Discount Code:</b> {$discountCode} (-$" . number_format($discountAmount, 2, '.', ',') . ")</p>";
+            }
+            if ($data->notes) {
+                $msg .= "<p><b>Special Instructions:</b> {$data->notes}</p>";
+            }
+
+            $msg .= "<br><h3 style='margin-bottom:5px;'>Chef</h3>";
+            $msg .= "<p><b>Name:</b> {$chef->first_name} {$chef->last_name}</p>";
+            $msg .= "<p><b>Email:</b> {$chef->email}</p>";
+            $msg .= "<p><b>Phone:</b> {$chef->phone}</p>";
+
+            $msg .= "<br><h3 style='margin-bottom:5px;'>Customer</h3>";
+            if ($customer) {
+                $msg .= "<p><b>Name:</b> {$customer->first_name} {$customer->last_name}</p>";
+                $msg .= "<p><b>Email:</b> {$customer->email}</p>";
+                $msg .= "<p><b>Phone:</b> {$customer->phone}</p>";
+            }
+            $msg .= "<p><b>Delivery Address:</b> {$request->address}</p>";
+
+            $msg .= "<br><p>View in <a href='" . $this->_adminUrl() . "'>Taist Admin Panel</a></p>";
+            $msg .= "<p><img alt='Taist logo' src='" . $this->_logoUrl() . "' /></p>";
+
+            $this->_sendEmail("contact@taist.app", "Taist - New Order Request ({$orderId})", $msg);
+        } catch (Exception $e) {
+            Log::error('Failed to send admin order notification email', [
+                'order_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+        }
+
         return response()->json(['success' => 1, 'data' => $data]);
     }
 
