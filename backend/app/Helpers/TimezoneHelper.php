@@ -120,10 +120,10 @@ class TimezoneHelper
      *
      * @param int $timestamp Unix timestamp
      * @param string|null $state State abbreviation or full name
-     * @param string $format PHP date format (default: 'M j, gA' = "Dec 24, 2PM")
+     * @param string $format PHP date format (default: 'M j, g:iA' = "Dec 24, 2:30PM")
      * @return string Formatted date/time string
      */
-    public static function formatForState(int $timestamp, ?string $state, string $format = 'M j, gA'): string
+    public static function formatForState(int $timestamp, ?string $state, string $format = 'M j, g:iA'): string
     {
         try {
             $timezone = self::getTimezoneForState($state);
@@ -150,7 +150,7 @@ class TimezoneHelper
      *
      * @param int $timestamp Unix timestamp
      * @param string|null $state State abbreviation or full name
-     * @return array ['formatted' => 'Dec 24, 2PM', 'time' => '2:00 PM', 'timezone' => 'America/Chicago']
+     * @return array ['formatted' => 'Dec 24, 2:30PM', 'time' => '2:30 PM', 'timezone' => 'America/Chicago']
      */
     public static function formatForSms(int $timestamp, ?string $state): array
     {
@@ -162,7 +162,7 @@ class TimezoneHelper
             $dateTime->setTimestamp($timestamp);
 
             return [
-                'formatted' => $dateTime->format('M j, gA'),  // "Dec 24, 2PM"
+                'formatted' => $dateTime->format('M j, g:iA'),  // "Dec 24, 2:30PM"
                 'time' => $dateTime->format('g:i A'),         // "2:00 PM"
                 'timezone' => $timezone,
             ];
