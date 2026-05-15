@@ -293,7 +293,7 @@ class OrderSmsService
 
             $message = "New Taist order! ORDER#" . sprintf('%07d', $orderId) .
                        " | {$data['menu_title']} x{$data['amount']} | \${$data['total_price']}" .
-                       " | Chef: {$data['chef_name']}" .
+                       " | Chef: {$data['chef_name']} ({$data['chef_phone']})" .
                        " | Customer: {$data['customer_name']}" .
                        " | Date: {$data['order_date_formatted']}";
 
@@ -355,6 +355,7 @@ class OrderSmsService
             'order_id' => $order->id,
             'chef_user_id' => $chef->id,
             'chef_name' => $this->formatUserName($chef->first_name, $chef->last_name, 'Chef'),
+            'chef_phone' => $chef->phone,
             'chef_state' => $chef->state,
             'customer_user_id' => $customer->id,
             'customer_name' => $this->formatUserName($customer->first_name, $customer->last_name, 'Customer', false),
