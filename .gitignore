@@ -74,7 +74,9 @@ coverage/
 *.pem
 *.key
 *.keystore
+*.jks
 !backend/app/debug.keystore
+credentials.json
 firebase_credentials.json
 google-services.json
 GoogleService-Info.plist
@@ -87,3 +89,4 @@ backend/public/api/config.php
 # Slack summaries (local working files)
 docs/slack-summaries/
 
+google-play-service-account.json

@@ -270,6 +270,48 @@ class OrderSmsService
     }
 
     /**
+     * Send new order SMS notification to admin/cofounders
+     * Sent when any new order is placed so admins stay informed
+     *
+     * @param int $orderId
+     * @return void
+     */
+    public function sendAdminNewOrderNotification($orderId)
+    {
+        $adminPhones = [
+            '+13173537345', // Dayne
+            '+13177095212', // Daryl
+        ];
+
+        try {
+            $data = $this->getOrderData($orderId);
+
+            if (!$data) {
+                Log::error('Order data not found for admin notification', ['order_id' => $orderId]);
+                return;
+            }
+
+            $message = "New Taist order! ORDER#" . sprintf('%07d', $orderId) .
+                       " | {$data['menu_title']} x{$data['amount']} | \${$data['total_price']}" .
+                       " | Chef: {$data['chef_name']}" .
+                       " | Customer: {$data['customer_name']}" .
+                       " | Date: {$data['order_date_formatted']}";
+
+            foreach ($adminPhones as $phone) {
+                $this->twilioService->sendSMS($phone, $message, [
+                    'order_id' => $orderId,
+                    'notification_type' => 'admin_new_order',
+                ]);
+            }
+        } catch (Exception $e) {
+            Log::error('Failed to send admin order SMS notification', [
+                'order_id' => $orderId,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
      * Get order data needed for SMS templates
      * Gathers all data from order, user, and menu tables
      *
