@@ -360,7 +360,7 @@ const pendingExtraColumns: ColumnDef<ChefRow>[] = [
 
 // ---------- Tab types ----------
 
-type TabFilter = "all" | "pending" | "active" | "rejected";
+type TabFilter = "all" | "pending" | "active";
 
 // ---------- Page component ----------
 
@@ -421,8 +421,6 @@ export default function ChefsPage() {
         return pendingRows;
       case "active":
         return chefRows.filter((c) => c.verified === 1);
-      case "rejected":
-        return chefRows.filter((c) => c.verified === 2);
       case "all":
       default:
         return chefRows;
@@ -449,8 +447,8 @@ export default function ChefsPage() {
       return;
     }
     const labels: Record<number, string> = {
-      1: "Active",
-      2: "Rejected",
+      0: "Deactivate",
+      1: "Activate",
     };
     setConfirmDialog({ open: true, action: labels[status], ids });
   };
@@ -479,8 +477,8 @@ export default function ChefsPage() {
 
     try {
       const statusMap: Record<string, number> = {
-        Active: 1,
-        Rejected: 2,
+        Activate: 1,
+        Deactivate: 0,
       };
 
       if (action === "delete_stripe") {
@@ -497,7 +495,11 @@ export default function ChefsPage() {
         await api.get("/adminapi/change_chef_status", {
           params: { ids: ids.join(","), status: statusMap[action] },
         });
-        toast.success(`Status changed to ${action}`);
+        toast.success(
+          action === "Deactivate"
+            ? `${ids.length} chef(s) moved to Pending`
+            : `${ids.length} chef(s) activated`
+        );
       }
       queryClient.invalidateQueries({ queryKey: ["chefs"] });
       queryClient.invalidateQueries({ queryKey: ["pendings"] });
@@ -533,7 +535,6 @@ export default function ChefsPage() {
     { label: "All", value: "all" },
     { label: "Pending", value: "pending", count: pendingCount },
     { label: "Active", value: "active", count: activeCount },
-    { label: "Rejected", value: "rejected" },
   ];
 
   // Context-aware action buttons
@@ -557,23 +558,11 @@ export default function ChefsPage() {
       case "active":
         return (
           <>
-            <Button size="sm" variant="outline" onClick={() => handleStatusChange(2)}>
-              Rejected
+            <Button size="sm" variant="outline" onClick={() => handleStatusChange(0)}>
+              Deactivate
             </Button>
             <Button size="sm" variant="outline" onClick={handleDeleteStripe}>
               Delete Stripe
-            </Button>
-            <Button size="sm" variant="destructive" onClick={handleDelete}>
-              <Trash2 className="mr-1 h-4 w-4" />
-              Delete
-            </Button>
-          </>
-        );
-      case "rejected":
-        return (
-          <>
-            <Button size="sm" variant="outline" onClick={() => handleStatusChange(1)}>
-              Activate
             </Button>
             <Button size="sm" variant="destructive" onClick={handleDelete}>
               <Trash2 className="mr-1 h-4 w-4" />
@@ -585,10 +574,10 @@ export default function ChefsPage() {
         return (
           <>
             <Button size="sm" variant="outline" onClick={() => handleStatusChange(1)}>
-              Active
+              Activate
             </Button>
-            <Button size="sm" variant="outline" onClick={() => handleStatusChange(2)}>
-              Rejected
+            <Button size="sm" variant="outline" onClick={() => handleStatusChange(0)}>
+              Deactivate
             </Button>
             <Button size="sm" variant="outline" onClick={handleDeleteStripe}>
               Delete Stripe
@@ -664,7 +653,9 @@ export default function ChefsPage() {
                 ? `Permanently delete ${confirmDialog.ids.length} selected chef(s)? This cannot be undone.`
                 : confirmDialog.action === "delete_stripe"
                   ? `Delete Stripe accounts for ${confirmDialog.ids.length} selected chef(s)?`
-                  : `Change status to "${confirmDialog.action}" for ${confirmDialog.ids.length} selected chef(s)?`}
+                  : confirmDialog.action === "Deactivate"
+                    ? `Deactivate ${confirmDialog.ids.length} selected chef(s)? They will be moved back to Pending.`
+                    : `${confirmDialog.action} ${confirmDialog.ids.length} selected chef(s)?`}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
