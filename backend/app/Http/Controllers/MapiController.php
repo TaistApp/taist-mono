@@ -2675,6 +2675,16 @@ Write only the review text:";
             ]);
         }
 
+        // Send SMS notification to admins (cofounders) about new order
+        try {
+            $this->orderSmsService->sendAdminNewOrderNotification($id);
+        } catch (Exception $e) {
+            Log::error('Failed to send admin SMS notification', [
+                'order_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+        }
+
         // Send admin email notification for new order
         try {
             $customer = app(Listener::class)->where('id', $request->customer_user_id)->first();
