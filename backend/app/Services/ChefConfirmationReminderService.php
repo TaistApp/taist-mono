@@ -86,8 +86,8 @@ class ChefConfirmationReminderService
         $tomorrowFormatted = date('l, M j', strtotime($tomorrowDate)); // "Tuesday, Dec 3"
         $timeRange = date('g:i A', strtotime($scheduledStart)) . ' - ' . date('g:i A', strtotime($scheduledEnd));
 
-        $title = "You're scheduled tomorrow";
-        $body = "You're scheduled {$tomorrowFormatted}, {$timeRange}. If plans changed, update your availability in the app.";
+        $title = "Availability reminder";
+        $body = "Your availability is set for {$tomorrowFormatted}, {$timeRange}. No orders yet — if your plans changed, update your availability in the app.";
 
         $sent = false;
 
@@ -180,7 +180,7 @@ class ChefConfirmationReminderService
             return; // Skip SMS but don't throw - push notification may still succeed
         }
 
-        $message = "Taist: You're scheduled {$tomorrowFormatted}, {$timeRange} tomorrow. If plans changed, open the app to update availability.";
+        $message = "Taist: Reminder — your availability is set for {$tomorrowFormatted}, {$timeRange}. No orders yet. If your plans changed, open the app to update.";
 
         $result = $this->twilioService->sendSMS(
             $chef->phone,
