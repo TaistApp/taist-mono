@@ -52,6 +52,7 @@ import { navigate } from "@/app/utils/navigation";
 import {
   GETVERSIONAPICALL,
   LoginAPI,
+  ResumeSessionAPI,
   SocialLoginAPI,
 } from "../../../services/api";
 import { ClearStorage, ReadLoginData } from "../../../utils/storage";
@@ -282,31 +283,24 @@ const Splash = () => {
     return () => clearTimeout(fallbackTimer);
   }, []);
 
-  /**
-   * Performs auto-login by validating stored credentials with the server.
-   * If the account no longer exists or credentials are invalid, clears storage
-   * and shows the login screen.
-   *
-   * @returns true if login succeeded, false otherwise
-   */
-  const performAutoLogin = async (loginData: {
-    email: string;
-    password: string;
-    role: number;
-  }): Promise<boolean> => {
+  const performAutoLogin = async (loginData: any): Promise<boolean> => {
     try {
-      // Validate credentials with server - this also fetches fresh user data
-      const response = await LoginAPI(
-        {
-          email: loginData.email,
-          password: loginData.password,
-          remember: true,
-        },
-        dispatch,
-      );
+      let response: any;
+
+      if (loginData.social) {
+        response = await ResumeSessionAPI(loginData.user_id, dispatch);
+      } else {
+        response = await LoginAPI(
+          {
+            email: loginData.email,
+            password: loginData.password,
+            remember: true,
+          },
+          dispatch,
+        );
+      }
 
       if (response.success === 1) {
-        // Login succeeded - navigate based on user type from server response
         const userType = response.data?.user?.user_type;
         if (userType === 1) {
           navigate.toCustomer.home();
@@ -315,20 +309,15 @@ const Splash = () => {
         }
         return true;
       } else {
-        // Login failed - account deleted, password changed, etc.
         console.log(
           "Auto-login failed: Account no longer valid, clearing stored data",
         );
-        // Clear Redux state first (removes in-memory user data)
         dispatch({ type: "USER_LOGOUT" });
-        // Then clear persisted storage
         await ClearStorage();
         setSplash(false);
         return false;
       }
     } catch (error) {
-      // Network error or other issue - don't clear storage, just show login
-      // This prevents users from being logged out due to temporary network issues
       console.error("Auto-login error (network issue):", error);
       setSplash(false);
       return false;
@@ -343,11 +332,14 @@ const Splash = () => {
       if (APP_ENV === "local" || APP_ENV === "staging") {
         console.log(`${APP_ENV} mode: Skipping version check`);
         const loginData = await ReadLoginData();
-        if (loginData == null || !loginData.email || !loginData.password) {
+        if (loginData == null) {
           setSplash(false);
           return;
         }
-        // Validate credentials with server before proceeding
+        if (!loginData.social && (!loginData.email || !loginData.password)) {
+          setSplash(false);
+          return;
+        }
         await performAutoLogin(loginData);
         return;
       }
@@ -375,12 +367,14 @@ const Splash = () => {
       }
 
       const loginData = await ReadLoginData();
-      if (loginData == null || !loginData.email || !loginData.password) {
+      if (loginData == null) {
         setSplash(false);
         return;
       }
-      // Validate credentials with server before proceeding
-      // This handles cases where account was deleted, password changed, etc.
+      if (!loginData.social && (!loginData.email || !loginData.password)) {
+        setSplash(false);
+        return;
+      }
       await performAutoLogin(loginData);
     } catch (error) {
       console.error("Error during version check or auto-login:", error);
