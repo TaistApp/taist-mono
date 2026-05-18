@@ -491,6 +491,11 @@ export default function ChefsPage() {
           params: { ids: ids.join(","), status: 4 },
         });
         toast.success(`${ids.length} chef(s) permanently deleted`);
+      } else if (action === "Silent Activate") {
+        await api.get("/adminapi/change_chef_status", {
+          params: { ids: ids.join(","), status: 1, silent: 1 },
+        });
+        toast.success(`${ids.length} chef(s) silently activated (no notification)`);
       } else {
         await api.get("/adminapi/change_chef_status", {
           params: { ids: ids.join(","), status: statusMap[action] },
@@ -546,6 +551,13 @@ export default function ChefsPage() {
             <Button size="sm" variant="outline" onClick={() => handleStatusChange(1)}>
               Activate
             </Button>
+            <Button size="sm" variant="ghost" onClick={() => {
+              const ids = getSelectedIds();
+              if (!ids.length) { toast.error("Select at least one chef"); return; }
+              setConfirmDialog({ open: true, action: "Silent Activate", ids });
+            }}>
+              Silent Activate
+            </Button>
             <Button size="sm" variant="outline" onClick={() => handleStatusChange(2)}>
               Reject
             </Button>
@@ -575,6 +587,13 @@ export default function ChefsPage() {
           <>
             <Button size="sm" variant="outline" onClick={() => handleStatusChange(1)}>
               Activate
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => {
+              const ids = getSelectedIds();
+              if (!ids.length) { toast.error("Select at least one chef"); return; }
+              setConfirmDialog({ open: true, action: "Silent Activate", ids });
+            }}>
+              Silent Activate
             </Button>
             <Button size="sm" variant="outline" onClick={() => handleStatusChange(0)}>
               Deactivate
@@ -655,7 +674,9 @@ export default function ChefsPage() {
                   ? `Delete Stripe accounts for ${confirmDialog.ids.length} selected chef(s)?`
                   : confirmDialog.action === "Deactivate"
                     ? `Deactivate ${confirmDialog.ids.length} selected chef(s)? They will be moved back to Pending.`
-                    : `${confirmDialog.action} ${confirmDialog.ids.length} selected chef(s)?`}
+                    : confirmDialog.action === "Silent Activate"
+                      ? `Silently activate ${confirmDialog.ids.length} selected chef(s)? They will NOT receive any notification.`
+                      : `${confirmDialog.action} ${confirmDialog.ids.length} selected chef(s)?`}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
