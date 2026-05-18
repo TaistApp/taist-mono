@@ -87,10 +87,9 @@ class AdminapiController extends Controller
                     app(Listener::class)->whereIn('id',$ids)->delete();
                 } else {
                     app(Listener::class)->whereIn('id',$ids)->update(['verified'=>$request->status, 'is_pending'=>0]);
-                    if ($request->status == 1) {
+                    if ($request->status == 1 && !$request->boolean('silent')) {
                         foreach($ids as $uid) {
                             $approved_user = app(Listener::class)->where('id',$uid)->first();
-                            // Send notification using Laravel notification system
                             $approved_user->notify(new ChefApprovedNotification());
                         }
                     }
