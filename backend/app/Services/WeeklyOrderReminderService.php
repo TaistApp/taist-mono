@@ -119,10 +119,8 @@ class WeeklyOrderReminderService
                 continue;
             }
 
-            $allTimeCount = WeeklyOrderReminderLog::where('user_id', $customer->id)->count();
-            $messageIndex = $allTimeCount % count($messages);
-            $messageBody = $messages[$messageIndex];
             $title = env('WEEKLY_ORDER_REMINDER_TITLE', 'Taist');
+            [$messageBody, $messageIndex] = $this->pickMessage($customer, $messages);
 
             if ($dryRun) {
                 $stats['sent']++;
@@ -195,6 +193,26 @@ class WeeklyOrderReminderService
             $this->slotIndexToKey($slotA, $weekdaySet, $slotsPerDay),
             $this->slotIndexToKey($slotB, $weekdaySet, $slotsPerDay),
         ];
+    }
+
+    private function pickMessage($customer, array $messages): array
+    {
+        $retireeAge = (int) env('WEEKLY_ORDER_REMINDERS_RETIREE_AGE', 60);
+        $retireeMessage = env(
+            'WEEKLY_ORDER_REMINDERS_RETIREE_MESSAGE',
+            'You deserve a great meal without the hassle. Browse Taist chefs and treat yourself tonight.'
+        );
+
+        if (!empty($customer->birthday) && $customer->birthday != 0) {
+            $age = (int) Carbon::createFromTimestamp($customer->birthday)->diffInYears(Carbon::now());
+            if ($age >= $retireeAge) {
+                return [$retireeMessage, -1];
+            }
+        }
+
+        $allTimeCount = WeeklyOrderReminderLog::where('user_id', $customer->id)->count();
+        $index = $allTimeCount % count($messages);
+        return [$messages[$index], $index];
     }
 
     private function sendPush(string $token, string $title, string $body): bool
