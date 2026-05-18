@@ -291,6 +291,13 @@ export const SocialLoginAPI = async (
   StoreDataToStorage("API_TOKEN", response.data.api_token);
   dispatch(setUser(response.data.user));
 
+  await StoreLoginData({
+    social: true,
+    provider: params.provider,
+    role: response?.data?.user?.user_type,
+    user_id: response?.data?.user?.id,
+  });
+
   // Zip codes + categories determine what the home screen shows — wait for them
   await Promise.all([
     GetCategoriesAPI({}, dispatch),
@@ -336,6 +343,68 @@ export const SocialLoginAPI = async (
   );
 
   return response;
+};
+
+/**
+ * Resume an existing session using a stored API token (social-login users).
+ * Validates the token by fetching the user, then runs the same post-login
+ * side-effects as LoginAPI/SocialLoginAPI so the app state is fully hydrated.
+ */
+export const ResumeSessionAPI = async (
+  userId: number,
+  dispatch: any,
+): Promise<{ success: number; data?: { user: any } }> => {
+  const response = await GETAPICALL(`get_user/${userId}`, {});
+  if (response.success !== 1) {
+    return { success: 0 };
+  }
+
+  const user = response.data;
+  dispatch(setUser(user));
+
+  await Promise.all([
+    GetCategoriesAPI({}, dispatch),
+    GetZipCodes({}, dispatch),
+  ]);
+
+  const bgFetches: Promise<any>[] = [
+    GetAllergensAPI({}, dispatch),
+    GetUsersAPI({}, dispatch),
+  ];
+  if (user.user_type == 2) {
+    bgFetches.push(
+      GetChefProfileAPI({ user_id: user.id }, dispatch),
+      GetChefMenusAPI({ user_id: user.id }, dispatch),
+      GetPaymentMethodAPI().then((resp) => {
+        if (resp.success == 1) {
+          const tmp = resp.data.find((x: IPayment) => x.active == 1);
+          dispatch(updateChefPaymentMthod(tmp));
+        }
+      }),
+    );
+  }
+  Promise.all(bgFetches).catch((e) => console.warn("[resume-session] bg fetch", e));
+
+  GetFCMToken().then((token) => {
+    if (token !== "") UpdateFCMTokenAPI(token);
+  }).catch(() => {});
+  Geolocation.getCurrentPosition(
+    (position) => {
+      UpdateUserAPI(
+        {
+          id: user.id,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        },
+        dispatch,
+      );
+    },
+    (error) => {
+      console.warn("GelocationError", error);
+    },
+  );
+
+  return { success: 1, data: { user } };
 };
 
 export const LogOutAPI = async () => {
