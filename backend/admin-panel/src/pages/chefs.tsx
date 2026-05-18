@@ -551,7 +551,7 @@ export default function ChefsPage() {
             <Button size="sm" variant="outline" onClick={() => handleStatusChange(1)}>
               Activate
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => {
+            <Button size="sm" variant="outline" onClick={() => {
               const ids = getSelectedIds();
               if (!ids.length) { toast.error("Select at least one chef"); return; }
               setConfirmDialog({ open: true, action: "Silent Activate", ids });
@@ -588,7 +588,7 @@ export default function ChefsPage() {
             <Button size="sm" variant="outline" onClick={() => handleStatusChange(1)}>
               Activate
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => {
+            <Button size="sm" variant="outline" onClick={() => {
               const ids = getSelectedIds();
               if (!ids.length) { toast.error("Select at least one chef"); return; }
               setConfirmDialog({ open: true, action: "Silent Activate", ids });
