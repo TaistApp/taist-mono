@@ -41,15 +41,20 @@ class FirebaseChannel
 
             $messaging->send($message);
         } catch (FirebaseException $e) {
-            // Log the error but don't throw - allows notification to be saved to database even if push fails
-            Log::error('Firebase push notification failed', [
-                'user_id' => $notifiable->id,
-                'fcm_token' => $notifiable->fcm_token,
-                'notification' => get_class($notification),
-                'error' => $e->getMessage(),
-            ]);
+            $msg = $e->getMessage();
+            if (str_contains($msg, 'not known to the Firebase project')
+                || str_contains($msg, 'not a valid FCM registration token')
+                || str_contains($msg, 'Requested entity was not found')) {
+                $notifiable->update(['fcm_token' => null]);
+                Log::info('Cleared stale FCM token', ['user_id' => $notifiable->id]);
+            } else {
+                Log::error('Firebase push notification failed', [
+                    'user_id' => $notifiable->id,
+                    'notification' => get_class($notification),
+                    'error' => $msg,
+                ]);
+            }
         } catch (\Exception $e) {
-            // Firebase not configured - skip push notifications
             Log::warning('Skipping push notification - Firebase not configured', [
                 'user_id' => $notifiable->id,
                 'notification' => get_class($notification),

@@ -9,6 +9,8 @@ use App\Models\WeeklyOrderReminderLog;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Kreait\Firebase\Messaging\CloudMessage;
+use Kreait\Firebase\Exception\Messaging\NotFound;
+use Kreait\Firebase\Exception\Messaging\InvalidMessage;
 
 class WeeklyOrderReminderService
 {
@@ -155,11 +157,16 @@ class WeeklyOrderReminderService
 
                 $stats['sent']++;
             } catch (\Throwable $e) {
-                $stats['errors']++;
-                Log::error('Weekly order reminder send failed', [
-                    'user_id' => $customer->id,
-                    'error' => $e->getMessage(),
-                ]);
+                if ($this->isStaleTokenError($e)) {
+                    $customer->update(['fcm_token' => null]);
+                    Log::info('Cleared stale FCM token', ['user_id' => $customer->id]);
+                } else {
+                    $stats['errors']++;
+                    Log::error('Weekly order reminder send failed', [
+                        'user_id' => $customer->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
         }
 
@@ -209,6 +216,18 @@ class WeeklyOrderReminderService
 
         $this->firebaseMessaging->send($message);
         return true;
+    }
+
+    private function isStaleTokenError(\Throwable $e): bool
+    {
+        if ($e instanceof NotFound || $e instanceof InvalidMessage) {
+            return true;
+        }
+
+        $msg = $e->getMessage();
+        return str_contains($msg, 'not known to the Firebase project')
+            || str_contains($msg, 'not a valid FCM registration token')
+            || str_contains($msg, 'Requested entity was not found');
     }
 
     private function getCurrentSlotKey(int $weekday, Carbon $nowLocal, int $startHour, int $endHour): string
