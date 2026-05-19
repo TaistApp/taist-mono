@@ -265,20 +265,12 @@ class TestHelperController extends Controller
                 ]);
             }
 
-            // Create a PaymentMethod with test card 4242 and attach to customer.
+            // Attach Stripe's built-in test PaymentMethod token (pm_card_visa).
+            // This avoids sending raw card numbers to the API, which Stripe blocks
+            // server-side. pm_card_visa maps to 4242424242424242 in test mode.
             // createPaymentIntent uses paymentMethods->retrieve() on card_token,
             // so we must store a pm_xxx ID (not a legacy source/token).
-            $pm = $stripe->paymentMethods->create([
-                'type' => 'card',
-                'card' => [
-                    'number' => '4242424242424242',
-                    'exp_month' => 12,
-                    'exp_year' => date('Y') + 2,
-                    'cvc' => '123',
-                ],
-            ]);
-
-            $stripe->paymentMethods->attach($pm->id, [
+            $pm = $stripe->paymentMethods->attach('pm_card_visa', [
                 'customer' => $customer->id,
             ]);
 
