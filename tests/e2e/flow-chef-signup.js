@@ -1,20 +1,19 @@
 /**
- * Flow 2: Chef Signup
+ * Flow 2: Chef Signup + Onboarding
  *
- * Tests:
+ * Tests the full chef onboarding journey:
  *  1. Register a new chef via email/password
  *  2. Login with those credentials
  *  3. Complete the safety quiz
  *  4. Create a menu item (so the chef is orderable)
  *  5. Set weekly availability
- *  6. Social login endpoint reachability (same as customer)
- *
- * Note: Stripe Connect onboarding and SafeScreener background checks
- * require interactive flows or real credentials — those are tested
- * separately in the order flow where we set up Stripe via the API.
+ *  6. Background check verification (SafeScreener bypass — DB flags only)
+ *  7. Stripe Connect setup (Custom account via E2E helper)
+ *  8. Duplicate registration guard
  */
 
 const { ApiClient } = require('./api');
+const config = require('./config');
 const h = require('./helpers');
 
 async function run() {
@@ -179,7 +178,70 @@ async function run() {
     results.errors.push(e.message);
   }
 
-  // ── 6. Duplicate registration guard ────────────────────────────
+  // ── 6. Background check verification (SafeScreener bypass) ─────
+  try {
+    h.logInfo('Verifying chef (SafeScreener bypass — DB flags only)...');
+    const api = new ApiClient(); // No auth needed, just API key
+    const res = await api.post('e2e/verify_chef', {
+      user_id: userId,
+    });
+
+    h.assertSuccess(res, 'Verify chef');
+    h.logPass('Chef verified (is_pending=0, verified=1)');
+    results.passed++;
+  } catch (e) {
+    h.logFail(`Verify chef: ${e.message}`);
+    results.failed++;
+    results.errors.push(e.message);
+  }
+
+  // ── 7. Stripe Connect setup ───────────────────────────────────
+  if (config.stripeSecretKey) {
+    try {
+      h.logInfo('Setting up Stripe Connect for chef via E2E helper...');
+      const api = new ApiClient(); // No auth needed, just API key
+
+      // Stripe verification is async even in test mode — Custom accounts take ~60s
+      // for charges_enabled to become true after all info + identity doc are provided.
+      let chargesEnabled = false;
+      const maxRetries = 12;
+      const retryIntervalMs = 10000;
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        const res = await api.post('e2e/setup_chef_stripe', {
+          user_id: userId,
+        });
+
+        if (res.body.success === 1 && res.body.charges_enabled) {
+          chargesEnabled = true;
+          h.logPass(`Chef Stripe setup complete — charges_enabled: true (attempt ${attempt})`);
+          results.passed++;
+          break;
+        } else if (res.body.success === 1 && !res.body.charges_enabled) {
+          h.logInfo(`Stripe verification pending (attempt ${attempt}/${maxRetries})... waiting ${retryIntervalMs / 1000}s`);
+          await new Promise(r => setTimeout(r, retryIntervalMs));
+        } else {
+          h.logFail(`Chef Stripe setup: ${res.body.error}`);
+          results.failed++;
+          results.errors.push(`Chef Stripe: ${res.body.error}`);
+          break;
+        }
+      }
+
+      if (!chargesEnabled) {
+        h.logFail('Stripe charges not enabled after retries');
+        results.failed++;
+        results.errors.push('Stripe charges_enabled never became true');
+      }
+    } catch (e) {
+      h.logFail(`Chef Stripe setup: ${e.message}`);
+      results.failed++;
+      results.errors.push(`Chef Stripe: ${e.message}`);
+    }
+  } else {
+    h.logWarn('Stripe keys not configured — skipping chef Stripe setup');
+  }
+
+  // ── 8. Duplicate registration guard ────────────────────────────
   try {
     h.logInfo('Testing duplicate chef email rejection...');
     const api = new ApiClient();
