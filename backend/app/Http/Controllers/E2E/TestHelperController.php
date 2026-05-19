@@ -73,23 +73,18 @@ class TestHelperController extends Controller
             $existing = PaymentMethodListener::where(['user_id' => $userId, 'active' => 1])->first();
 
             if ($existing && !empty($existing->stripe_account_id)) {
-                // Check if charges are already enabled
                 try {
                     $account = $stripe->accounts->retrieve($existing->stripe_account_id);
-                    if ($account->charges_enabled) {
-                        return response()->json([
-                            'success' => 1,
-                            'message' => 'Chef already has active Stripe account.',
-                            'stripe_account_id' => $existing->stripe_account_id,
-                            'charges_enabled' => true,
-                        ]);
-                    }
 
-                    // Delete the incomplete Express account reference —
-                    // we'll replace it with a Custom account
-                    $existing->delete();
+                    // Return current status — caller can retry if charges_enabled is false
+                    return response()->json([
+                        'success' => 1,
+                        'stripe_account_id' => $existing->stripe_account_id,
+                        'charges_enabled' => $account->charges_enabled,
+                        'disabled_reason' => $account->requirements->disabled_reason ?? null,
+                    ]);
                 } catch (\Exception $e) {
-                    // Account might be invalid, proceed to create new one
+                    // Account is invalid — delete and recreate
                     $existing->delete();
                 }
             }
