@@ -141,6 +141,33 @@ class TestHelperController extends Controller
                 ],
             ]);
 
+            // Upload a test document for identity verification.
+            // Stripe test mode requires a verification document to enable charges.
+            $tmpFile = tempnam(sys_get_temp_dir(), 'stripe_e2e_');
+            file_put_contents($tmpFile, base64_decode(
+                'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=='
+            ));
+            $fileUpload = $stripe->files->create([
+                'purpose' => 'identity_document',
+                'file' => fopen($tmpFile, 'r'),
+            ], ['stripe_account' => $account->id]);
+            @unlink($tmpFile);
+
+            if (!empty($fileUpload->id)) {
+                $stripe->accounts->update($account->id, [
+                    'individual' => [
+                        'verification' => [
+                            'document' => [
+                                'front' => $fileUpload->id,
+                            ],
+                        ],
+                    ],
+                ]);
+            }
+
+            // Brief pause for Stripe to process verification in test mode
+            sleep(2);
+
             // Add a test bank account for payouts
             $stripe->accounts->createExternalAccount($account->id, [
                 'external_account' => [
