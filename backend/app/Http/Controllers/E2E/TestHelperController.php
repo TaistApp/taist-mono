@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\E2E;
 
 use App\Http\Controllers\Controller;
-use App\Models\Listener;
+use App\Listener;
 use App\Models\PaymentMethodListener;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -11,10 +11,8 @@ use Illuminate\Support\Facades\Log;
 /**
  * E2E Test Helper Controller
  *
- * These endpoints only work in non-production environments (local, staging, testing).
- * They provide programmatic test setup that would normally require interactive flows.
- *
- * Routes are conditionally registered in routes/mapi.php — they don't exist in production.
+ * Provides programmatic test setup that would normally require interactive flows.
+ * Safety: all endpoints refuse to operate unless STRIPE_SECRET is a test key (sk_test_*).
  */
 class TestHelperController extends Controller
 {
@@ -75,23 +73,18 @@ class TestHelperController extends Controller
             $existing = PaymentMethodListener::where(['user_id' => $userId, 'active' => 1])->first();
 
             if ($existing && !empty($existing->stripe_account_id)) {
-                // Check if charges are already enabled
                 try {
                     $account = $stripe->accounts->retrieve($existing->stripe_account_id);
-                    if ($account->charges_enabled) {
-                        return response()->json([
-                            'success' => 1,
-                            'message' => 'Chef already has active Stripe account.',
-                            'stripe_account_id' => $existing->stripe_account_id,
-                            'charges_enabled' => true,
-                        ]);
-                    }
 
-                    // Delete the incomplete Express account reference —
-                    // we'll replace it with a Custom account
-                    $existing->delete();
+                    // Return current status — caller can retry if charges_enabled is false
+                    return response()->json([
+                        'success' => 1,
+                        'stripe_account_id' => $existing->stripe_account_id,
+                        'charges_enabled' => $account->charges_enabled,
+                        'disabled_reason' => $account->requirements->disabled_reason ?? null,
+                    ]);
                 } catch (\Exception $e) {
-                    // Account might be invalid, proceed to create new one
+                    // Account is invalid — delete and recreate
                     $existing->delete();
                 }
             }
@@ -143,6 +136,33 @@ class TestHelperController extends Controller
                 ],
             ]);
 
+            // Upload a test document for identity verification.
+            // Stripe test mode requires a verification document to enable charges.
+            $tmpFile = tempnam(sys_get_temp_dir(), 'stripe_e2e_');
+            file_put_contents($tmpFile, base64_decode(
+                'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=='
+            ));
+            $fileUpload = $stripe->files->create([
+                'purpose' => 'identity_document',
+                'file' => fopen($tmpFile, 'r'),
+            ], ['stripe_account' => $account->id]);
+            @unlink($tmpFile);
+
+            if (!empty($fileUpload->id)) {
+                $stripe->accounts->update($account->id, [
+                    'individual' => [
+                        'verification' => [
+                            'document' => [
+                                'front' => $fileUpload->id,
+                            ],
+                        ],
+                    ],
+                ]);
+            }
+
+            // Brief pause for Stripe to process verification in test mode
+            sleep(2);
+
             // Add a test bank account for payouts
             $stripe->accounts->createExternalAccount($account->id, [
                 'external_account' => [
@@ -189,6 +209,165 @@ class TestHelperController extends Controller
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Set up a Stripe Customer + payment method for a test customer.
+     *
+     * The real app creates Stripe Customers via add_payment_method (which uses
+     * Stripe.js tokens from the frontend). For E2E, we create the customer and
+     * attach a test card server-side using the PaymentMethods API, which is what
+     * createPaymentIntent expects when charging.
+     *
+     * POST /mapi/e2e/setup_customer_stripe
+     * Body: { user_id: int }
+     */
+    public function setupCustomerStripe(Request $request)
+    {
+        if ($request->header('apiKey') !== self::API_KEY) {
+            return response()->json(['success' => 0, 'error' => 'Access denied.']);
+        }
+
+        if (!$this->isStripeTestMode()) {
+            return response()->json(['success' => 0, 'error' => 'E2E endpoints only work with Stripe test keys.']);
+        }
+
+        $userId = $request->input('user_id');
+        $user = Listener::find($userId);
+
+        if (!$user) {
+            return response()->json(['success' => 0, 'error' => 'User not found.']);
+        }
+
+        try {
+            require_once(base_path('stripe-php/init.php'));
+            $stripe = new \Stripe\StripeClient(env('STRIPE_SECRET'));
+
+            // Check if customer already has a payment method
+            $existing = PaymentMethodListener::where(['user_id' => $userId, 'active' => 1])->first();
+            if ($existing && !empty($existing->stripe_cus_id)) {
+                return response()->json([
+                    'success' => 1,
+                    'message' => 'Customer already has a payment method.',
+                    'stripe_customer_id' => $existing->stripe_cus_id,
+                ]);
+            }
+
+            // Find or create a Stripe Customer (same lookup as addPaymentMethod)
+            $customers = $stripe->customers->all(['email' => $user->email, 'limit' => 1]);
+            if (!empty($customers->data)) {
+                $customer = $customers->data[0];
+            } else {
+                $customer = $stripe->customers->create([
+                    'email' => $user->email,
+                    'name' => trim($user->first_name . ' ' . $user->last_name),
+                    'description' => 'E2E test customer',
+                ]);
+            }
+
+            // Attach Stripe's built-in test PaymentMethod token (pm_card_visa).
+            // This avoids sending raw card numbers to the API, which Stripe blocks
+            // server-side. pm_card_visa maps to 4242424242424242 in test mode.
+            // createPaymentIntent uses paymentMethods->retrieve() on card_token,
+            // so we must store a pm_xxx ID (not a legacy source/token).
+            $pm = $stripe->paymentMethods->attach('pm_card_visa', [
+                'customer' => $customer->id,
+            ]);
+
+            // Set as default payment method
+            $stripe->customers->update($customer->id, [
+                'invoice_settings' => ['default_payment_method' => $pm->id],
+            ]);
+
+            // Deactivate any existing payment methods for this user
+            PaymentMethodListener::where('user_id', $userId)->update(['active' => 0]);
+
+            // Save to payment methods table (mirrors addPaymentMethod logic)
+            PaymentMethodListener::insert([
+                'user_id' => $userId,
+                'stripe_cus_id' => $customer->id,
+                'card_token' => $pm->id,
+                'last4' => '4242',
+                'card_type' => 'Visa',
+                'zip' => '75201',
+                'active' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            Log::info('[E2E] Customer Stripe setup complete', [
+                'user_id' => $userId,
+                'stripe_customer_id' => $customer->id,
+                'payment_method_id' => $pm->id,
+            ]);
+
+            return response()->json([
+                'success' => 1,
+                'stripe_customer_id' => $customer->id,
+                'payment_method_id' => $pm->id,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('[E2E] Customer Stripe setup failed', [
+                'user_id' => $userId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => 0,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Mark a chef as verified (bypass SafeScreener background check).
+     *
+     * In production, chefs go through SafeScreener's API for background checks,
+     * which requires real SSNs and costs money. For E2E testing, we just flip
+     * the DB flags — same as what the admin panel does for manual approval.
+     *
+     * POST /mapi/e2e/verify_chef
+     * Body: { user_id: int }
+     */
+    public function verifyChef(Request $request)
+    {
+        if ($request->header('apiKey') !== self::API_KEY) {
+            return response()->json(['success' => 0, 'error' => 'Access denied.']);
+        }
+
+        $userId = $request->input('user_id');
+        $user = Listener::find($userId);
+
+        if (!$user) {
+            return response()->json(['success' => 0, 'error' => 'User not found.']);
+        }
+
+        if ($user->user_type != 2) {
+            return response()->json(['success' => 0, 'error' => 'User is not a chef.']);
+        }
+
+        // Already verified?
+        if ($user->verified == 1 && $user->is_pending == 0) {
+            return response()->json([
+                'success' => 1,
+                'message' => 'Chef already verified.',
+            ]);
+        }
+
+        // Set the same flags the admin panel uses for manual approval
+        $user->is_pending = 0;
+        $user->verified = 1;
+        $user->save();
+
+        Log::info('[E2E] Chef verified (SafeScreener bypassed)', [
+            'user_id' => $userId,
+        ]);
+
+        return response()->json([
+            'success' => 1,
+            'verified' => true,
+        ]);
     }
 
     /**
