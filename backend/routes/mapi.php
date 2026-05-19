@@ -152,6 +152,13 @@ Route::group(['middleware' => ['auth:mapi']], function () {
 	Route::post('update_fcm_token', 'MapiController@updateFCMToken');
 
 	Route::get('get_notifications_by_id/{id}', 'API\NotificationController@getNotificationById');
-	
+
+
 
 });
+
+// ── E2E Test helpers (non-production only, no auth middleware) ──
+if (app()->environment('local', 'staging', 'testing')) {
+	Route::post('e2e/setup_chef_stripe', 'E2E\TestHelperController@setupChefStripe');
+	Route::post('e2e/cleanup_test_users', 'E2E\TestHelperController@cleanupTestUsers');
+}
