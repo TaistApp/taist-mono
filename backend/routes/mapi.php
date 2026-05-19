@@ -159,4 +159,6 @@ Route::group(['middleware' => ['auth:mapi']], function () {
 
 // ── E2E Test helpers (always registered, auth checked inside controller) ──
 Route::post('e2e/setup_chef_stripe', 'E2E\TestHelperController@setupChefStripe');
+Route::post('e2e/setup_customer_stripe', 'E2E\TestHelperController@setupCustomerStripe');
+Route::post('e2e/verify_chef', 'E2E\TestHelperController@verifyChef');
 Route::post('e2e/cleanup_test_users', 'E2E\TestHelperController@cleanupTestUsers');
