@@ -157,8 +157,6 @@ Route::group(['middleware' => ['auth:mapi']], function () {
 
 });
 
-// ── E2E Test helpers (non-production only, no auth middleware) ──
-if (app()->environment('local', 'staging', 'testing')) {
-	Route::post('e2e/setup_chef_stripe', 'E2E\TestHelperController@setupChefStripe');
-	Route::post('e2e/cleanup_test_users', 'E2E\TestHelperController@cleanupTestUsers');
-}
+// ── E2E Test helpers (always registered, auth checked inside controller) ──
+Route::post('e2e/setup_chef_stripe', 'E2E\TestHelperController@setupChefStripe');
+Route::post('e2e/cleanup_test_users', 'E2E\TestHelperController@cleanupTestUsers');

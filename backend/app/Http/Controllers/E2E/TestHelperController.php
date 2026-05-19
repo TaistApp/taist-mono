@@ -11,14 +11,23 @@ use Illuminate\Support\Facades\Log;
 /**
  * E2E Test Helper Controller
  *
- * These endpoints only work in non-production environments (local, staging, testing).
- * They provide programmatic test setup that would normally require interactive flows.
- *
- * Routes are conditionally registered in routes/mapi.php — they don't exist in production.
+ * Provides programmatic test setup that would normally require interactive flows.
+ * Safety: all endpoints refuse to operate unless STRIPE_SECRET is a test key (sk_test_*).
  */
 class TestHelperController extends Controller
 {
     private const API_KEY = 'ra_jk6YK9QmAVqTazHIrF1vi3qnbtagCIJoZAzCR51lCpYY9nkTN6aPVeX15J49k';
+
+    /**
+     * Verify the server is using Stripe test keys, not live keys.
+     * This is the safety gate that prevents E2E endpoints from running
+     * against a production Stripe account.
+     */
+    private function isStripeTestMode(): bool
+    {
+        $key = env('STRIPE_SECRET', '');
+        return str_starts_with($key, 'sk_test_');
+    }
 
     /**
      * Set up a fully-functional Stripe Connect account for a test chef.
@@ -27,6 +36,8 @@ class TestHelperController extends Controller
      * completed programmatically. For E2E testing, this endpoint creates a
      * Stripe Custom account (which allows full API control), fills in all
      * required test data, and links it to the chef's payment record.
+     *
+     * Safety: only works when the server's STRIPE_SECRET is a test key (sk_test_*).
      *
      * POST /mapi/e2e/setup_chef_stripe
      * Body: { user_id: int }
@@ -38,9 +49,9 @@ class TestHelperController extends Controller
             return response()->json(['success' => 0, 'error' => 'Access denied.']);
         }
 
-        // Extra safety: refuse to run in production
-        if (app()->environment('production')) {
-            return response()->json(['success' => 0, 'error' => 'Not available in production.']);
+        // Safety: only operate when Stripe is in test mode
+        if (!$this->isStripeTestMode()) {
+            return response()->json(['success' => 0, 'error' => 'E2E endpoints only work with Stripe test keys.']);
         }
 
         $userId = $request->input('user_id');
@@ -192,8 +203,8 @@ class TestHelperController extends Controller
             return response()->json(['success' => 0, 'error' => 'Access denied.']);
         }
 
-        if (app()->environment('production')) {
-            return response()->json(['success' => 0, 'error' => 'Not available in production.']);
+        if (!$this->isStripeTestMode()) {
+            return response()->json(['success' => 0, 'error' => 'E2E endpoints only work with Stripe test keys.']);
         }
 
         $domain = $request->input('domain', 'e2e-test.taist.app');
