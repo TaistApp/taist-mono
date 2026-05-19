@@ -90,3 +90,6 @@ backend/public/api/config.php
 docs/slack-summaries/
 
 google-play-service-account.json
+
+# E2E test credentials
+tests/e2e/.env.e2e
