@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\E2E;
 
 use App\Http\Controllers\Controller;
-use App\Models\Listener;
+use App\Listener;
 use App\Models\PaymentMethodListener;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
