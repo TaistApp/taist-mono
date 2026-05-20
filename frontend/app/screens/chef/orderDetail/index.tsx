@@ -53,7 +53,6 @@ import { goBack, navigate } from '../../../utils/navigation';
 import { ShowErrorToast, ShowSuccessToast } from '../../../utils/toast';
 import { getFormattedDateTime, getFormattedDateTimeInTimezone } from '../../../utils/validations';
 import { getParkingLabel } from '../../../constants/parkingTypes';
-import { AppColors } from '../../../../constants/theme';
 import { styles } from './styles';
  
 

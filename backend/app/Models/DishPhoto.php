@@ -15,6 +15,13 @@ class DishPhoto extends Model
         'filename',
         'status',
         'admin_notes',
+        'queued_for_social',
+        'social_caption',
+        'last_posted_at',
+    ];
+
+    protected $casts = [
+        'queued_for_social' => 'boolean',
     ];
 
     public function chef()
