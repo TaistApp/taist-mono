@@ -46,6 +46,8 @@ import { GetOrderString } from '../../../utils/functions';
 import { goBack, navigate } from '../../../utils/navigation';
 import { ShowErrorToast, ShowSuccessToast } from '../../../utils/toast';
 import { getFormattedDateTime, getFormattedDateTimeInTimezone } from '../../../utils/validations';
+import { getParkingLabel } from '../../../constants/parkingTypes';
+import { AppColors } from '../../../../constants/theme';
 import { styles } from './styles';
  
 
@@ -289,6 +291,29 @@ const OrderDetail = () => {
               </>
             )}
           </View>
+
+          {(orderInfo?.parking_type || orderInfo?.parking_instructions) && (
+            <View style={[styles.card, { backgroundColor: '#FFF7ED', borderWidth: 1, borderColor: '#FDBA74' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Text style={{ fontSize: 20 }}>
+                  {getParkingLabel(orderInfo.parking_type)?.split(' ')[0] || '🅿️'}
+                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.text, { fontWeight: '700', marginBottom: 2 }]}>
+                    Arrival & Parking
+                  </Text>
+                  <Text style={styles.text}>
+                    {getParkingLabel(orderInfo.parking_type) || 'See instructions'}
+                  </Text>
+                  {orderInfo.parking_instructions ? (
+                    <Text style={[styles.text, { color: AppColors.textSecondary, marginTop: 4 }]}>
+                      {orderInfo.parking_instructions}
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+            </View>
+          )}
 
           {/* <Text style={styles.title}>Order Details</Text> */}
           <View style={styles.card}>

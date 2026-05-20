@@ -50,6 +50,7 @@ import StyledSwitch from "../../../components/styledSwitch";
 import StyledTextInput from "../../../components/styledTextInput";
 import OTPInput from "../../../components/OTPInput";
 import KeyboardAwareScrollView from "../../../components/KeyboardAwareScrollView";
+import ParkingPicker from "../../../components/ParkingPicker";
 import Container from "../../../layout/Container";
 import { hideLoading, showLoading } from "../../../reducers/loadingSlice";
 import {
@@ -695,6 +696,21 @@ const Account = () => {
             onChangeText={(val) => setUserInfo({ ...userInfo, zip: val })}
             value={userInfo.zip ?? ""}
           />
+
+          {userInfo.user_type === 1 && (
+            <View style={{ width: "100%", marginTop: 15 }}>
+              <ParkingPicker
+                parkingType={userInfo.parking_type}
+                parkingInstructions={userInfo.parking_instructions}
+                onTypeChange={(val) =>
+                  setUserInfo({ ...userInfo, parking_type: val })
+                }
+                onInstructionsChange={(val) =>
+                  setUserInfo({ ...userInfo, parking_instructions: val })
+                }
+              />
+            </View>
+          )}
 
           <View style={styles.switchWrapper}>
             <StyledSwitch

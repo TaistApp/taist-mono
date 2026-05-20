@@ -16,6 +16,8 @@ class Orders extends Model
         'total_price',
         'addons',
         'address',
+        'parking_type',
+        'parking_instructions',
         'order_date',
         'status',
         'notes',

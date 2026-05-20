@@ -52,7 +52,9 @@ import OrderItem from './components/orderItem';
 import { styles } from './styles';
 import { AppColors } from '../../../../constants/theme';
 import { getApplianceById } from '../../../constants/appliances';
+import { getParkingLabel } from '../../../constants/parkingTypes';
 import FadingScrollView from '../../../components/FadingScrollView';
+import ParkingPicker from '../../../components/ParkingPicker';
 
 const Checkout = () => {
   const self = useAppSelector(x => x.user.user);
@@ -76,6 +78,11 @@ const Checkout = () => {
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [isSavingAddress, setIsSavingAddress] = useState(false);
   const [isLoadingTimes, setIsLoadingTimes] = useState(true);
+
+  // Arrival & Parking state — pre-filled from account, overridable per order
+  const [parkingType, setParkingType] = useState<string | undefined>(self.parking_type);
+  const [parkingInstructions, setParkingInstructions] = useState<string>(self.parking_instructions ?? '');
+  const [editingParking, setEditingParking] = useState(false);
 
   // Ref to track current timeslot request and prevent race conditions
   const currentTimeslotRequestRef = useRef<string | null>(null);
@@ -474,6 +481,8 @@ const Checkout = () => {
       const orderData: IOrder = {
         ...o,
         address: self.address,
+        parking_type: parkingType,
+        parking_instructions: parkingInstructions || undefined,
         order_date: order_datetime,
         order_date_string,
         order_time_string,
@@ -762,6 +771,33 @@ const Checkout = () => {
                   {`${self.city}, ${self.state}, ${self.zip}`}
                 </Text>
               </View>
+            </View>
+            <View style={{borderTopWidth: 1, borderTopColor: '#E5E7EB', paddingTop: 12, marginTop: 4}}>
+              <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8}}>
+                <Text style={{fontSize: 15, fontWeight: '600', color: AppColors.text}}>
+                  Arrival & Parking
+                </Text>
+                <TouchableOpacity onPress={() => setEditingParking(!editingParking)}>
+                  <Text style={{fontSize: 14, fontWeight: '600', color: AppColors.primary}}>
+                    {editingParking ? 'Done' : 'Edit'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              {editingParking ? (
+                <ParkingPicker
+                  parkingType={parkingType}
+                  parkingInstructions={parkingInstructions}
+                  onTypeChange={setParkingType}
+                  onInstructionsChange={setParkingInstructions}
+                  compact
+                />
+              ) : (
+                <Text style={styles.checkoutAddressItemTitle}>
+                  {parkingType
+                    ? `${getParkingLabel(parkingType)}${parkingInstructions ? ` · ${parkingInstructions}` : ''}`
+                    : 'Not set — tap Edit to add parking info for the chef'}
+                </Text>
+              )}
             </View>
           </View>
           <View style={styles.checkoutBlock}>

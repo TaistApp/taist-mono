@@ -10,6 +10,8 @@ export default interface UserInterface {
   city?: string;
   state?: string;
   zip?: string;
+  parking_type?: string;
+  parking_instructions?: string;
   latitude?: number;
   longitude?: number;
   user_type?: number;

@@ -7,6 +7,8 @@ export default interface OrderInterface {
   total_price?: number;
   addons?: string;
   address?: string;
+  parking_type?: string;
+  parking_instructions?: string;
   order_date?: number;
   order_date_string?: string; // YYYY-MM-DD format (timezone-safe)
   order_time?: string;
