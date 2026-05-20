@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faCheck, faClock } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faClock, faDollarSign } from '@fortawesome/free-solid-svg-icons';
 
 // Types & Services
 import { IChefProfile } from '../../../types/index';
@@ -115,6 +115,7 @@ const Profile = () => {
   const chefProfile: IChefProfile = useAppSelector(x => x.chef.profile);
   const dispatch = useAppDispatch();
   const [bio, onChangeBio] = useState('');
+  const [minimumOrderAmount, setMinimumOrderAmount] = useState('');
   const [days, onChangeDays] = useState<Array<HoursAvailableType>>([
     { id: '0', day: 'Sun', fullDay: 'Sunday', checked: false },
     { id: '1', day: 'Mon', fullDay: 'Monday', checked: false },
@@ -142,6 +143,9 @@ const Profile = () => {
   const loadData = async () => {
     if (chefProfile) {
       onChangeBio(chefProfile.bio ?? '');
+      setMinimumOrderAmount(
+        chefProfile.minimum_order_amount ? chefProfile.minimum_order_amount.toString() : ''
+      );
 
       // Map of day index to profile field names
       const dayFieldMap: Array<{ start: keyof IChefProfile; end: keyof IChefProfile }> = [
@@ -302,6 +306,7 @@ const Profile = () => {
 
     var params: IChefProfile = {
       bio,
+      minimum_order_amount: minimumOrderAmount ? parseFloat(minimumOrderAmount) : undefined,
       sunday_start: days[0].checked ? getTimeString(days[0].start) : '',
       sunday_end: days[0].checked ? getTimeString(days[0].end) : '',
       monday_start: days[1].checked ? getTimeString(days[1].start) : '',
@@ -458,6 +463,34 @@ const Profile = () => {
                 </View>
               </View>
             ))}
+          </View>
+        </View>
+
+        {/* Minimum Order Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <FontAwesomeIcon icon={faDollarSign} size={20} color={AppColors.primary} />
+            <Text style={styles.sectionTitle}>Minimum Order</Text>
+          </View>
+          <Text style={styles.sectionSubtitle}>
+            Set a minimum order total so every trip is worth your time. Customers can mix and match items to reach this amount.
+          </Text>
+          <View style={styles.minOrderInputRow}>
+            <Text style={styles.minOrderPrefix}>$</Text>
+            <StyledTextInput
+              testID="chefProfile.minimumOrderAmount"
+              placeholder="No minimum"
+              onChangeText={(text: string) => {
+                const cleaned = text.replace(/[^0-9.]/g, '');
+                const parts = cleaned.split('.');
+                if (parts.length > 2) return;
+                if (parts[1] && parts[1].length > 2) return;
+                setMinimumOrderAmount(cleaned);
+              }}
+              value={minimumOrderAmount}
+              keyboardType="decimal-pad"
+              containerStyle={styles.minOrderInput}
+            />
           </View>
         </View>
 
@@ -629,6 +662,19 @@ const styles = StyleSheet.create({
   timeSeparator: {
     fontSize: 14,
     color: AppColors.textSecondary,
+  },
+  minOrderInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  minOrderPrefix: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: AppColors.text,
+  },
+  minOrderInput: {
+    flex: 1,
   },
   keyboardView: {
     flex: 1,
