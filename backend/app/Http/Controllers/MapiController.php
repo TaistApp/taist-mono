@@ -2625,6 +2625,8 @@ Write only the review text:";
             'total_price' => $finalTotalPrice, // Use discounted price
             'addons' => isset($request->addons) ? $request->addons : '',
             'address' => $request->address,
+            'parking_type' => $request->parking_type,
+            'parking_instructions' => $request->parking_instructions,
             'order_date' => $request->order_date,
             'order_date_new' => $orderDateString ?: date('Y-m-d', $orderTimestamp),
             'order_time' => $orderTimeString ?: date('H:i', $orderTimestamp),
@@ -2727,7 +2729,14 @@ Write only the review text:";
                 $msg .= "<p><b>Email:</b> {$customer->email}</p>";
                 $msg .= "<p><b>Phone:</b> {$customer->phone}</p>";
             }
-            $msg .= "<p><b>Delivery Address:</b> {$request->address}</p>";
+            $msg .= "<p><b>Address:</b> {$request->address}</p>";
+            if ($request->parking_type) {
+                $msg .= "<p><b>Parking:</b> {$request->parking_type}";
+                if ($request->parking_instructions) {
+                    $msg .= " — {$request->parking_instructions}";
+                }
+                $msg .= "</p>";
+            }
 
             $msg .= "<br><p>View in <a href='" . $this->_adminUrl() . "'>Taist Admin Panel</a></p>";
             $msg .= "<p><img alt='Taist logo' src='" . $this->_logoUrl() . "' /></p>";
@@ -3301,6 +3310,8 @@ Write only the review text:";
         if (isset($request->address)) $ary['address'] = $request->address;
         if (isset($request->city)) $ary['city'] = $request->city;
         if (isset($request->state)) $ary['state'] = $request->state;
+        if ($request->has('parking_type')) $ary['parking_type'] = $request->parking_type;
+        if ($request->has('parking_instructions')) $ary['parking_instructions'] = $request->parking_instructions;
         
         // Check if zip code changed and if user entered service area
         if (isset($request->zip)) {
