@@ -27,6 +27,7 @@ use App\Models\NotificationTemplates;
 use App\Models\Version;
 use App\Models\DiscountCodes;
 use App\Models\DiscountCodeUsage;
+use App\Models\DishPhoto;
 use App\Notification;
 use App\Notifications\NewOrderNotification;
 use App\Notifications\OrderAcceptedNotification;
@@ -5260,5 +5261,71 @@ Write only the review text:";
 
 
     // ===================================================================
+
+    public function uploadDishPhoto(Request $request)
+    {
+        $user = Auth::guard('mapi')->user();
+
+        if (!$user || $user->user_type != 2) {
+            return response()->json(['success' => 0, 'error' => 'Only chefs can upload dish photos.']);
+        }
+
+        $orderId = $request->input('order_id');
+        if (!$orderId) {
+            return response()->json(['success' => 0, 'error' => 'order_id is required.']);
+        }
+
+        $order = Orders::find($orderId);
+        if (!$order || $order->chef_user_id != $user->id) {
+            return response()->json(['success' => 0, 'error' => 'Order not found or not yours.']);
+        }
+
+        if ($order->status != 3) {
+            return response()->json(['success' => 0, 'error' => 'Order must be completed before uploading a photo.']);
+        }
+
+        if (!isset($_FILES['photo']) || !$_FILES['photo']['name']) {
+            return response()->json(['success' => 0, 'error' => 'No photo provided.']);
+        }
+
+        if ($_FILES['photo']['error'] !== UPLOAD_ERR_OK) {
+            \Log::error('Dish photo upload failed', ['error_code' => $_FILES['photo']['error'], 'order_id' => $orderId]);
+            return response()->json(['success' => 0, 'error' => 'Photo upload failed. Please try again.']);
+        }
+
+        $ext = $_FILES['photo']['type'] == 'image/png' ? 'png' : 'jpg';
+        $filename = "dish_photo_{$orderId}_" . time() . ".{$ext}";
+        $uploadDir = 'assets/uploads/images/';
+
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        if (!move_uploaded_file($_FILES['photo']['tmp_name'], $uploadDir . $filename)) {
+            \Log::error('move_uploaded_file failed for dish photo', ['dest' => $uploadDir . $filename]);
+            return response()->json(['success' => 0, 'error' => 'Photo could not be saved. Please try again.']);
+        }
+
+        $this->resizeImage($filename, $ext == 'png');
+
+        $photo = DishPhoto::create([
+            'order_id'     => $order->id,
+            'chef_user_id' => $user->id,
+            'menu_id'      => $order->menu_id,
+            'filename'     => $filename,
+            'status'       => 'pending',
+        ]);
+
+        return response()->json([
+            'success' => 1,
+            'message' => 'Photo uploaded successfully!',
+            'data'    => $photo,
+        ]);
+    }
+
+    public function skipDishPhoto(Request $request)
+    {
+        return response()->json(['success' => 1, 'message' => 'Skipped.']);
+    }
 
 }

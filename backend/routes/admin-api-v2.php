@@ -45,6 +45,10 @@ Route::group(['middleware' => ['auth:adminapi']], function () {
     Route::post('discount-codes/{id}/activate', 'AdminApiV2Controller@discountCodeActivate');
     Route::get('discount-codes/{id}/usage', 'AdminApiV2Controller@discountCodeUsage');
 
+    // Dish Photos (content management)
+    Route::get('dish-photos', 'AdminApiV2Controller@dishPhotos');
+    Route::put('dish-photos/{id}', 'AdminApiV2Controller@dishPhotoUpdate');
+
     // Proxy legacy mutation endpoints so frontend baseURL (/admin-api-v2) works
     Route::get('adminapi/change_chef_status', 'AdminapiController@changeChefStatus');
     Route::get('adminapi/change_ticket_status', 'AdminapiController@changeTicketStatus');

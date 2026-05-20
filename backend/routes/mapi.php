@@ -151,6 +151,10 @@ Route::group(['middleware' => ['auth:mapi']], function () {
 
 	Route::post('update_fcm_token', 'MapiController@updateFCMToken');
 
+	// Dish photo capture (post-order content)
+	Route::post('upload_dish_photo', 'MapiController@uploadDishPhoto');
+	Route::post('skip_dish_photo', 'MapiController@skipDishPhoto');
+
 	Route::get('get_notifications_by_id/{id}', 'API\NotificationController@getNotificationById');
 
 

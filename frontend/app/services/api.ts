@@ -1107,6 +1107,25 @@ export const GetAvailableTimeslotsAPI = async (
   return response;
 };
 
+// Dish photo capture (post-order content)
+export const UploadDishPhotoAPI = async (params: { order_id: number; photo_uri: string }) => {
+  const headers = { "Content-Type": "multipart/form-data" };
+  const formData = new FormData();
+  formData.append("order_id", String(params.order_id));
+
+  const uri = params.photo_uri;
+  const lowerUri = uri.toLowerCase();
+  const ext = lowerUri.endsWith('.png') ? 'png' : 'jpg';
+  const mime = ext === 'png' ? 'image/png' : 'image/jpeg';
+  formData.append("photo", {
+    uri,
+    type: mime,
+    name: `dish_photo_${params.order_id}.${ext}`,
+  } as any);
+
+  return await POSTAPICALL("upload_dish_photo", formData, headers);
+};
+
 ///////////////////////////////////////////////////////
 
 const ConvertObjectToFormdata = (obj: any) => {
