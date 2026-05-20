@@ -2560,6 +2560,22 @@ Write only the review text:";
         }
         // ===== END TMA-011 REVISED VALIDATION =====
 
+        // ===== Minimum order amount validation =====
+        $chefAvailability = \DB::table('tbl_availabilities')
+            ->where('user_id', $request->chef_user_id)
+            ->first();
+
+        if ($chefAvailability && $chefAvailability->minimum_order_amount > 0) {
+            $orderTotal = (float) $request->total_price;
+            if ($orderTotal < $chefAvailability->minimum_order_amount) {
+                $minimum = number_format($chefAvailability->minimum_order_amount, 2);
+                return response()->json([
+                    'success' => 0,
+                    'error' => "This chef requires a minimum order of \${$minimum}. Please add more items to your order.",
+                ]);
+            }
+        }
+
         $chef_payment_method = app(PaymentMethodListener::class)->where(['user_id' => $request->chef_user_id, 'active' => 1])->first();
         if ($chef_payment_method) {
             require_once('../stripe-php/init.php');

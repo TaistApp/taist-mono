@@ -390,7 +390,15 @@ const Checkout = () => {
     setDiscountError('');
   };
 
+  const minimumOrderAmount = chefProfile.minimum_order_amount ?? 0;
+  const isBelowMinimum = minimumOrderAmount > 0 && price_total < minimumOrderAmount;
+  const amountNeeded = minimumOrderAmount - price_total;
+
   const handleCheckout = () => {
+    if (isBelowMinimum) {
+      ShowErrorToast(`Add $${amountNeeded.toFixed(2)} more to meet the minimum order of $${minimumOrderAmount.toFixed(2)}`);
+      return;
+    }
     if (paymentMethod == undefined) {
       ShowErrorToast('Please add a payment method');
       return;
@@ -717,6 +725,13 @@ const Checkout = () => {
                 </Text>
               </View>
             </View>
+            {isBelowMinimum && (
+              <View style={{backgroundColor: '#FEF3C7', borderRadius: 10, padding: 12, marginTop: 12}}>
+                <Text style={{fontSize: 14, fontWeight: '600', color: '#92400E'}}>
+                  {`This chef has a $${minimumOrderAmount.toFixed(2)} minimum order. Add $${amountNeeded.toFixed(2)} more to place your order.`}
+                </Text>
+              </View>
+            )}
           </View>
           
           {/* Discount Code Section */}
@@ -819,12 +834,12 @@ const Checkout = () => {
           <View style={styles.vcenter}>
             <TouchableOpacity
               testID="checkout.placeOrderButton"
-              style={appliance ? GlobalStyles.btn : GlobalStyles.btnDisabled}
+              style={appliance && !isBelowMinimum ? GlobalStyles.btn : GlobalStyles.btnDisabled}
               onPress={() => handleCheckout()}
-              disabled={!appliance}>
+              disabled={!appliance || isBelowMinimum}>
               <Text
                 style={
-                  appliance ? GlobalStyles.btnTxt : GlobalStyles.btnDisabledTxt
+                  appliance && !isBelowMinimum ? GlobalStyles.btnTxt : GlobalStyles.btnDisabledTxt
                 }>
                 PLACE ORDER
               </Text>
