@@ -26,7 +26,7 @@ use Illuminate\Support\Facades\DB;
 class SocialController extends Controller
 {
     private const API_KEY = 'ra_jk6YK9QmAVqTazHIrF1vi3qnbtagCIJoZAzCR51lCpYY9nkTN6aPVeX15J49k';
-    private const KINDS = ['menu-item', 'review'];
+    private const KINDS = ['menu-item', 'review', 'dish-photo'];
 
     private function checkApiKey(Request $request): bool
     {
@@ -223,5 +223,69 @@ class SocialController extends Controller
         ]);
 
         return response()->json(['success' => 1, 'receiptId' => $insertedId]);
+    }
+
+    /**
+     * GET /mapi/social/dish-photos/random?excludeDays=14
+     *
+     * Picks a random approved, social-queued dish photo:
+     *   - status = 'approved'
+     *   - queued_for_social = 1
+     *   - not posted in last `excludeDays`
+     *
+     * Returns the photo URL, caption, chef name, and menu title for
+     * Make.com / taist-social to compose a post.
+     */
+    public function dishPhotosRandom(Request $request)
+    {
+        if (!$this->checkApiKey($request)) {
+            return response()->json(['success' => 0, 'error' => 'Access denied.'], 401);
+        }
+
+        $excludeDays = (int) $request->query('excludeDays', 14);
+        $excludeIds = $this->recentlyPostedIds('dish-photo', $excludeDays);
+
+        $base = DB::table('tbl_dish_photos as dp')
+            ->join('tbl_menus as m', 'm.id', '=', 'dp.menu_id')
+            ->join('tbl_users as u', 'u.id', '=', 'dp.chef_user_id')
+            ->where('dp.status', 'approved')
+            ->where('dp.queued_for_social', 1)
+            ->select(
+                'dp.id as photo_id',
+                'dp.filename',
+                'dp.social_caption',
+                'dp.menu_id',
+                'dp.chef_user_id as chef_id',
+                'm.title as menu_title',
+                'm.description as menu_description',
+                'u.first_name as chef_first_name',
+                'u.last_name as chef_last_name'
+            );
+
+        $eligible = (clone $base)->whereNotIn('dp.id', $excludeIds);
+        $row = $eligible->inRandomOrder()->first();
+
+        if (!$row) {
+            $row = $base->inRandomOrder()->first();
+        }
+
+        if (!$row) {
+            return response()->json([
+                'success' => 0,
+                'error' => 'No eligible dish photos (need approved + queued_for_social).',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => 1,
+            'photoId' => (int) $row->photo_id,
+            'imageUrl' => url('assets/uploads/images/' . $row->filename),
+            'caption' => $row->social_caption,
+            'menuId' => (int) $row->menu_id,
+            'menuTitle' => $row->menu_title,
+            'menuDescription' => $row->menu_description,
+            'chefId' => (int) $row->chef_id,
+            'chefName' => trim($row->chef_first_name),
+        ]);
     }
 }

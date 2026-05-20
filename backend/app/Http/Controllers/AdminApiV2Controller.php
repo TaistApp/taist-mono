@@ -1095,6 +1095,9 @@ class AdminApiV2Controller extends Controller
                 'dp.filename',
                 'dp.status',
                 'dp.admin_notes',
+                'dp.queued_for_social',
+                'dp.social_caption',
+                'dp.last_posted_at',
                 'dp.created_at',
                 'tbl_users.first_name as chef_first_name',
                 'tbl_users.last_name as chef_last_name',
@@ -1135,6 +1138,12 @@ class AdminApiV2Controller extends Controller
         }
         if ($request->has('admin_notes')) {
             $photo->admin_notes = $request->admin_notes;
+        }
+        if ($request->has('queued_for_social')) {
+            $photo->queued_for_social = (bool) $request->queued_for_social;
+        }
+        if ($request->has('social_caption')) {
+            $photo->social_caption = $request->social_caption;
         }
 
         $photo->save();

@@ -23,6 +23,7 @@ Route::get('social/menu-items/random', 'SocialController@menuItemsRandom');
 Route::get('social/menu-lookup', 'SocialController@menuLookup');
 Route::get('social/posted-ids', 'SocialController@postedIds');
 Route::post('social/posted-receipt', 'SocialController@postedReceipt');
+Route::get('social/dish-photos/random', 'SocialController@dishPhotosRandom');
 
 Route::group(['middleware' => ['auth:mapi']], function () {
 
