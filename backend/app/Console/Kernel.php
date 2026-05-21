@@ -52,10 +52,9 @@ class Kernel extends ConsoleKernel
                  ->at('02:00')
                  ->withoutOverlapping();
 
-        // TMA-063: Weekly customer order reminder push notifications
-        // Railway cron should run "php artisan schedule:run" every minute.
-        // This command runs every 15 minutes and only sends in local Mon-Thu, 10:00-16:00 windows.
-        $schedule->command('reminders:send-weekly-order')
+        // TMA-063: Weekly nudge push notifications
+        // Runs every 15 minutes, sends in local Mon-Thu 10:00-16:00 windows, max 2/week per customer.
+        $schedule->command('nudge:send-weekly')
                  ->everyFifteenMinutes()
                  ->withoutOverlapping()
                  ->runInBackground()

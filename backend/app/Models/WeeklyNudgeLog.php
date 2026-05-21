@@ -4,9 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class WeeklyOrderReminderLog extends Model
+class WeeklyNudgeLog extends Model
 {
-    protected $table = 'weekly_order_reminder_logs';
+    protected $table = 'weekly_nudge_logs';
 
     protected $fillable = [
         'user_id',
