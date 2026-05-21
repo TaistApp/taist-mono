@@ -23,6 +23,7 @@ Route::get('social/menu-items/random', 'SocialController@menuItemsRandom');
 Route::get('social/menu-lookup', 'SocialController@menuLookup');
 Route::get('social/posted-ids', 'SocialController@postedIds');
 Route::post('social/posted-receipt', 'SocialController@postedReceipt');
+Route::get('social/dish-photos/random', 'SocialController@dishPhotosRandom');
 
 Route::group(['middleware' => ['auth:mapi']], function () {
 
@@ -150,6 +151,10 @@ Route::group(['middleware' => ['auth:mapi']], function () {
 	Route::post('tip_order_payment', 'MapiController@tipOrderPayment');
 
 	Route::post('update_fcm_token', 'MapiController@updateFCMToken');
+
+	// Dish photo capture (post-order content)
+	Route::post('upload_dish_photo', 'MapiController@uploadDishPhoto');
+	Route::post('skip_dish_photo', 'MapiController@skipDishPhoto');
 
 	Route::get('get_notifications_by_id/{id}', 'API\NotificationController@getNotificationById');
 

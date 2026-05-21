@@ -8,6 +8,7 @@ import { IUser } from '../types/index';
 import { ShowErrorToast } from '../utils/toast';
 import StyledTextInput from './styledTextInput';
 import StyledButton from './styledButton';
+import ParkingPicker from './ParkingPicker';
 import * as Location from 'expo-location';
 
 interface AddressCollectionModalProps {
@@ -31,6 +32,8 @@ export const AddressCollectionModal: React.FC<AddressCollectionModalProps> = ({
   const [city, setCity] = useState(userInfo.city || '');
   const [state, setState] = useState(userInfo.state || '');
   const [zip, setZip] = useState(userInfo.zip || '');
+  const [parkingType, setParkingType] = useState<string | undefined>(userInfo.parking_type);
+  const [parkingInstructions, setParkingInstructions] = useState(userInfo.parking_instructions || '');
   const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   const statesData = [
@@ -185,7 +188,16 @@ export const AddressCollectionModal: React.FC<AddressCollectionModalProps> = ({
       return;
     }
 
-    onSave({ first_name: firstName, last_name: lastName, address, city, state, zip });
+    onSave({
+      first_name: firstName,
+      last_name: lastName,
+      address,
+      city,
+      state,
+      zip,
+      parking_type: parkingType,
+      parking_instructions: parkingInstructions || undefined,
+    });
   };
 
   // Don't render Modal at all when not visible - fixes iOS touch blocking issue
@@ -208,7 +220,7 @@ export const AddressCollectionModal: React.FC<AddressCollectionModalProps> = ({
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Complete Your Profile</Text>
             <Text style={styles.modalSubtitle}>
-              We need your name and delivery address to complete your order
+              We need your name and address to complete your order
             </Text>
           </View>
 
@@ -291,6 +303,13 @@ export const AddressCollectionModal: React.FC<AddressCollectionModalProps> = ({
                 onChangeText={setZip}
                 keyboardType="number-pad"
                 maxLength={10}
+              />
+
+              <ParkingPicker
+                parkingType={parkingType}
+                parkingInstructions={parkingInstructions}
+                onTypeChange={setParkingType}
+                onInstructionsChange={setParkingInstructions}
               />
             </View>
 

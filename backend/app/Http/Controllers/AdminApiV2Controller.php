@@ -17,6 +17,7 @@ use App\Models\Availabilities;
 use App\Models\Zipcodes;
 use App\Models\DiscountCodes;
 use App\Models\DiscountCodeUsage;
+use App\Models\DishPhoto;
 use App\Notification;
 use DB;
 use Illuminate\Support\Facades\Log;
@@ -1079,5 +1080,74 @@ class AdminApiV2Controller extends Controller
             ->get();
 
         return response()->json(['success' => 1, 'data' => ['code' => $code, 'usages' => $usages]]);
+    }
+
+    public function dishPhotos(Request $request)
+    {
+        $query = DB::table('tbl_dish_photos as dp')
+            ->join('tbl_users', 'tbl_users.id', '=', 'dp.chef_user_id')
+            ->join('tbl_menus', 'tbl_menus.id', '=', 'dp.menu_id')
+            ->select([
+                'dp.id',
+                'dp.order_id',
+                'dp.chef_user_id',
+                'dp.menu_id',
+                'dp.filename',
+                'dp.status',
+                'dp.admin_notes',
+                'dp.queued_for_social',
+                'dp.social_caption',
+                'dp.last_posted_at',
+                'dp.created_at',
+                'tbl_users.first_name as chef_first_name',
+                'tbl_users.last_name as chef_last_name',
+                'tbl_users.email as chef_email',
+                'tbl_menus.title as menu_title',
+            ]);
+
+        if ($request->has('status') && $request->status !== 'all') {
+            $query->where('dp.status', $request->status);
+        }
+        if ($request->has('chef_id')) {
+            $query->where('dp.chef_user_id', $request->chef_id);
+        }
+        if ($request->has('menu_id')) {
+            $query->where('dp.menu_id', $request->menu_id);
+        }
+
+        $photos = $query->orderBy('dp.created_at', 'desc')->get();
+
+        $photos->transform(function ($photo) {
+            $photo->chef_name = trim($photo->chef_first_name . ' ' . $photo->chef_last_name);
+            $photo->image_url = url('assets/uploads/images/' . $photo->filename);
+            return $photo;
+        });
+
+        return response()->json(['success' => 1, 'data' => $photos]);
+    }
+
+    public function dishPhotoUpdate(Request $request, $id)
+    {
+        $photo = DishPhoto::find($id);
+        if (!$photo) {
+            return response()->json(['success' => 0, 'error' => 'Photo not found.'], 404);
+        }
+
+        if ($request->has('status')) {
+            $photo->status = $request->status;
+        }
+        if ($request->has('admin_notes')) {
+            $photo->admin_notes = $request->admin_notes;
+        }
+        if ($request->has('queued_for_social')) {
+            $photo->queued_for_social = (bool) $request->queued_for_social;
+        }
+        if ($request->has('social_caption')) {
+            $photo->social_caption = $request->social_caption;
+        }
+
+        $photo->save();
+
+        return response()->json(['success' => 1, 'data' => $photo]);
     }
 }

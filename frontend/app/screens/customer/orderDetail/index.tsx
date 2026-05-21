@@ -50,6 +50,7 @@ import {
   getFormattedDateInTimezone,
   getFormattedDateTimeInTimezone
 } from '../../../utils/validations';
+import { getParkingLabel } from '../../../constants/parkingTypes';
 import { styles } from './styles';
 
 const OrderDetail = () => {
@@ -417,6 +418,11 @@ const OrderDetail = () => {
             )}
             {orderInfo?.notes && (
               <Text style={styles.text}>{`Special Instructions: ${orderInfo?.notes ?? ''}`}</Text>
+            )}
+            {(orderInfo?.parking_type || orderInfo?.parking_instructions) && (
+              <Text style={styles.text}>
+                {`Arrival & Parking: ${getParkingLabel(orderInfo.parking_type)}${orderInfo.parking_instructions ? ` · ${orderInfo.parking_instructions}` : ''}`}
+              </Text>
             )}
             <View style={styles.line} />
             <View style={styles.cardMain}>

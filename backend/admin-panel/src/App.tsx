@@ -18,6 +18,7 @@ const MenusPage = lazy(() => import("./pages/menus"));
 const MenuEditPage = lazy(() => import("./pages/menu-edit"));
 const DiscountCodesPage = lazy(() => import("./pages/discount-codes"));
 const ServiceAreasPage = lazy(() => import("./pages/service-areas"));
+const DishPhotosPage = lazy(() => import("./pages/dish-photos"));
 
 function PageLoader() {
   return (
@@ -59,6 +60,7 @@ export default function App() {
                 <Route path="menus/:id/edit" element={<Suspense fallback={<PageLoader />}><MenuEditPage /></Suspense>} />
                 <Route path="discount-codes" element={<Suspense fallback={<PageLoader />}><DiscountCodesPage /></Suspense>} />
                 <Route path="service-areas" element={<Suspense fallback={<PageLoader />}><ServiceAreasPage /></Suspense>} />
+              <Route path="dish-photos" element={<Suspense fallback={<PageLoader />}><DishPhotosPage /></Suspense>} />
 
                 {/* Redirects for removed/renamed routes */}
                 <Route path="pendings" element={<Navigate to="/admin-new/chefs" replace />} />

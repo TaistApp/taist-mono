@@ -11,6 +11,7 @@ import {
   DollarSign,
   Ticket,
   Tag,
+  Camera,
   MapPin,
   LogOut,
   KeyRound,
@@ -71,6 +72,7 @@ const navSections: NavSection[] = [
     section: "Marketing",
     items: [
       { to: "/admin-new/discount-codes", icon: Tag, label: "Discount Codes" },
+      { to: "/admin-new/dish-photos", icon: Camera, label: "Dish Photos" },
     ],
   },
   {

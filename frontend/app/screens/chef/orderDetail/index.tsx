@@ -4,9 +4,11 @@ import {
   Dimensions,
   Image,
   Linking,
+  Modal,
   Platform,
   SafeAreaView,
   ScrollView,
+  StyleSheet,
   Text,
   TouchableOpacity,
   View
@@ -14,6 +16,7 @@ import {
 
 // NPM
 import {
+  faCamera,
   faChevronRight,
   faComment,
   faLocationDot,
@@ -23,6 +26,7 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useLocalSearchParams } from 'expo-router';
+import ImagePicker from 'react-native-image-crop-picker';
 import { StarRatingDisplay } from 'react-native-star-rating-widget';
 
 // Types & Services
@@ -33,19 +37,22 @@ import { useAppDispatch } from '../../../hooks/useRedux';
 
 import StyledButton from '../../../components/styledButton';
 import Container from '../../../layout/Container';
+import { AppColors } from '../../../../constants/theme';
 import { hideLoading, showLoading } from '../../../reducers/loadingSlice';
 import {
   CancelOrderPaymentAPI,
   CompleteOrderPaymentAPI,
   GetOrderDataAPI,
   RejectOrderPaymentAPI,
-  UpdateOrderStatusAPI
+  UpdateOrderStatusAPI,
+  UploadDishPhotoAPI,
 } from '../../../services/api';
 import { OrderStatus } from '../../../types/status';
 import { GetOrderString } from '../../../utils/functions';
 import { goBack, navigate } from '../../../utils/navigation';
 import { ShowErrorToast, ShowSuccessToast } from '../../../utils/toast';
 import { getFormattedDateTime, getFormattedDateTimeInTimezone } from '../../../utils/validations';
+import { getParkingLabel } from '../../../constants/parkingTypes';
 import { styles } from './styles';
  
 
@@ -70,6 +77,10 @@ const OrderDetail = () => {
   const [reviewText, onChangeReviewText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+  const [showPhotoPrompt, setShowPhotoPrompt] = useState(false);
+  const [completedOrderId, setCompletedOrderId] = useState<number | null>(null);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     loadData(orderId || orderInfoFromParams?.id);
@@ -190,9 +201,47 @@ const OrderDetail = () => {
     );
     if (resp.data.status == 2 || resp.data.status == 7) {
       setOrderInfo(resp.data);
+    } else if (resp.data.status == 3) {
+      setCompletedOrderId(resp.data.id);
+      setShowPhotoPrompt(true);
     } else {
       goBack();
     }
+  };
+
+  const handleTakePhoto = () => {
+    ImagePicker.openCamera({ width: 1000, height: 1000, cropping: true, compressImageQuality: 0.8 })
+      .then(image => {
+        setPhotoUri(image.path);
+      })
+      .catch(() => {});
+  };
+
+  const handleChooseFromLibrary = () => {
+    ImagePicker.openPicker({ width: 1000, height: 1000, cropping: true, compressImageQuality: 0.8 })
+      .then(image => {
+        setPhotoUri(image.path);
+      })
+      .catch(() => {});
+  };
+
+  const handleUploadDishPhoto = async () => {
+    if (!photoUri || !completedOrderId) return;
+    setIsUploading(true);
+    const resp = await UploadDishPhotoAPI({ order_id: completedOrderId, photo_uri: photoUri });
+    setIsUploading(false);
+    if (resp.success === 1) {
+      ShowSuccessToast('Photo uploaded! Thanks for sharing.');
+    } else {
+      ShowErrorToast(resp.error || 'Upload failed.');
+    }
+    setShowPhotoPrompt(false);
+    goBack();
+  };
+
+  const handleSkipPhoto = () => {
+    setShowPhotoPrompt(false);
+    goBack();
   };
 
   const handleCall = () => {
@@ -289,6 +338,29 @@ const OrderDetail = () => {
               </>
             )}
           </View>
+
+          {(orderInfo?.parking_type || orderInfo?.parking_instructions) && (
+            <View style={[styles.card, { backgroundColor: '#FFF7ED', borderWidth: 1, borderColor: '#FDBA74' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Text style={{ fontSize: 20 }}>
+                  {getParkingLabel(orderInfo.parking_type)?.split(' ')[0] || '🅿️'}
+                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.text, { fontWeight: '700', marginBottom: 2 }]}>
+                    Arrival & Parking
+                  </Text>
+                  <Text style={styles.text}>
+                    {getParkingLabel(orderInfo.parking_type) || 'See instructions'}
+                  </Text>
+                  {orderInfo.parking_instructions ? (
+                    <Text style={[styles.text, { color: AppColors.textSecondary, marginTop: 4 }]}>
+                      {orderInfo.parking_instructions}
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+            </View>
+          )}
 
           {/* <Text style={styles.title}>Order Details</Text> */}
           <View style={styles.card}>
@@ -571,8 +643,139 @@ const OrderDetail = () => {
           </TouchableOpacity>
         </View>
       </Container>
+
+      <Modal
+        visible={showPhotoPrompt}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={handleSkipPhoto}
+      >
+        <View style={photoStyles.overlay}>
+          <View style={photoStyles.modal}>
+            <FontAwesomeIcon icon={faCamera} color={AppColors.primary} size={36} />
+            <Text style={photoStyles.title}>Snap a Dish Photo?</Text>
+            <Text style={photoStyles.subtitle}>
+              Help us showcase your {menu?.title || 'dish'}! Quick photo for our socials.
+            </Text>
+
+            {photoUri ? (
+              <View style={photoStyles.previewContainer}>
+                <Image source={{ uri: photoUri }} style={photoStyles.preview} />
+                <TouchableOpacity onPress={() => setPhotoUri(null)} style={photoStyles.retakeBtn}>
+                  <Text style={photoStyles.retakeText}>Retake</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={photoStyles.buttonRow}>
+                <TouchableOpacity onPress={handleTakePhoto} style={photoStyles.captureBtn}>
+                  <FontAwesomeIcon icon={faCamera} color="#fff" size={20} />
+                  <Text style={photoStyles.captureBtnText}>Camera</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleChooseFromLibrary} style={[photoStyles.captureBtn, { backgroundColor: AppColors.textSecondary }]}>
+                  <Text style={photoStyles.captureBtnText}>Library</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            <View style={photoStyles.actionRow}>
+              {photoUri && (
+                <StyledButton
+                  title={isUploading ? 'Uploading...' : 'Submit Photo'}
+                  onPress={handleUploadDishPhoto}
+                  style={{ flex: 1 }}
+                  titleStyle={{ fontSize: 16 }}
+                />
+              )}
+              <TouchableOpacity onPress={handleSkipPhoto} style={photoStyles.skipBtn}>
+                <Text style={photoStyles.skipText}>Skip for now</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
+
+const photoStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modal: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    alignItems: 'center',
+    gap: 16,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: AppColors.text,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: AppColors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  captureBtn: {
+    flex: 1,
+    backgroundColor: AppColors.primary,
+    borderRadius: 10,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  captureBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  previewContainer: {
+    width: '100%',
+    alignItems: 'center',
+    gap: 8,
+  },
+  preview: {
+    width: 200,
+    height: 200,
+    borderRadius: 12,
+  },
+  retakeBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+  },
+  retakeText: {
+    color: AppColors.primary,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  actionRow: {
+    width: '100%',
+    alignItems: 'center',
+    gap: 10,
+  },
+  skipBtn: {
+    paddingVertical: 8,
+  },
+  skipText: {
+    color: AppColors.textSecondary,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+});
 
 export default OrderDetail;

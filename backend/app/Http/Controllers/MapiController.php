@@ -27,6 +27,7 @@ use App\Models\NotificationTemplates;
 use App\Models\Version;
 use App\Models\DiscountCodes;
 use App\Models\DiscountCodeUsage;
+use App\Models\DishPhoto;
 use App\Notification;
 use App\Notifications\NewOrderNotification;
 use App\Notifications\OrderAcceptedNotification;
@@ -2560,6 +2561,22 @@ Write only the review text:";
         }
         // ===== END TMA-011 REVISED VALIDATION =====
 
+        // ===== Minimum order amount validation =====
+        $chefAvailability = \DB::table('tbl_availabilities')
+            ->where('user_id', $request->chef_user_id)
+            ->first();
+
+        if ($chefAvailability && $chefAvailability->minimum_order_amount > 0) {
+            $orderTotal = (float) $request->total_price;
+            if ($orderTotal < $chefAvailability->minimum_order_amount) {
+                $minimum = number_format($chefAvailability->minimum_order_amount, 2);
+                return response()->json([
+                    'success' => 0,
+                    'error' => "This chef requires a minimum order of \${$minimum}. Please add more items to your order.",
+                ]);
+            }
+        }
+
         $chef_payment_method = app(PaymentMethodListener::class)->where(['user_id' => $request->chef_user_id, 'active' => 1])->first();
         if ($chef_payment_method) {
             require_once('../stripe-php/init.php');
@@ -2625,6 +2642,8 @@ Write only the review text:";
             'total_price' => $finalTotalPrice, // Use discounted price
             'addons' => isset($request->addons) ? $request->addons : '',
             'address' => $request->address,
+            'parking_type' => $request->parking_type,
+            'parking_instructions' => $request->parking_instructions,
             'order_date' => $request->order_date,
             'order_date_new' => $orderDateString ?: date('Y-m-d', $orderTimestamp),
             'order_time' => $orderTimeString ?: date('H:i', $orderTimestamp),
@@ -2727,7 +2746,14 @@ Write only the review text:";
                 $msg .= "<p><b>Email:</b> {$customer->email}</p>";
                 $msg .= "<p><b>Phone:</b> {$customer->phone}</p>";
             }
-            $msg .= "<p><b>Delivery Address:</b> {$request->address}</p>";
+            $msg .= "<p><b>Address:</b> {$request->address}</p>";
+            if ($request->parking_type) {
+                $msg .= "<p><b>Parking:</b> {$request->parking_type}";
+                if ($request->parking_instructions) {
+                    $msg .= " — {$request->parking_instructions}";
+                }
+                $msg .= "</p>";
+            }
 
             $msg .= "<br><p>View in <a href='" . $this->_adminUrl() . "'>Taist Admin Panel</a></p>";
             $msg .= "<p><img alt='Taist logo' src='" . $this->_logoUrl() . "' /></p>";
@@ -3301,6 +3327,8 @@ Write only the review text:";
         if (isset($request->address)) $ary['address'] = $request->address;
         if (isset($request->city)) $ary['city'] = $request->city;
         if (isset($request->state)) $ary['state'] = $request->state;
+        if ($request->has('parking_type')) $ary['parking_type'] = $request->parking_type;
+        if ($request->has('parking_instructions')) $ary['parking_instructions'] = $request->parking_instructions;
         
         // Check if zip code changed and if user entered service area
         if (isset($request->zip)) {
@@ -5260,5 +5288,71 @@ Write only the review text:";
 
 
     // ===================================================================
+
+    public function uploadDishPhoto(Request $request)
+    {
+        $user = Auth::guard('mapi')->user();
+
+        if (!$user || $user->user_type != 2) {
+            return response()->json(['success' => 0, 'error' => 'Only chefs can upload dish photos.']);
+        }
+
+        $orderId = $request->input('order_id');
+        if (!$orderId) {
+            return response()->json(['success' => 0, 'error' => 'order_id is required.']);
+        }
+
+        $order = Orders::find($orderId);
+        if (!$order || $order->chef_user_id != $user->id) {
+            return response()->json(['success' => 0, 'error' => 'Order not found or not yours.']);
+        }
+
+        if ($order->status != 3) {
+            return response()->json(['success' => 0, 'error' => 'Order must be completed before uploading a photo.']);
+        }
+
+        if (!isset($_FILES['photo']) || !$_FILES['photo']['name']) {
+            return response()->json(['success' => 0, 'error' => 'No photo provided.']);
+        }
+
+        if ($_FILES['photo']['error'] !== UPLOAD_ERR_OK) {
+            \Log::error('Dish photo upload failed', ['error_code' => $_FILES['photo']['error'], 'order_id' => $orderId]);
+            return response()->json(['success' => 0, 'error' => 'Photo upload failed. Please try again.']);
+        }
+
+        $ext = $_FILES['photo']['type'] == 'image/png' ? 'png' : 'jpg';
+        $filename = "dish_photo_{$orderId}_" . time() . ".{$ext}";
+        $uploadDir = 'assets/uploads/images/';
+
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        if (!move_uploaded_file($_FILES['photo']['tmp_name'], $uploadDir . $filename)) {
+            \Log::error('move_uploaded_file failed for dish photo', ['dest' => $uploadDir . $filename]);
+            return response()->json(['success' => 0, 'error' => 'Photo could not be saved. Please try again.']);
+        }
+
+        $this->resizeImage($filename, $ext == 'png');
+
+        $photo = DishPhoto::create([
+            'order_id'     => $order->id,
+            'chef_user_id' => $user->id,
+            'menu_id'      => $order->menu_id,
+            'filename'     => $filename,
+            'status'       => 'pending',
+        ]);
+
+        return response()->json([
+            'success' => 1,
+            'message' => 'Photo uploaded successfully!',
+            'data'    => $photo,
+        ]);
+    }
+
+    public function skipDishPhoto(Request $request)
+    {
+        return response()->json(['success' => 1, 'message' => 'Skipped.']);
+    }
 
 }

@@ -52,7 +52,9 @@ import OrderItem from './components/orderItem';
 import { styles } from './styles';
 import { AppColors } from '../../../../constants/theme';
 import { getApplianceById } from '../../../constants/appliances';
+import { getParkingLabel } from '../../../constants/parkingTypes';
 import FadingScrollView from '../../../components/FadingScrollView';
+import ParkingPicker from '../../../components/ParkingPicker';
 
 const Checkout = () => {
   const self = useAppSelector(x => x.user.user);
@@ -76,6 +78,11 @@ const Checkout = () => {
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [isSavingAddress, setIsSavingAddress] = useState(false);
   const [isLoadingTimes, setIsLoadingTimes] = useState(true);
+
+  // Arrival & Parking state — pre-filled from account, overridable per order
+  const [parkingType, setParkingType] = useState<string | undefined>(self.parking_type);
+  const [parkingInstructions, setParkingInstructions] = useState<string>(self.parking_instructions ?? '');
+  const [editingParking, setEditingParking] = useState(false);
 
   // Ref to track current timeslot request and prevent race conditions
   const currentTimeslotRequestRef = useRef<string | null>(null);
@@ -390,7 +397,15 @@ const Checkout = () => {
     setDiscountError('');
   };
 
+  const minimumOrderAmount = chefProfile.minimum_order_amount ?? 0;
+  const isBelowMinimum = minimumOrderAmount > 0 && price_total < minimumOrderAmount;
+  const amountNeeded = minimumOrderAmount - price_total;
+
   const handleCheckout = () => {
+    if (isBelowMinimum) {
+      ShowErrorToast(`Add $${amountNeeded.toFixed(2)} more to meet the minimum order of $${minimumOrderAmount.toFixed(2)}`);
+      return;
+    }
     if (paymentMethod == undefined) {
       ShowErrorToast('Please add a payment method');
       return;
@@ -466,6 +481,8 @@ const Checkout = () => {
       const orderData: IOrder = {
         ...o,
         address: self.address,
+        parking_type: parkingType,
+        parking_instructions: parkingInstructions || undefined,
         order_date: order_datetime,
         order_date_string,
         order_time_string,
@@ -717,6 +734,13 @@ const Checkout = () => {
                 </Text>
               </View>
             </View>
+            {isBelowMinimum && (
+              <View style={{backgroundColor: '#FEF3C7', borderRadius: 10, padding: 12, marginTop: 12}}>
+                <Text style={{fontSize: 14, fontWeight: '600', color: '#92400E'}}>
+                  {`This chef has a $${minimumOrderAmount.toFixed(2)} minimum order. Add $${amountNeeded.toFixed(2)} more to place your order.`}
+                </Text>
+              </View>
+            )}
           </View>
           
           {/* Discount Code Section */}
@@ -747,6 +771,33 @@ const Checkout = () => {
                   {`${self.city}, ${self.state}, ${self.zip}`}
                 </Text>
               </View>
+            </View>
+            <View style={{borderTopWidth: 1, borderTopColor: '#E5E7EB', paddingTop: 12, marginTop: 4}}>
+              <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8}}>
+                <Text style={{fontSize: 15, fontWeight: '600', color: AppColors.text}}>
+                  Arrival & Parking
+                </Text>
+                <TouchableOpacity onPress={() => setEditingParking(!editingParking)}>
+                  <Text style={{fontSize: 14, fontWeight: '600', color: AppColors.primary}}>
+                    {editingParking ? 'Done' : 'Edit'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              {editingParking ? (
+                <ParkingPicker
+                  parkingType={parkingType}
+                  parkingInstructions={parkingInstructions}
+                  onTypeChange={setParkingType}
+                  onInstructionsChange={setParkingInstructions}
+                  compact
+                />
+              ) : (
+                <Text style={styles.checkoutAddressItemTitle}>
+                  {parkingType
+                    ? `${getParkingLabel(parkingType)}${parkingInstructions ? ` · ${parkingInstructions}` : ''}`
+                    : 'Not set — tap Edit to add parking info for the chef'}
+                </Text>
+              )}
             </View>
           </View>
           <View style={styles.checkoutBlock}>
@@ -819,12 +870,12 @@ const Checkout = () => {
           <View style={styles.vcenter}>
             <TouchableOpacity
               testID="checkout.placeOrderButton"
-              style={appliance ? GlobalStyles.btn : GlobalStyles.btnDisabled}
+              style={appliance && !isBelowMinimum ? GlobalStyles.btn : GlobalStyles.btnDisabled}
               onPress={() => handleCheckout()}
-              disabled={!appliance}>
+              disabled={!appliance || isBelowMinimum}>
               <Text
                 style={
-                  appliance ? GlobalStyles.btnTxt : GlobalStyles.btnDisabledTxt
+                  appliance && !isBelowMinimum ? GlobalStyles.btnTxt : GlobalStyles.btnDisabledTxt
                 }>
                 PLACE ORDER
               </Text>
