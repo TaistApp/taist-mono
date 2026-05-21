@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import api from "@/lib/api";
-import { DataTable } from "@/components/data-table/data-table";
+import { DataTable, type FacetedFilterConfig } from "@/components/data-table/data-table";
 import { DataTableColumnHeader } from "@/components/data-table/column-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -103,6 +103,15 @@ export interface ChefRow {
 
 // ---------- Helpers ----------
 
+function arrIncludesFilter(
+  row: { getValue: (id: string) => unknown },
+  columnId: string,
+  filterValue: string[]
+): boolean {
+  const val = String(row.getValue(columnId) ?? "");
+  return filterValue.includes(val);
+}
+
 const statusColors: Record<string, string> = {
   Active: "bg-emerald-500/15 text-emerald-700 border-emerald-500/20",
   Pending: "bg-amber-500/15 text-amber-700 border-amber-500/20",
@@ -187,6 +196,7 @@ const baseColumns: ColumnDef<ChefRow>[] = [
         </Badge>
       );
     },
+    filterFn: arrIncludesFilter,
   },
   {
     accessorKey: "phone",
@@ -212,18 +222,21 @@ const baseColumns: ColumnDef<ChefRow>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="City" />
     ),
+    filterFn: arrIncludesFilter,
   },
   {
     accessorKey: "state",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="State" />
     ),
+    filterFn: arrIncludesFilter,
   },
   {
     accessorKey: "zip",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Zip" />
     ),
+    filterFn: arrIncludesFilter,
   },
   {
     accessorKey: "photo",
@@ -432,6 +445,22 @@ export default function ChefsPage() {
     tab === "pending"
       ? [...baseColumns, ...pendingExtraColumns]
       : [...baseColumns, ...chefExtraColumns];
+
+  const facetedFilters: FacetedFilterConfig[] = [
+    {
+      columnId: "status",
+      title: "Status",
+      options: [
+        { label: "Active", value: "Active" },
+        { label: "Pending", value: "Pending" },
+        { label: "Rejected", value: "Rejected" },
+        { label: "Banned", value: "Banned" },
+      ],
+    },
+    { columnId: "city", title: "City" },
+    { columnId: "state", title: "State" },
+    { columnId: "zip", title: "Zip" },
+  ];
 
   const pendingCount = pendings.length;
   const activeCount = chefs.filter((c) => c.verified === 1).length;
@@ -655,6 +684,7 @@ export default function ChefsPage() {
           enableRowSelection
           onRowSelectionChange={setSelectedRows}
           onRowClick={setDrawerChef}
+          facetedFilters={facetedFilters}
         />
       )}
 

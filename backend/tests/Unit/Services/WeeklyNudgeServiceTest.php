@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Services;
 
-use App\Services\WeeklyOrderReminderService;
+use App\Services\WeeklyNudgeService;
 use Carbon\Carbon;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Schema;
 use Mockery;
 use Tests\TestCase;
 
-class WeeklyOrderReminderServiceTest extends TestCase
+class WeeklyNudgeServiceTest extends TestCase
 {
     protected function setUp(): void
     {
@@ -18,7 +18,7 @@ class WeeklyOrderReminderServiceTest extends TestCase
 
         Schema::dropIfExists('tbl_users');
         Schema::dropIfExists('notifications');
-        Schema::dropIfExists('weekly_order_reminder_logs');
+        Schema::dropIfExists('weekly_nudge_logs');
 
         Schema::create('tbl_users', function (Blueprint $table) {
             $table->increments('id');
@@ -45,7 +45,7 @@ class WeeklyOrderReminderServiceTest extends TestCase
             $table->timestamps();
         });
 
-        Schema::create('weekly_order_reminder_logs', function (Blueprint $table) {
+        Schema::create('weekly_nudge_logs', function (Blueprint $table) {
             $table->id();
             $table->unsignedInteger('user_id');
             $table->string('week_key', 16);
@@ -67,12 +67,12 @@ class WeeklyOrderReminderServiceTest extends TestCase
 
     public function test_sends_push_for_customer_in_matching_weekly_slot()
     {
-        putenv('WEEKLY_ORDER_REMINDERS_ENABLED=true');
-        putenv('WEEKLY_ORDER_REMINDERS_MAX_PER_WEEK=2');
-        putenv('WEEKLY_ORDER_REMINDERS_START_HOUR=10');
-        putenv('WEEKLY_ORDER_REMINDERS_END_HOUR=16');
-        putenv('WEEKLY_ORDER_REMINDERS_WEEKDAYS=1,2,3,4');
-        putenv('WEEKLY_ORDER_REMINDERS_MESSAGES=["M1","M2"]');
+        putenv('WEEKLY_NUDGE_ENABLED=true');
+        putenv('WEEKLY_NUDGE_MAX_PER_WEEK=2');
+        putenv('WEEKLY_NUDGE_START_HOUR=10');
+        putenv('WEEKLY_NUDGE_END_HOUR=16');
+        putenv('WEEKLY_NUDGE_WEEKDAYS=1,2,3,4');
+        putenv('WEEKLY_NUDGE_MESSAGES=["M1","M2"]');
 
         DB::table('tbl_users')->insert([
             'id' => 101,
@@ -90,7 +90,7 @@ class WeeklyOrderReminderServiceTest extends TestCase
         $firebaseMock = Mockery::mock();
         $firebaseMock->shouldReceive('send')->once();
 
-        $service = new WeeklyOrderReminderService($firebaseMock);
+        $service = new WeeklyNudgeService($firebaseMock);
 
         $timezone = 'America/Indiana/Indianapolis';
         $baseMonday = Carbon::parse('2026-02-16 00:00:00', $timezone);
@@ -104,21 +104,21 @@ class WeeklyOrderReminderServiceTest extends TestCase
             ->addMinutes(($slotInDay * 15) + 1);
         $utcNow = $localNow->copy()->setTimezone('UTC');
 
-        $stats = $service->sendWeeklyReminders(false, $utcNow);
+        $stats = $service->sendWeeklyNudges(false, $utcNow);
 
         $this->assertEquals(1, $stats['sent']);
-        $this->assertEquals(1, DB::table('weekly_order_reminder_logs')->count());
+        $this->assertEquals(1, DB::table('weekly_nudge_logs')->count());
         $this->assertEquals(1, DB::table('notifications')->count());
     }
 
     public function test_respects_max_two_per_week_cap()
     {
-        putenv('WEEKLY_ORDER_REMINDERS_ENABLED=true');
-        putenv('WEEKLY_ORDER_REMINDERS_MAX_PER_WEEK=2');
-        putenv('WEEKLY_ORDER_REMINDERS_START_HOUR=10');
-        putenv('WEEKLY_ORDER_REMINDERS_END_HOUR=16');
-        putenv('WEEKLY_ORDER_REMINDERS_WEEKDAYS=1,2,3,4');
-        putenv('WEEKLY_ORDER_REMINDERS_MESSAGES=["M1","M2"]');
+        putenv('WEEKLY_NUDGE_ENABLED=true');
+        putenv('WEEKLY_NUDGE_MAX_PER_WEEK=2');
+        putenv('WEEKLY_NUDGE_START_HOUR=10');
+        putenv('WEEKLY_NUDGE_END_HOUR=16');
+        putenv('WEEKLY_NUDGE_WEEKDAYS=1,2,3,4');
+        putenv('WEEKLY_NUDGE_MESSAGES=["M1","M2"]');
 
         DB::table('tbl_users')->insert([
             'id' => 202,
@@ -136,7 +136,7 @@ class WeeklyOrderReminderServiceTest extends TestCase
         $firebaseMock = Mockery::mock();
         $firebaseMock->shouldReceive('send')->never();
 
-        $service = new WeeklyOrderReminderService($firebaseMock);
+        $service = new WeeklyNudgeService($firebaseMock);
 
         $timezone = 'America/Indiana/Indianapolis';
         $baseMonday = Carbon::parse('2026-02-16 00:00:00', $timezone);
@@ -144,7 +144,7 @@ class WeeklyOrderReminderServiceTest extends TestCase
         $slotKeys = $service->getWeeklySlotKeysForUser(202, $weekKey);
         [$weekday, $slotInDay] = array_map('intval', explode(':', $slotKeys[0]));
 
-        DB::table('weekly_order_reminder_logs')->insert([
+        DB::table('weekly_nudge_logs')->insert([
             [
                 'user_id' => 202,
                 'week_key' => $weekKey,
@@ -175,16 +175,16 @@ class WeeklyOrderReminderServiceTest extends TestCase
             ->addMinutes(($slotInDay * 15) + 1);
         $utcNow = $localNow->copy()->setTimezone('UTC');
 
-        $stats = $service->sendWeeklyReminders(false, $utcNow);
+        $stats = $service->sendWeeklyNudges(false, $utcNow);
 
         $this->assertEquals(0, $stats['sent']);
         $this->assertEquals(1, $stats['skipped_cap']);
-        $this->assertEquals(2, DB::table('weekly_order_reminder_logs')->count());
+        $this->assertEquals(2, DB::table('weekly_nudge_logs')->count());
     }
 
     public function test_two_weekly_slots_always_land_on_different_days()
     {
-        $service = new WeeklyOrderReminderService(null);
+        $service = new WeeklyNudgeService(null);
 
         // Test across many user IDs and weeks to confirm no same-day collisions
         $violations = 0;

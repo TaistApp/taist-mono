@@ -7,6 +7,8 @@ import {
   type RowSelectionState,
   flexRender,
   getCoreRowModel,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
@@ -28,7 +30,14 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
+import { DataTableFacetedFilter } from "./faceted-filter";
+
+export interface FacetedFilterConfig {
+  columnId: string;
+  title: string;
+  options?: { label: string; value: string }[];
+}
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -38,6 +47,7 @@ interface DataTableProps<TData, TValue> {
   enableRowSelection?: boolean;
   onRowSelectionChange?: (rows: TData[]) => void;
   onRowClick?: (row: TData) => void;
+  facetedFilters?: FacetedFilterConfig[];
 }
 
 export function DataTable<TData, TValue>({
@@ -48,6 +58,7 @@ export function DataTable<TData, TValue>({
   enableRowSelection = false,
   onRowSelectionChange,
   onRowClick,
+  facetedFilters = [],
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -68,6 +79,8 @@ export function DataTable<TData, TValue>({
     onRowSelectionChange: setRowSelection,
     onGlobalFilterChange: setGlobalFilter,
     globalFilterFn: "includesString",
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
     enableRowSelection,
     state: {
       sorting,
@@ -121,6 +134,34 @@ export function DataTable<TData, TValue>({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {facetedFilters.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {facetedFilters.map((filter) => {
+            const col = table.getColumn(filter.columnId);
+            if (!col) return null;
+            return (
+              <DataTableFacetedFilter
+                key={filter.columnId}
+                column={col}
+                title={filter.title}
+                options={filter.options}
+              />
+            );
+          })}
+          {columnFilters.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2"
+              onClick={() => setColumnFilters([])}
+            >
+              Reset
+              <X className="ml-1 h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
+      )}
 
       <div className="rounded-lg border shadow-sm overflow-x-auto">
         <Table className="min-w-[640px]">

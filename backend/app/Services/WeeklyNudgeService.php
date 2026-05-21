@@ -5,14 +5,14 @@ namespace App\Services;
 use App\Helpers\TimezoneHelper;
 use App\Listener;
 use App\Notification;
-use App\Models\WeeklyOrderReminderLog;
+use App\Models\WeeklyNudgeLog;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Exception\Messaging\NotFound;
 use Kreait\Firebase\Exception\Messaging\InvalidMessage;
 
-class WeeklyOrderReminderService
+class WeeklyNudgeService
 {
     protected $firebaseMessaging;
 
@@ -31,7 +31,7 @@ class WeeklyOrderReminderService
         }
     }
 
-    public function sendWeeklyReminders(bool $dryRun = false, ?Carbon $nowUtc = null): array
+    public function sendWeeklyNudges(bool $dryRun = false, ?Carbon $nowUtc = null): array
     {
         $stats = [
             'scanned' => 0,
@@ -46,7 +46,7 @@ class WeeklyOrderReminderService
             'errors' => 0,
         ];
 
-        $rawEnabled = env('WEEKLY_ORDER_REMINDERS_ENABLED');
+        $rawEnabled = env('WEEKLY_NUDGE_ENABLED');
         $enabled = ($rawEnabled === null || $rawEnabled === '')
             ? true
             : filter_var($rawEnabled, FILTER_VALIDATE_BOOLEAN);
@@ -57,13 +57,13 @@ class WeeklyOrderReminderService
 
         $messages = $this->getMessages();
         if (empty($messages)) {
-            Log::warning('No weekly reminder messages configured, skipping run.');
+            Log::warning('No weekly nudge messages configured, skipping run.');
             return $stats;
         }
 
-        $maxPerWeek = max((int) env('WEEKLY_ORDER_REMINDERS_MAX_PER_WEEK', 2), 1);
-        $startHour = (int) env('WEEKLY_ORDER_REMINDERS_START_HOUR', 10);
-        $endHour = (int) env('WEEKLY_ORDER_REMINDERS_END_HOUR', 16); // exclusive upper bound
+        $maxPerWeek = max((int) env('WEEKLY_NUDGE_MAX_PER_WEEK', 2), 1);
+        $startHour = (int) env('WEEKLY_NUDGE_START_HOUR', 10);
+        $endHour = (int) env('WEEKLY_NUDGE_END_HOUR', 16); // exclusive upper bound
         $weekdaySet = $this->getWeekdaySet();
         $referenceUtc = $nowUtc ? $nowUtc->copy() : Carbon::now('UTC');
 
@@ -102,7 +102,7 @@ class WeeklyOrderReminderService
                 continue;
             }
 
-            $sentThisWeek = WeeklyOrderReminderLog::where('user_id', $customer->id)
+            $sentThisWeek = WeeklyNudgeLog::where('user_id', $customer->id)
                 ->where('week_key', $weekKey)
                 ->count();
             if ($sentThisWeek >= $maxPerWeek) {
@@ -110,7 +110,7 @@ class WeeklyOrderReminderService
                 continue;
             }
 
-            $alreadySentThisSlot = WeeklyOrderReminderLog::where('user_id', $customer->id)
+            $alreadySentThisSlot = WeeklyNudgeLog::where('user_id', $customer->id)
                 ->where('week_key', $weekKey)
                 ->where('slot_key', $currentSlotKey)
                 ->exists();
@@ -119,7 +119,7 @@ class WeeklyOrderReminderService
                 continue;
             }
 
-            $title = env('WEEKLY_ORDER_REMINDER_TITLE', 'Taist');
+            $title = env('WEEKLY_NUDGE_TITLE', 'Taist');
             [$messageBody, $messageIndex] = $this->pickMessage($customer, $messages);
 
             if ($dryRun) {
@@ -139,11 +139,11 @@ class WeeklyOrderReminderService
                     'image' => $customer->photo ?? '',
                     'fcm_token' => $customer->fcm_token,
                     'user_id' => $customer->id,
-                    'navigation_id' => 'weekly_order_reminder',
+                    'navigation_id' => 'weekly_nudge',
                     'role' => 'customer',
                 ]);
 
-                WeeklyOrderReminderLog::create([
+                WeeklyNudgeLog::create([
                     'user_id' => $customer->id,
                     'week_key' => $weekKey,
                     'slot_key' => $currentSlotKey,
@@ -160,7 +160,7 @@ class WeeklyOrderReminderService
                     Log::info('Cleared stale FCM token', ['user_id' => $customer->id]);
                 } else {
                     $stats['errors']++;
-                    Log::error('Weekly order reminder send failed', [
+                    Log::error('Weekly nudge send failed', [
                         'user_id' => $customer->id,
                         'error' => $e->getMessage(),
                     ]);
@@ -197,9 +197,9 @@ class WeeklyOrderReminderService
 
     private function pickMessage($customer, array $messages): array
     {
-        $retireeAge = (int) env('WEEKLY_ORDER_REMINDERS_RETIREE_AGE', 60);
+        $retireeAge = (int) env('WEEKLY_NUDGE_RETIREE_AGE', 60);
         $retireeMessage = env(
-            'WEEKLY_ORDER_REMINDERS_RETIREE_MESSAGE',
+            'WEEKLY_NUDGE_RETIREE_MESSAGE',
             'You deserve a great meal without the hassle. Browse Taist chefs and treat yourself tonight.'
         );
 
@@ -210,7 +210,7 @@ class WeeklyOrderReminderService
             }
         }
 
-        $allTimeCount = WeeklyOrderReminderLog::where('user_id', $customer->id)->count();
+        $allTimeCount = WeeklyNudgeLog::where('user_id', $customer->id)->count();
         $index = $allTimeCount % count($messages);
         return [$messages[$index], $index];
     }
@@ -218,7 +218,7 @@ class WeeklyOrderReminderService
     private function sendPush(string $token, string $title, string $body): bool
     {
         if (!$this->firebaseMessaging) {
-            Log::warning('Skipping weekly reminder push - Firebase not configured');
+            Log::warning('Skipping weekly nudge push - Firebase not configured');
             return false;
         }
 
@@ -228,7 +228,7 @@ class WeeklyOrderReminderService
                 'body' => $body,
             ])
             ->withData([
-                'type' => 'weekly_order_reminder',
+                'type' => 'weekly_nudge',
                 'action' => 'open_inbox',
             ]);
 
@@ -280,7 +280,7 @@ class WeeklyOrderReminderService
 
     private function getWeekdaySet(): array
     {
-        $raw = (string) env('WEEKLY_ORDER_REMINDERS_WEEKDAYS', '1,2,3,4');
+        $raw = (string) env('WEEKLY_NUDGE_WEEKDAYS', '1,2,3,4');
         $parts = array_filter(array_map('trim', explode(',', $raw)));
         $days = [];
 
@@ -307,7 +307,7 @@ class WeeklyOrderReminderService
             'Dinner does not have to derail your night. Check Taist chefs now.',
         ];
 
-        $raw = env('WEEKLY_ORDER_REMINDERS_MESSAGES');
+        $raw = env('WEEKLY_NUDGE_MESSAGES');
         if (empty($raw)) {
             return $defaultMessages;
         }
