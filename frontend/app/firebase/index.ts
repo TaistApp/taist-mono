@@ -63,8 +63,32 @@ const showLocalNotification = async (title: string, body: string, data?: any) =>
 
 // Helper function to check if navigation is ready and user is authenticated
 const isReadyToNavigate = () => {
-  // Add a small delay to ensure navigation is fully initialized
   return isNavigationReady;
+};
+
+// Wait for both navigation readiness AND user authentication before deep-linking.
+// On cold start, auto-login and notification handling race — navigating before auth
+// causes the order detail API call to fail (infinite spinner) and briefly flashes
+// the login screen.
+const waitForAuthAndNavigation = (maxWaitMs: number = 15000): Promise<boolean> => {
+  return new Promise((resolve) => {
+    const startTime = Date.now();
+    const check = () => {
+      const state = store.getState();
+      const isAuthenticated = !!state.user?.user?.id;
+      if (isNavigationReady && isAuthenticated) {
+        resolve(true);
+        return;
+      }
+      if (Date.now() - startTime > maxWaitMs) {
+        console.log('waitForAuthAndNavigation timed out', { isNavigationReady, isAuthenticated });
+        resolve(false);
+        return;
+      }
+      setTimeout(check, 500);
+    };
+    check();
+  });
 };
 
 export const InitializeNotification = () => {
@@ -293,33 +317,22 @@ export const firebaseActions = () => {
   messaging().onNotificationOpenedApp(async remoteMessage => {
     console.log('remoteMessage clicked in the background', remoteMessage);
 
-    // If chef was just approved, refresh user data and stay on current screen
-    // (activation notification has no order to show - UI updates via Redux)
     if (isChefActivationNotification(remoteMessage)) {
       await refreshUserData();
-      return; // Don't navigate - just let the UI update in place
+      return;
     }
 
-    // Add navigation guard with delay
-    setTimeout(() => {
-      if (!isReadyToNavigate()) {
-        console.log('Navigation not ready, delaying notification navigation');
-        // Retry after additional delay
-        setTimeout(() => {
-          if (isReadyToNavigate() && remoteMessage?.data && Object.keys(remoteMessage.data).length > 0) {
-            handleNotificationNavigation(remoteMessage);
-          }
-        }, 2000);
-        return;
-      }
+    if (!remoteMessage?.data || Object.keys(remoteMessage.data).length === 0) return;
 
-      if (remoteMessage?.data && Object.keys(remoteMessage.data).length > 0) {
-        handleNotificationNavigation(remoteMessage);
-      }
-    }, 1000); // Initial delay to ensure app is ready
+    const ready = await waitForAuthAndNavigation(10000);
+    if (ready) {
+      handleNotificationNavigation(remoteMessage);
+    } else {
+      console.log('Auth/navigation not ready after background tap, skipping');
+    }
   });
 
-  // Action from Quite/Killed State both Android & iOS
+  // Action from Quit/Killed State both Android & iOS
   messaging()
     .getInitialNotification()
     .then(async remoteMessage => {
@@ -328,29 +341,20 @@ export const firebaseActions = () => {
         remoteMessage,
       );
 
-      // If chef was just approved, refresh user data and stay on current screen
-      // (activation notification has no order to show - UI updates via Redux)
       if (isChefActivationNotification(remoteMessage)) {
-        // Wait a bit for store to be rehydrated before refreshing
-        setTimeout(async () => {
-          await refreshUserData();
-        }, 2000);
-        return; // Don't navigate - just let the UI update in place
+        const ready = await waitForAuthAndNavigation(10000);
+        if (ready) await refreshUserData();
+        return;
       }
 
-      if (remoteMessage?.data && Object.keys(remoteMessage.data).length > 0) {
-        if (remoteMessage?.data) {
-          console.log('>>>REMOTE .... MESSAGE DATA>>>', remoteMessage);
-        }
+      if (!remoteMessage?.data || Object.keys(remoteMessage.data).length === 0) return;
 
-        // Add longer delay for killed state as app needs more time to initialize
-        setTimeout(() => {
-          if (isReadyToNavigate()) {
-            handleNotificationNavigation(remoteMessage);
-          } else {
-            console.log('Navigation not ready after killed state, skipping');
-          }
-        }, 6000); // Longer delay for killed state
+      console.log('>>>REMOTE .... MESSAGE DATA>>>', remoteMessage);
+      const ready = await waitForAuthAndNavigation(15000);
+      if (ready) {
+        handleNotificationNavigation(remoteMessage);
+      } else {
+        console.log('Auth/navigation not ready after killed-state tap, skipping');
       }
     });
 };
