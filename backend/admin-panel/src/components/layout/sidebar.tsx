@@ -12,6 +12,7 @@ import {
   Ticket,
   Tag,
   Camera,
+  CalendarDays,
   MapPin,
   LogOut,
   KeyRound,
@@ -73,6 +74,7 @@ const navSections: NavSection[] = [
     items: [
       { to: "/admin-new/discount-codes", icon: Tag, label: "Discount Codes" },
       { to: "/admin-new/dish-photos", icon: Camera, label: "Dish Photos" },
+      { to: "/admin-new/content-queue", icon: CalendarDays, label: "Content Queue" },
     ],
   },
   {

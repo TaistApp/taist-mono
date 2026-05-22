@@ -18,6 +18,7 @@ use App\Models\Zipcodes;
 use App\Models\DiscountCodes;
 use App\Models\DiscountCodeUsage;
 use App\Models\DishPhoto;
+use App\Models\SocialContentQueue;
 use App\Notification;
 use DB;
 use Illuminate\Support\Facades\Log;
@@ -1149,5 +1150,140 @@ class AdminApiV2Controller extends Controller
         $photo->save();
 
         return response()->json(['success' => 1, 'data' => $photo]);
+    }
+
+    // ==================== Social Content Queue ====================
+
+    /**
+     * All queue items, filterable by queue_status and pillar.
+     */
+    public function contentQueueIndex(Request $request)
+    {
+        $query = SocialContentQueue::with(['dishPhoto', 'menu']);
+
+        if ($request->has('queue_status') && $request->queue_status !== 'all') {
+            $query->where('queue_status', $request->queue_status);
+        }
+        if ($request->has('pillar') && $request->pillar !== 'all') {
+            $query->where('pillar', $request->pillar);
+        }
+
+        $items = $query
+            ->orderBy('scheduled_date', 'asc')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json(['success' => 1, 'data' => $items]);
+    }
+
+    /**
+     * Update a queue item.
+     */
+    public function contentQueueUpdate(Request $request, $id)
+    {
+        $item = SocialContentQueue::find($id);
+        if (!$item) {
+            return response()->json(['success' => 0, 'error' => 'Queue item not found.'], 404);
+        }
+
+        $allowed = [
+            'post_id', 'scheduled_date', 'day_of_week', 'time', 'platform',
+            'pillar', 'caption', 'hashtags', 'image_url', 'target_audience',
+            'queue_status', 'notes', 'review_quote', 'review_attribution',
+        ];
+
+        $updateData = [];
+        foreach ($allowed as $field) {
+            if ($request->has($field)) {
+                $updateData[$field] = $request->input($field);
+            }
+        }
+
+        $item->update($updateData);
+
+        return response()->json(['success' => 1, 'data' => $item->fresh()]);
+    }
+
+    /**
+     * Approve a queue item.
+     */
+    public function contentQueueApprove($id)
+    {
+        $item = SocialContentQueue::find($id);
+        if (!$item) {
+            return response()->json(['success' => 0, 'error' => 'Queue item not found.'], 404);
+        }
+
+        $item->update(['queue_status' => 'approved']);
+
+        return response()->json(['success' => 1, 'data' => $item->fresh()]);
+    }
+
+    /**
+     * Reject a queue item.
+     */
+    public function contentQueueReject($id)
+    {
+        $item = SocialContentQueue::find($id);
+        if (!$item) {
+            return response()->json(['success' => 0, 'error' => 'Queue item not found.'], 404);
+        }
+
+        $item->update(['queue_status' => 'rejected']);
+
+        return response()->json(['success' => 1, 'data' => $item->fresh()]);
+    }
+
+    /**
+     * Export approved items formatted as Excel column structure (A–S),
+     * then mark them as 'exported'.
+     *
+     * Excel columns:
+     *   A=Post ID, B=Date, C=Day, D=Time, E=Platform, F=Pillar,
+     *   G=Caption, H=Hashtags, I=Canva Design URL (empty), J=Image URL,
+     *   K=Target Audience, L=CTA Link (empty), M=Posted (always "Draft"),
+     *   N=PublishedAt (empty), O=IG Post ID (empty), P=FB Post ID (empty),
+     *   Q=Notes, R=ReviewQuote, S=ReviewAttribution
+     */
+    public function contentQueueExport()
+    {
+        $items = SocialContentQueue::where('queue_status', 'approved')
+            ->orderBy('scheduled_date', 'asc')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $rows = $items->map(function ($item) {
+            return [
+                $item->post_id,                                            // A — Post ID
+                $item->scheduled_date ? $item->scheduled_date->format('Y-m-d') : null, // B — Date
+                $item->day_of_week,                                        // C — Day
+                $item->time,                                               // D — Time
+                $item->platform,                                           // E — Platform
+                $item->pillar,                                             // F — Pillar
+                $item->caption,                                            // G — Caption
+                $item->hashtags,                                           // H — Hashtags
+                null,                                                      // I — Canva Design URL (reserved)
+                $item->image_url,                                          // J — Image URL
+                $item->target_audience,                                    // K — Target Audience
+                null,                                                      // L — CTA Link (reserved)
+                'Draft',                                                   // M — Posted (always Draft for new exports)
+                null,                                                      // N — PublishedAt
+                null,                                                      // O — IG Post ID
+                null,                                                      // P — FB Post ID
+                $item->notes,                                              // Q — Notes
+                $item->review_quote,                                       // R — ReviewQuote
+                $item->review_attribution,                                 // S — ReviewAttribution
+            ];
+        })->values()->all();
+
+        // Mark exported
+        SocialContentQueue::whereIn('id', $items->pluck('id'))
+            ->update(['queue_status' => 'exported']);
+
+        return response()->json([
+            'success' => 1,
+            'count' => count($rows),
+            'rows' => $rows,
+        ]);
     }
 }

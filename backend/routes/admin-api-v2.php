@@ -49,6 +49,13 @@ Route::group(['middleware' => ['auth:adminapi']], function () {
     Route::get('dish-photos', 'AdminApiV2Controller@dishPhotos');
     Route::put('dish-photos/{id}', 'AdminApiV2Controller@dishPhotoUpdate');
 
+    // Social Content Queue
+    Route::get('content-queue', 'AdminApiV2Controller@contentQueueIndex');
+    Route::put('content-queue/{id}', 'AdminApiV2Controller@contentQueueUpdate');
+    Route::post('content-queue/{id}/approve', 'AdminApiV2Controller@contentQueueApprove');
+    Route::post('content-queue/{id}/reject', 'AdminApiV2Controller@contentQueueReject');
+    Route::get('content-queue/export', 'AdminApiV2Controller@contentQueueExport');
+
     // Proxy legacy mutation endpoints so frontend baseURL (/admin-api-v2) works
     Route::get('adminapi/change_chef_status', 'AdminapiController@changeChefStatus');
     Route::get('adminapi/change_ticket_status', 'AdminapiController@changeTicketStatus');
