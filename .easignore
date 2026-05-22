@@ -1,0 +1,106 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+backend/.env
+frontend/.env
+
+# MCP config (contains tokens)
+.mcp.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.history/
+
+# Temp assets at repo root only (empty image files from clipboard)
+/assets/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+backend/storage/logs/*.log
+
+# Build outputs
+dist/
+build/
+*.apk
+*.aab
+*.ipa
+
+# Backend specific
+backend/storage/*.key
+backend/vendor/
+backend/node_modules/
+backend/public/storage
+backend/public/hot
+backend/.phpunit.result.cache
+
+# Frontend specific
+frontend/.expo/
+frontend/dist/
+frontend/build/
+frontend/.expo-shared/
+frontend/android/app/build/
+frontend/android/.gradle/
+frontend/ios/Pods/
+frontend/ios/build/
+frontend/ios/Podfile.lock
+frontend/ios/*.xcworkspace/
+frontend/ios/PrivacyInfo.xcprivacy
+
+# Cache
+.cache/
+*.cache
+
+# Testing
+coverage/
+
+# Secrets
+*.pem
+*.key
+*.keystore
+*.jks
+!backend/app/debug.keystore
+credentials.json
+firebase_credentials.json
+key.properties
+
+# Config files with secrets
+backend/public/include/config.php
+backend/public/api/config.php
+
+# Slack summaries (local working files)
+docs/slack-summaries/
+
+google-play-service-account.json
+
+# E2E test credentials
+tests/e2e/.env.e2e
+
+# Claude worktrees (massive, not needed for build)
+.claude/
+.git/worktrees/
+
+# Backend not needed for iOS build
+backend/
+
+# Docs not needed for build
+docs/
+
+# Tests not needed for build
+tests/
