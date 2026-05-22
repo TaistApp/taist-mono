@@ -342,9 +342,7 @@ const OrderDetail = () => {
           {(orderInfo?.parking_type || orderInfo?.parking_instructions) && (
             <View style={[styles.card, { backgroundColor: '#FFF7ED', borderWidth: 1, borderColor: '#FDBA74' }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <Text style={{ fontSize: 20 }}>
-                  {getParkingLabel(orderInfo.parking_type)?.split(' ')[0] || '🅿️'}
-                </Text>
+                <Text style={{ fontSize: 20 }}>🚗</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.text, { fontWeight: '700', marginBottom: 2 }]}>
                     Arrival & Parking
