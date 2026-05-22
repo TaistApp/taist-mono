@@ -62,7 +62,7 @@ class MapiController extends Controller
     // TMA-037: Demand signaling & time blockout constants
     const DEMAND_SIGNAL_FAKE_PERCENTAGE = 40;       // % of chefs without orders that get fake "hot" badge
     const DEMAND_SIGNAL_STATUSES = [1, 2];           // Order statuses that count as real demand
-    const BLOCKOUT_ORDER_STATUSES = [2, 7];           // Order statuses that block timeslots (Accepted, On My Way)
+    const BLOCKOUT_ORDER_STATUSES = [1, 2, 7];        // Order statuses that block timeslots (Requested, Accepted, On My Way)
     const ORDER_BUFFER_MINUTES = 30;                  // Buffer time (minutes) between orders
     const DEFAULT_ORDER_DURATION_MINUTES = 120;       // Fallback if chef has no live menu items
 
@@ -515,14 +515,16 @@ class MapiController extends Controller
         }
         $user = app(Listener::class)->where(['email' => $request->email])->first();
         if (auth()->guard('listener')->attempt($request->only('email', 'password'))) {
-          //   $api_token = $this->_generateToken();
-          //   app(Listener::class)->where(['id' => $user->id])->update(['api_token' => $api_token]);
-            if ($user['verified'] == 1) {
-                $api_token = $user['api_token'];
-                return response()->json(['success' => 1, 'data' => ['api_token' => $api_token, 'user' => $user]]);
-            } else {
+            if ($user['verified'] != 1) {
                 return response()->json(['success' => 0, 'error' => 'You need to verify the account first.']);
             }
+            if ($user['is_pending'] == 1) {
+                return response()->json(['success' => 0, 'error' => 'Your account is currently deactivated. Please contact support.']);
+            }
+            $api_token = $this->_generateToken();
+            app(Listener::class)->where(['id' => $user->id])->update(['api_token' => $api_token]);
+            $user = app(Listener::class)->where(['id' => $user->id])->first();
+            return response()->json(['success' => 1, 'data' => ['api_token' => $api_token, 'user' => $user]]);
         }
         if ($user)
             return response()->json(['success' => 0, 'error' => 'The password is not correct.']);

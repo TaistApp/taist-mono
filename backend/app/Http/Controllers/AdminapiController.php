@@ -81,12 +81,16 @@ class AdminapiController extends Controller
         $auser = app(Listener::class)->whereIn('id',$ids)->get();
         if (isset($auser)) {
             if ($request->status == 0) {
-                app(Listener::class)->whereIn('id',$ids)->update(['is_pending'=>1]);
+                app(Listener::class)->whereIn('id',$ids)->update(['is_pending'=>1, 'api_token'=>'']);
             } else {
                 if ($request->status == 4) {
                     app(Listener::class)->whereIn('id',$ids)->delete();
                 } else {
-                    app(Listener::class)->whereIn('id',$ids)->update(['verified'=>$request->status, 'is_pending'=>0]);
+                    $updateData = ['verified'=>$request->status, 'is_pending'=>0];
+                    if ($request->status != 1) {
+                        $updateData['api_token'] = '';
+                    }
+                    app(Listener::class)->whereIn('id',$ids)->update($updateData);
                     if ($request->status == 1 && !$request->boolean('silent')) {
                         foreach($ids as $uid) {
                             $approved_user = app(Listener::class)->where('id',$uid)->first();

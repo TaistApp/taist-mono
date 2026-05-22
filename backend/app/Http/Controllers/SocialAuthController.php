@@ -149,6 +149,9 @@ class SocialAuthController extends Controller
         if ($user->verified != 1) {
             return response()->json(['success' => 0, 'error' => 'You need to verify the account first.']);
         }
+        if ($user->is_pending == 1) {
+            return response()->json(['success' => 0, 'error' => 'Your account is currently deactivated. Please contact support.']);
+        }
 
         // Re-fetch so the response includes the latest fields.
         $user = Listener::find($user->id);
