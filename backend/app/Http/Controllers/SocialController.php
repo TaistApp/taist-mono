@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Listener;
 use App\Models\Menus;
+use App\Models\SocialContentQueue;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -286,6 +287,68 @@ class SocialController extends Controller
             'menuDescription' => $row->menu_description,
             'chefId' => (int) $row->chef_id,
             'chefName' => trim($row->chef_first_name),
+        ]);
+    }
+
+    /**
+     * POST /mapi/social/content-queue/generate
+     *
+     * Bulk-inserts content items into the social_content_queue table.
+     * Used by the Claude Routine to push generated content for admin review.
+     *
+     * Body: { "items": [{ pillar, caption, hashtags?, scheduled_date?, image_url?,
+     *          source_photo_id?, source_menu_id?, review_quote?, review_attribution?,
+     *          notes?, post_id?, day_of_week?, time?, platform?, target_audience? }] }
+     */
+    public function contentQueueGenerate(Request $request)
+    {
+        if (!$this->checkApiKey($request)) {
+            return response()->json(['success' => 0, 'error' => 'Access denied.'], 401);
+        }
+
+        $items = $request->input('items', []);
+        if (empty($items) || !is_array($items)) {
+            return response()->json([
+                'success' => 0,
+                'error' => 'items array is required and must not be empty.',
+            ], 422);
+        }
+
+        $allowed = [
+            'post_id', 'scheduled_date', 'day_of_week', 'time', 'platform',
+            'pillar', 'caption', 'hashtags', 'image_url', 'target_audience',
+            'notes', 'review_quote', 'review_attribution',
+            'source_photo_id', 'source_menu_id',
+        ];
+
+        $inserted = [];
+        $errors = [];
+
+        foreach ($items as $i => $itemData) {
+            // Validate required fields
+            if (empty($itemData['pillar']) || empty($itemData['caption'])) {
+                $errors[] = "Item {$i}: pillar and caption are required.";
+                continue;
+            }
+
+            $row = [];
+            foreach ($allowed as $field) {
+                if (isset($itemData[$field])) {
+                    $row[$field] = $itemData[$field];
+                }
+            }
+            $row['queue_status'] = 'draft';
+            $row['generated_by'] = 'routine';
+
+            $record = SocialContentQueue::create($row);
+            $inserted[] = $record->id;
+        }
+
+        return response()->json([
+            'success' => 1,
+            'inserted' => count($inserted),
+            'ids' => $inserted,
+            'errors' => $errors,
         ]);
     }
 }
