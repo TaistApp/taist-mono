@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { PARKING_TYPES } from '../constants/parkingTypes';
+import { PARKING_TYPES, getSelectedParkingTypes } from '../constants/parkingTypes';
 import { AppColors, Shadows, Spacing } from '../../constants/theme';
 
 interface Props {
@@ -24,6 +24,18 @@ const ParkingPicker: React.FC<Props> = ({
   onInstructionsChange,
   compact = false,
 }) => {
+  const selectedIds = getSelectedParkingTypes(parkingType);
+
+  const handleToggle = (id: string) => {
+    let updated: string[];
+    if (selectedIds.includes(id)) {
+      updated = selectedIds.filter(s => s !== id);
+    } else {
+      updated = [...selectedIds, id];
+    }
+    onTypeChange(updated.length > 0 ? updated.join(',') : undefined);
+  };
+
   return (
     <View style={styles.container}>
       {!compact && (
@@ -31,12 +43,12 @@ const ParkingPicker: React.FC<Props> = ({
       )}
       <View style={styles.chipRow}>
         {PARKING_TYPES.map(type => {
-          const isSelected = parkingType === type.id;
+          const isSelected = selectedIds.includes(type.id);
           return (
             <TouchableOpacity
               key={type.id}
               style={[styles.chip, isSelected && styles.chipSelected]}
-              onPress={() => onTypeChange(isSelected ? undefined : type.id)}
+              onPress={() => handleToggle(type.id)}
               activeOpacity={0.7}
             >
               <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>

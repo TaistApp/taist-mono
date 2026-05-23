@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "org.taist.taist",
-      "buildNumber": "33",
+      "buildNumber": "34",
       "googleServicesFile": "./GoogleService-Info.plist",
       "usesAppleSignIn": true,
       "infoPlist": {
@@ -74,6 +74,7 @@
     },
     "plugins": [
       "./plugins/withNotificationColorFix.js",
+      "./plugins/withDisableLintVital.js",
       [
         "react-native-edge-to-edge",
         {
