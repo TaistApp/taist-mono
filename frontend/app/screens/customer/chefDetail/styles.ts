@@ -111,6 +111,22 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
     color: AppColors.text,
   },
+  paginationDots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: AppColors.border,
+  },
+  dotActive: {
+    backgroundColor: AppColors.primary,
+    width: 20,
+  },
   allegenContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
