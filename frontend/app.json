@@ -2,7 +2,7 @@
   "expo": {
     "name": "Taist",
     "slug": "taist",
-    "version": "32.1.2",
+    "version": "32.2.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "taistexpo",
@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "org.taist.taist",
-      "buildNumber": "34",
+      "buildNumber": "35",
       "googleServicesFile": "./GoogleService-Info.plist",
       "usesAppleSignIn": true,
       "infoPlist": {
@@ -42,7 +42,7 @@
       "icon": "./assets/images/icon.png",
       "edgeToEdgeEnabled": true,
       "package": "com.taist.app",
-      "versionCode": 157,
+      "versionCode": 158,
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.INTERNET",

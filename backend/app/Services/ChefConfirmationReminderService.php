@@ -54,6 +54,15 @@ class ChefConfirmationReminderService
             return false;
         }
 
+        if ($chef->is_pending == 1 || $chef->verified != 1) {
+            Log::info("Chef is not active, skipping reminder", [
+                'chef_id' => $chefId,
+                'is_pending' => $chef->is_pending,
+                'verified' => $chef->verified
+            ]);
+            return false;
+        }
+
         // Check if there's already an override for tomorrow
         $existingOverride = AvailabilityOverride::forChef($chefId)
             ->forDate($tomorrowDate)
@@ -207,6 +216,13 @@ class ChefConfirmationReminderService
     {
         Log::info('findChefsNeedingReminders: Starting search');
 
+        if (env('APP_ENV') !== 'production') {
+            Log::info('findChefsNeedingReminders: Skipping — not production environment', [
+                'env' => env('APP_ENV')
+            ]);
+            return [];
+        }
+
         // Get all availabilities
         $availabilities = app(Availabilities::class)->get();
         Log::info('findChefsNeedingReminders: Found ' . $availabilities->count() . ' availability records');
@@ -217,6 +233,11 @@ class ChefConfirmationReminderService
             $chef = app(Listener::class)->where('id', $availability->user_id)->first();
 
             if (!$chef || $chef->user_type != 2) {
+                continue;
+            }
+
+            // Only send to active chefs (approved and verified)
+            if ($chef->is_pending == 1 || $chef->verified != 1) {
                 continue;
             }
 
