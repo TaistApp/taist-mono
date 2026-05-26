@@ -42,7 +42,7 @@ import { navigate } from '../../../utils/navigation';
 import { ShowErrorToast } from '../../../utils/toast';
 import AvailabilitySection from './components/availabilitySection';
 import ChefMenuItem from './components/chefMenuItem';
-import ChefReviewItem from './components/chefReviewItem';
+import PaginatedReviews from './components/paginatedReviews';
 import { styles } from './styles';
 
 const ChefDetail = () => {
@@ -187,14 +187,7 @@ const ChefDetail = () => {
           </View>
 
           {reviews.length > 0 && (
-            <View testID="chefDetail.reviewsSection" style={styles.chefReviewContainer}>
-              <Text style={styles.chefCardReviewHeading}>Reviews</Text>
-              {reviews.map((item, index) => {
-                return (
-                  <ChefReviewItem item={item} key={`reviewItem_${index}`} />
-                );
-              })}
-            </View>
+            <PaginatedReviews reviews={reviews} />
           )}
 
           <View onLayout={(e) => { availabilityY.current = e.nativeEvent.layout.y; }}>
