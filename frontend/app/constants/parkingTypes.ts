@@ -7,7 +7,7 @@ export interface IParkingType {
 export const PARKING_TYPES: IParkingType[] = [
   { id: 'street', label: 'Street Parking', icon: '🅿️' },
   { id: 'driveway', label: 'Driveway', icon: '🏠' },
-  { id: 'apartment_lot', label: 'Building Garage', icon: '🏢' },
+  { id: 'apartment_lot', label: 'Parking Garage', icon: '🏢' },
   { id: 'gate_code', label: 'Gate / Code Required', icon: '🔐' },
   { id: 'other', label: 'Other', icon: '📍' },
 ];
