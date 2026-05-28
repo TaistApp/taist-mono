@@ -111,8 +111,8 @@ export const InitializeNotification = () => {
       isNavigationReady = true;
     }, 3000); // Give enough time for initial app setup
     
-    RequestUserPermission();
-    GetFCMToken(); // Get FCM token and send to backend
+    RequestLocationPermission();
+    GetFCMToken();
     firebaseActions();
     
     return () => {
@@ -233,32 +233,39 @@ export const InitializeNotification = () => {
   return null; // This component doesn't render anything visual
 };
 
-const RequestUserPermission = async () => {
-  console.log('>>>RequestUserPermission>>>', Platform.OS, Platform.Version);
-  
-  // Request Expo notifications permission first
-  try {
-    const { status } = await Notifications.requestPermissionsAsync();
-    console.log('Expo notifications permission status:', status);
-  } catch (error) {
-    console.warn('Expo notifications permission error:', error);
-  }
-  
+const RequestLocationPermission = async () => {
+  console.log('>>>RequestLocationPermission>>>', Platform.OS, Platform.Version);
+
   if (Platform.OS === 'android') {
     const granted = await requestMultiple([
       PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION,
     ]);
-    console.log('>>>>Android Permission', granted);
+    console.log('>>>>Android Location Permission', granted);
   } else if (Platform.OS === 'ios') {
     await requestMultiple([PERMISSIONS.IOS.LOCATION_ALWAYS]);
-    const authStatus = await messaging().requestPermission();
-    const enabled =
-      authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-      authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+  }
+};
 
-    if (enabled) {
-      console.log('>>>>Authorization status:', authStatus);
+export const RequestPushPermission = async (): Promise<boolean> => {
+  console.log('>>>RequestPushPermission>>>', Platform.OS, Platform.Version);
+
+  try {
+    const { status } = await Notifications.requestPermissionsAsync();
+    console.log('Expo notifications permission status:', status);
+
+    if (Platform.OS === 'ios') {
+      const authStatus = await messaging().requestPermission();
+      const enabled =
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+      console.log('>>>>iOS push authorization status:', authStatus);
+      return enabled;
     }
+
+    return status === 'granted';
+  } catch (error) {
+    console.warn('Push permission request error:', error);
+    return false;
   }
 };
 
@@ -360,8 +367,17 @@ export const firebaseActions = () => {
 };
 
 // Helper function to handle notification navigation
+const isChefUpdateNotification = (remoteMessage: any): boolean => {
+  return remoteMessage?.data?.type === 'chef_update';
+};
+
 const handleNotificationNavigation = (remoteMessage: any) => {
   try {
+    // Handle chef update notifications - open the home screen
+    if (isChefUpdateNotification(remoteMessage)) {
+      return;
+    }
+
     // Handle availability confirmation notifications - navigate to chef profile and auto-open GoLive toggle
     if (isAvailabilityConfirmationNotification(remoteMessage)) {
       console.log('>>>Availability confirmation notification - navigating to chef profile>>>', JSON.stringify(remoteMessage));

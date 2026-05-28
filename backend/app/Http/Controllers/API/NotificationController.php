@@ -22,14 +22,17 @@ class NotificationController extends Controller
                     return [
                         'id' => $notification->id,
                         'title' => $notification->title,
-                        'tip' => $review['tip'], 
-                        'review' => $review['review'], 
+                        'tip' => $review['tip'],
+                        'review' => $review['review'],
                         'ratings' => $review['ratings'],
                         'navigation_id' => $notification->navigation_id,
                         'fcm_token' => $notification->fcm_token,
                         'role' => $notification->role,
                         'user_id' => $notification->user_id,
                         'image' => $notification->image,
+                        'dish_image' => $notification->dish_image,
+                        'is_read' => (bool) $notification->is_read,
+                        'category' => $notification->category,
                         'updated_at' => $notification->updateed_at,
                         'created_at' => $notification->created_at,
                     ];
@@ -43,6 +46,58 @@ class NotificationController extends Controller
         } catch (Exception $e) {
             $errorMsg = "Unable to get notification: " . $e->getMessage();
             return response()->json(['success' => false, 'error' => $errorMsg]);
+        }
+    }
+
+    public function markRead(Request $request)
+    {
+        try {
+            $userId = $request->input('user_id');
+            if (!$userId) {
+                return response()->json(['success' => false, 'error' => 'user_id is required']);
+            }
+
+            $updated = Notification::where('user_id', $userId)
+                ->where('is_read', false)
+                ->update(['is_read' => true]);
+
+            return response()->json(['success' => true, 'marked' => $updated]);
+        } catch (Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    public function getUnreadCount(Request $request, $id)
+    {
+        try {
+            $count = Notification::where('user_id', $id)
+                ->where('is_read', false)
+                ->count();
+
+            return response()->json(['success' => true, 'count' => $count]);
+        } catch (Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    public function optInPush(Request $request)
+    {
+        try {
+            $userId = $request->input('user_id');
+            if (!$userId) {
+                return response()->json(['success' => false, 'error' => 'user_id is required']);
+            }
+
+            $user = Listener::where('id', $userId)->first();
+            if (!$user) {
+                return response()->json(['success' => false, 'error' => 'User not found']);
+            }
+
+            $user->update(['push_opted_in' => true]);
+
+            return response()->json(['success' => true]);
+        } catch (Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()]);
         }
     }
 

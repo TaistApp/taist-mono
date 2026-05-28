@@ -7,9 +7,27 @@ use App\Notifications\OrderAcceptedNotification;
 use App\Listener;
 use App\Models\Orders;
 use App\Notifications\Channels\FirebaseChannel;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 class OrderAcceptedNotificationTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        if (!Schema::hasTable('tbl_dish_photos')) {
+            Schema::create('tbl_dish_photos', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('order_id')->nullable();
+                $table->unsignedBigInteger('chef_user_id');
+                $table->unsignedBigInteger('menu_id');
+                $table->string('filename');
+                $table->string('status')->default('pending');
+                $table->timestamps();
+            });
+        }
+    }
+
     /**
      * Test notification uses correct channels
      */

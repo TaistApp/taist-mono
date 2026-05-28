@@ -1,103 +1,138 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
-import { FlatList, RefreshControl, SafeAreaView, TouchableOpacity } from 'react-native';
+import { RefreshControl, SafeAreaView, SectionList, Text, TouchableOpacity, View } from 'react-native';
 import { useAppDispatch, useAppSelector } from '../../../hooks/useRedux';
 import Container from '../../../layout/Container';
 import { hideLoading, showLoading } from '../../../reducers/loadingSlice';
-import { GetNotifcationDataAPI } from '../../../services/api';
+import { setUnreadCount } from '../../../reducers/notificationSlice';
+import { GetNotifcationDataAPI, GetUnreadCountAPI, MarkNotificationsReadAPI } from '../../../services/api';
 import { navigate } from '../../../utils/navigation';
 import { ShowErrorToast } from '../../../utils/toast';
 import NotificationCard from './components/NotificationCard';
 import { styles } from './styles';
+
 const Notification = () => {
   const dispatch = useAppDispatch();
   const self = useAppSelector(x => x.user.user);
-  const [notifications, setnotifications] = useState<any>([]);
+  const [sections, setSections] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       getNotifications();
-      // console.log('user id : ',self?.id);
+      markAllRead();
     }, []),
   );
+
+  const markAllRead = async () => {
+    if (!self?.id) return;
+    try {
+      await MarkNotificationsReadAPI(self.id);
+      dispatch(setUnreadCount(0));
+    } catch (e) {
+      console.warn('Failed to mark notifications read:', e);
+    }
+  };
+
+  const buildSections = (notifications: any[]) => {
+    const unread = notifications.filter((n: any) => !n.is_read);
+    const read = notifications.filter((n: any) => n.is_read);
+
+    const result = [];
+    if (unread.length > 0) {
+      result.push({ title: 'New', data: unread });
+    }
+    if (read.length > 0) {
+      result.push({ title: 'Earlier', data: read });
+    }
+    if (result.length === 0 && notifications.length > 0) {
+      result.push({ title: 'Earlier', data: notifications });
+    }
+    return result;
+  };
+
   const getNotifications = async () => {
     try {
       dispatch(showLoading());
-      const resp = await GetNotifcationDataAPI({user_id: self?.id || -1});
+      const resp = await GetNotifcationDataAPI({ user_id: self?.id || -1 });
       if (resp.success == 1) {
-        console.log('notification data: ', resp?.data);
-
-        setnotifications(resp?.data);
+        setSections(buildSections(resp?.data || []));
       } else {
         ShowErrorToast(resp.error);
-        console.log('error in getNotification: ', resp);
       }
       dispatch(hideLoading());
     } catch (error) {
       console.log('error getting notifications: ', error);
+      dispatch(hideLoading());
     }
   };
+
   const onRefresh = async () => {
     try {
-          setRefreshing(true); // Start refreshing
-
-      // dispatch(showLoading());
-      const resp = await GetNotifcationDataAPI({user_id: self?.id || -1});
+      setRefreshing(true);
+      const resp = await GetNotifcationDataAPI({ user_id: self?.id || -1 });
       if (resp.success == 1) {
-        console.log('notification data: ', resp?.data);
-
-        setnotifications(resp?.data);
+        setSections(buildSections(resp?.data || []));
       } else {
         ShowErrorToast(resp.error);
-        console.log('error in getNotification: ', resp);
       }
-                setRefreshing(false); // Start refreshing
-
-      // dispatch(hideLoading());
+      setRefreshing(false);
     } catch (error) {
       console.log('error getting notifications: ', error);
-        setRefreshing(false); // Stop refreshing
-
+      setRefreshing(false);
     }
   };
 
-      const pressMethod = (item: any) => {
-        console.log('Item Notification data====>>>', item);
-        
-        // Chef notifications - but skip if body contains 'Approved'
-        if (item?.role == 'chef' && !item?.body.includes('Approved')) {
-          navigate.toChef.orderDetail({
-            id: item?.navigation_id,
-          } as any);
-        } 
-        // Customer notifications
-        else if (item?.role == 'user') {
-          navigate.toCustomer.orderDetail({
-            id: item?.navigation_id,
-          } as any);
-        }
-      };
+  const pressMethod = (item: any) => {
+    if (item?.role == 'chef' && !item?.body?.includes('Approved')) {
+      navigate.toChef.orderDetail({
+        id: item?.navigation_id,
+      } as any);
+    } else if (item?.role == 'user') {
+      navigate.toCustomer.orderDetail({
+        id: item?.navigation_id,
+      } as any);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.main}>
-      <Container backMode title="Notification">
-        <FlatList
-          data={notifications}
-          keyExtractor={item => item?.id}
-          renderItem={({item}) => (
+      <Container backMode title="Notifications">
+        <SectionList
+          sections={sections}
+          keyExtractor={item => item?.id?.toString()}
+          renderSectionHeader={({ section: { title } }) => (
+            <View style={{
+              paddingHorizontal: 16,
+              paddingTop: 16,
+              paddingBottom: 6,
+            }}>
+              <Text style={{
+                fontSize: 14,
+                fontWeight: '700',
+                color: '#888888',
+                textTransform: 'uppercase',
+                letterSpacing: 0.8,
+              }}>
+                {title}
+              </Text>
+            </View>
+          )}
+          renderItem={({ item }) => (
             <TouchableOpacity onPress={() => pressMethod(item)}>
-            <NotificationCard
-              title={item?.title}
-              body={item?.tip ?? item?.body}
-              customer_image={item?.image}
-              time={item?.created_at}
-            />
+              <NotificationCard
+                title={item?.title}
+                body={item?.tip ?? item?.body}
+                customer_image={item?.image}
+                dish_image={item?.dish_image}
+                time={item?.created_at}
+              />
             </TouchableOpacity>
           )}
-
           refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          stickySectionHeadersEnabled={false}
         />
       </Container>
     </SafeAreaView>

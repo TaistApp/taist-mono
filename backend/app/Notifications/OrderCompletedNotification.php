@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Models\DishPhoto;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
@@ -40,10 +41,15 @@ class OrderCompletedNotification extends Notification
      */
     public function toDatabase($notifiable)
     {
+        $dishFilename = $this->order->menu_id
+            ? DishPhoto::where('menu_id', $this->order->menu_id)->where('status', 'approved')->value('filename')
+            : null;
+
         return [
             'title' => 'Your order is complete!',
             'body' => 'Your order has been completed. Enjoy your meal!',
             'image' => $notifiable->photo ?? 'N/A',
+            'dish_image' => $dishFilename,
             'fcm_token' => $notifiable->fcm_token,
             'user_id' => $notifiable->id,
             'navigation_id' => $this->order->id,
@@ -51,17 +57,12 @@ class OrderCompletedNotification extends Notification
         ];
     }
 
-    /**
-     * Get the Firebase representation of the notification.
-     *
-     * @param  mixed  $notifiable
-     * @return array
-     */
     public function toFirebase($notifiable)
     {
         return [
             'title' => 'Your order is complete!',
             'body' => 'Your order has been completed. Enjoy your meal!',
+            'image' => DishPhoto::getApprovedUrlForMenu($this->order->menu_id),
             'data' => [
                 'order_id' => (string)$this->order->id,
                 'role' => 'user',

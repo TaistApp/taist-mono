@@ -5,17 +5,17 @@ interface INotificationCard {
   title: string;
   body: string;
   customer_image?: string;
+  dish_image?: string;
   time: string;
 }
 const NotificationCard = ({
   title,
   body,
   customer_image,
+  dish_image,
   time,
 }: INotificationCard) => {
   function timeAgo(timestamp: string): string {
-    // console.log(timestamp);
-
     const now = new Date();
     const date = new Date(timestamp);
     const secondsAgo = Math.floor((now.getTime() - date.getTime()) / 1000);
@@ -38,24 +38,24 @@ const NotificationCard = ({
 
   return (
     <View style={styles.container}>
-      
       <Image
         source={{
           uri: `${Photo_URL}${customer_image}`,
         }}
-        style={{
-          height: 50,
-          width: 50,
-          resizeMode: 'cover',
-          borderRadius: 50,
-        }}
+        style={styles.avatar}
       />
-      <View>
+      <View style={{ flex: 1 }}>
         <View style={styles.nameAndTimeContainer}>
           <Text style={[styles.body, {fontWeight: '500'}]}>{title}</Text>
-          <Text style={[styles.body, {color: '#FA4616',marginEnd: 14}]}>{timeAgo(time)}</Text>
+          <Text style={[styles.body, {color: '#FA4616'}]}>{timeAgo(time)}</Text>
         </View>
         <Text style={styles.bodyx} numberOfLines={7} ellipsizeMode='clip'>{body}</Text>
+        {dish_image ? (
+          <Image
+            source={{ uri: `${Photo_URL}${dish_image}` }}
+            style={styles.dishImage}
+          />
+        ) : null}
       </View>
     </View>
   );
@@ -67,15 +67,24 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 10,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 10,
-    margin: 10,
+    marginHorizontal: 10,
+    marginVertical: 4,
     overflow: 'hidden',
   },
-  titleText: {
-    color: '#FA4616',
-    fontSize: 20,
-    fontWeight: '500',
+  avatar: {
+    height: 50,
+    width: 50,
+    resizeMode: 'cover',
+    borderRadius: 25,
+  },
+  dishImage: {
+    width: '100%',
+    height: 140,
+    borderRadius: 8,
+    marginTop: 8,
+    resizeMode: 'cover',
   },
   body: {
     color: '#000000',
@@ -83,16 +92,15 @@ const styles = StyleSheet.create({
     overflow: 'scroll',
   },
   bodyx: {
-    width: 300,
     color: '#000000',
     fontSize: 16,
     overflow: 'scroll',
-    paddingEnd:14,
+    paddingEnd: 14,
   },
   nameAndTimeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 30,
+    gap: 10,
   },
 });
