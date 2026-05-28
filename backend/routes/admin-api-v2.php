@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 
 // Public routes (no auth required)
 Route::post('login', 'AdminApiV2Controller@login');
+Route::post('waitlist', 'AdminApiV2Controller@waitlistStore');
 
 // Protected routes
 Route::group(['middleware' => ['auth:adminapi']], function () {
@@ -55,6 +56,9 @@ Route::group(['middleware' => ['auth:adminapi']], function () {
     Route::post('content-queue/{id}/approve', 'AdminApiV2Controller@contentQueueApprove');
     Route::post('content-queue/{id}/reject', 'AdminApiV2Controller@contentQueueReject');
     Route::get('content-queue/export', 'AdminApiV2Controller@contentQueueExport');
+
+    // Waitlist (admin panel)
+    Route::get('waitlist', 'AdminApiV2Controller@waitlist');
 
     // Proxy legacy mutation endpoints so frontend baseURL (/admin-api-v2) works
     Route::get('adminapi/change_chef_status', 'AdminapiController@changeChefStatus');

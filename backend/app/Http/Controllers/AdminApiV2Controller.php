@@ -19,6 +19,7 @@ use App\Models\DiscountCodes;
 use App\Models\DiscountCodeUsage;
 use App\Models\DishPhoto;
 use App\Models\SocialContentQueue;
+use App\Models\Waitlist;
 use App\Notification;
 use DB;
 use Illuminate\Support\Facades\Log;
@@ -1284,6 +1285,80 @@ class AdminApiV2Controller extends Controller
             'success' => 1,
             'count' => count($rows),
             'rows' => $rows,
+        ]);
+    }
+
+    // ──────────────────────────────────────────────
+    // Waitlist
+    // ──────────────────────────────────────────────
+
+    /**
+     * List all waitlist entries (admin panel).
+     */
+    public function waitlist(Request $request)
+    {
+        $query = Waitlist::query();
+
+        if ($request->has('user_type')) {
+            $query->where('user_type', $request->input('user_type'));
+        }
+
+        $entries = $query->orderBy('created_at', 'desc')->get();
+
+        $result = $entries->map(function ($w) {
+            return [
+                'id' => $w->id,
+                'email' => $w->email,
+                'first_name' => $w->first_name,
+                'zip' => $w->zip,
+                'user_type' => $w->user_type,
+                'type_label' => $w->user_type === 1 ? 'Customer' : 'Chef',
+                'source' => $w->source,
+                'household' => $w->household,
+                'referral' => $w->referral,
+                'converted' => $w->converted,
+                'converted_user_id' => $w->converted_user_id,
+                'created_at' => $w->created_at ? strtotime($w->created_at) : null,
+            ];
+        });
+
+        return response()->json($result);
+    }
+
+    /**
+     * Public webhook endpoint — receives waitlist submissions from Make / website.
+     * Deduplicates on email + user_type.
+     */
+    public function waitlistStore(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|max:255',
+            'firstName' => 'required|string|max:50',
+            'zip' => 'required|string|max:10',
+            'userType' => 'required|integer|in:1,2',
+            'source' => 'nullable|string|max:30',
+            'household' => 'nullable|string|max:50',
+            'referral' => 'nullable|string|max:30',
+        ]);
+
+        $entry = Waitlist::updateOrCreate(
+            [
+                'email' => strtolower(trim($request->input('email'))),
+                'user_type' => $request->input('userType'),
+            ],
+            [
+                'first_name' => trim($request->input('firstName')),
+                'zip' => trim($request->input('zip')),
+                'source' => $request->input('source', 'website-waitlist'),
+                'household' => $request->input('household'),
+                'referral' => $request->input('referral'),
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'id' => $entry->id,
+            'created' => $entry->wasRecentlyCreated,
         ]);
     }
 }

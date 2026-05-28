@@ -20,6 +20,7 @@ const DiscountCodesPage = lazy(() => import("./pages/discount-codes"));
 const ServiceAreasPage = lazy(() => import("./pages/service-areas"));
 const DishPhotosPage = lazy(() => import("./pages/dish-photos"));
 const ContentQueuePage = lazy(() => import("./pages/content-queue"));
+const WaitlistPage = lazy(() => import("./pages/waitlist"));
 
 function PageLoader() {
   return (
@@ -63,6 +64,7 @@ export default function App() {
                 <Route path="service-areas" element={<Suspense fallback={<PageLoader />}><ServiceAreasPage /></Suspense>} />
               <Route path="dish-photos" element={<Suspense fallback={<PageLoader />}><DishPhotosPage /></Suspense>} />
               <Route path="content-queue" element={<Suspense fallback={<PageLoader />}><ContentQueuePage /></Suspense>} />
+              <Route path="waitlist" element={<Suspense fallback={<PageLoader />}><WaitlistPage /></Suspense>} />
 
                 {/* Redirects for removed/renamed routes */}
                 <Route path="pendings" element={<Navigate to="/admin-new/chefs" replace />} />
