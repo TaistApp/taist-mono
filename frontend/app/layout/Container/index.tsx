@@ -26,6 +26,7 @@ import DrawerModal from '../../components/DrawerModal';
 import CartIcon from '../../components/cartIcon';
 import GoLiveToggle from '../../components/GoLiveToggle';
 import { useAppSelector } from '../../hooks/useRedux';
+import { useUnreadNotifications } from '../../hooks/useUnreadNotifications';
 
 interface IProps {
   backMode?: boolean;
@@ -50,6 +51,7 @@ const Container = ({
   const user = useAppSelector(x => x.user).user;
 
   const [showDrawerModal, setShowDrawerModal] = useState(false);
+  const { unreadCount } = useUnreadNotifications();
 
   // Check if we're in a chef context (exact match to avoid matching "chefDetail" etc.)
   const isInChefContext = segments.some(segment => segment === 'chef');
@@ -171,7 +173,22 @@ const Container = ({
               testID="header.notificationsButton"
               onPress={handleNotificationPress}
               style={styles.button}>
-              <FontAwesomeIcon icon={faBell} size={20} color="#000000" />
+              <View>
+                <FontAwesomeIcon icon={faBell} size={20} color="#000000" />
+                {unreadCount > 0 && (
+                  <View style={{
+                    position: 'absolute',
+                    top: -3,
+                    right: -3,
+                    width: 10,
+                    height: 10,
+                    backgroundColor: '#FA4616',
+                    borderRadius: 5,
+                    borderWidth: 1.5,
+                    borderColor: '#FFFFFF',
+                  }} />
+                )}
+              </View>
             </TouchableOpacity>
             {(isInChefContext || isInCustomerContext) && user?.id ? (
               <TouchableOpacity

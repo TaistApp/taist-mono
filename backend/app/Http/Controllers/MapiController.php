@@ -35,6 +35,7 @@ use App\Notifications\OrderReadyNotification;
 use App\Notifications\OrderCompletedNotification;
 use App\Notifications\OrderRejectedNotification;
 use App\Notifications\ChefOnTheWayNotification;
+use App\Notifications\NewMenuItemNotification;
 use App\Services\TwilioService;
 use App\Services\OrderSmsService;
 use App\Services\ChatSmsService;
@@ -1850,6 +1851,33 @@ class MapiController extends Controller
 
         $data = app(Menus::class)->where(['id' => $id])->first();
         $data['customizations'] = app(Customizations::class)->where(['menu_id' => $id])->get();
+
+        // Notify past customers who opted in when a live menu item is added
+        if ($request->is_live == 1) {
+            try {
+                $pastCustomerIds = app(Orders::class)
+                    ->where('chef_user_id', $user->id)
+                    ->distinct()
+                    ->pluck('customer_user_id');
+
+                $optedInCustomers = app(Listener::class)
+                    ->whereIn('id', $pastCustomerIds)
+                    ->where('push_opted_in', true)
+                    ->whereNotNull('fcm_token')
+                    ->where('fcm_token', '!=', '')
+                    ->get();
+
+                foreach ($optedInCustomers as $customer) {
+                    $customer->notify(new NewMenuItemNotification($data, $user));
+                }
+            } catch (\Throwable $e) {
+                Log::error('Failed to send new menu item notifications', [
+                    'menu_id' => $id,
+                    'chef_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
 
         return response()->json(['success' => 1, 'data' => $data]);
     }
@@ -4198,6 +4226,11 @@ Write only the review text:";
                     'error' => $e->getMessage()
                 ]);
             }
+
+            // Track first order completion for progressive push permission
+            if (is_null($user->first_order_completed_at)) {
+                $user->update(['first_order_completed_at' => now()]);
+            }
         } else if ($request->status == 4) {
             // Order completed - notify customer
             $user = app(Listener::class)->where(['id' => $order->customer_user_id])->first();
@@ -5355,6 +5388,44 @@ Write only the review text:";
     public function skipDishPhoto(Request $request)
     {
         return response()->json(['success' => 1, 'message' => 'Skipped.']);
+    }
+
+    public function getChefPublicProfile(Request $request, $id)
+    {
+        if ($this->_checktaistApiKey($request->header('apiKey')) === false)
+            return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
+        else if ($this->_checktaistApiKey($request->header('apiKey')) === -1)
+            return response()->json(['success' => 0, 'error' => "Token has been expired."]);
+
+        $chef = Listener::where('id', $id)
+            ->where('user_type', 2)
+            ->where('is_pending', 0)
+            ->first();
+
+        if (!$chef) {
+            return response()->json(['success' => 0, 'error' => 'Chef not found.']);
+        }
+
+        $reviews = app(Reviews::class)->where('to_user_id', $chef->id)->get();
+        $menus = app(Menus::class)->where('user_id', $chef->id)->where('is_live', 1)->get();
+
+        $menuIds = $menus->pluck('id')->toArray();
+        $customizations = !empty($menuIds)
+            ? app(Customizations::class)->whereIn('menu_id', $menuIds)->get()->groupBy('menu_id')
+            : collect();
+
+        foreach ($menus as $menu) {
+            $menu->customizations = $customizations->get($menu->id, collect());
+        }
+
+        $availability = app(Availabilities::class)->where('user_id', $chef->id)->first();
+
+        $chef->reviews = $reviews;
+        $chef->menus = $menus;
+        $chef->bio = $availability->bio ?? null;
+        $chef->minimum_order_amount = $availability->minimum_order_amount ?? null;
+
+        return response()->json(['success' => 1, 'data' => $chef]);
     }
 
 }

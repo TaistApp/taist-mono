@@ -79,6 +79,11 @@ export const Photo_URL = environmentUrls.Photo_URL;
 export const Static_URL = environmentUrls.Static_URL;
 export const HTML_URL = environmentUrls.HTML_URL;
 
+export const getChefShareUrl = (chefId: number) => {
+  const webBase = BASE_URL.replace('/mapi/', '');
+  return `${webBase}/chef/${chefId}`;
+};
+
 // Log current environment for debugging
 console.log('🌍 Environment:', APP_ENV);
 console.log('🔗 API URL:', BASE_URL);
@@ -497,6 +502,21 @@ export const GetSearchChefAPI = async (
     }
   }
   return response;
+};
+
+export const GetChefPublicProfileAPI = async (chefId: number) => {
+  const url = BASE_URL + `get_chef_public_profile/${chefId}`;
+  const headers = {
+    "Content-Type": "application/json",
+    apiKey: API_KEY,
+  };
+  try {
+    const response = await axios.get(url, { headers });
+    return response.data;
+  } catch (error) {
+    console.error("<<<API Error get_chef_public_profile", error);
+    return { success: 0, message: "Some problems occurred. please try again." };
+  }
 };
 
 export const GetChefMenusAPI = async (
@@ -998,6 +1018,21 @@ export const TipOrderPaymentAPI = async (
 export const UpdateFCMTokenAPI = async (token: string) => {
   var response = await POSTAPICALL("update_fcm_token", { fcm_token: token });
   console.log("UpdateFCMTokenAPIgashjdhjasdj====>", response);
+  return response;
+};
+
+export const MarkNotificationsReadAPI = async (userId: number) => {
+  var response = await POSTAPICALL("notifications/mark-read", { user_id: userId });
+  return response;
+};
+
+export const GetUnreadCountAPI = async (userId: number) => {
+  var response = await GETAPICALL(`notifications/unread-count/${userId}`, {});
+  return response;
+};
+
+export const OptInPushNotificationsAPI = async (userId: number) => {
+  var response = await POSTAPICALL("notifications/opt-in", { user_id: userId });
   return response;
 };
 

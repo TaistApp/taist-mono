@@ -19,6 +19,7 @@ class WeeklyNudgeServiceTest extends TestCase
         Schema::dropIfExists('tbl_users');
         Schema::dropIfExists('notifications');
         Schema::dropIfExists('weekly_nudge_logs');
+        Schema::dropIfExists('tbl_dish_photos');
 
         Schema::create('tbl_users', function (Blueprint $table) {
             $table->increments('id');
@@ -38,10 +39,24 @@ class WeeklyNudgeServiceTest extends TestCase
             $table->string('title');
             $table->string('body');
             $table->string('image')->nullable();
+            $table->string('dish_image')->nullable();
             $table->string('fcm_token');
             $table->unsignedBigInteger('user_id');
             $table->string('navigation_id')->default('');
             $table->string('role')->default('customer');
+            $table->boolean('is_read')->default(false);
+            $table->string('category', 50)->default('order_update');
+            $table->timestamps();
+        });
+
+        Schema::create('tbl_dish_photos', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('order_id')->nullable();
+            $table->unsignedBigInteger('chef_user_id');
+            $table->unsignedBigInteger('menu_id');
+            $table->string('filename');
+            $table->string('status')->default('pending');
+            $table->text('admin_notes')->nullable();
             $table->timestamps();
         });
 

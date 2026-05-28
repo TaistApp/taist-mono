@@ -26,6 +26,9 @@ Route::post('social/posted-receipt', 'SocialController@postedReceipt');
 Route::get('social/dish-photos/random', 'SocialController@dishPhotosRandom');
 Route::post('social/content-queue/generate', 'SocialController@contentQueueGenerate');
 
+// Public chef profile (no auth required, API key only)
+Route::get('get_chef_public_profile/{id}', 'MapiController@getChefPublicProfile');
+
 Route::group(['middleware' => ['auth:mapi']], function () {
 
 	Route::get('logout', 'MapiController@logout');
@@ -158,8 +161,9 @@ Route::group(['middleware' => ['auth:mapi']], function () {
 	Route::post('skip_dish_photo', 'MapiController@skipDishPhoto');
 
 	Route::get('get_notifications_by_id/{id}', 'API\NotificationController@getNotificationById');
-
-
+	Route::post('notifications/mark-read', 'API\NotificationController@markRead');
+	Route::get('notifications/unread-count/{id}', 'API\NotificationController@getUnreadCount');
+	Route::post('notifications/opt-in', 'API\NotificationController@optInPush');
 
 });
 

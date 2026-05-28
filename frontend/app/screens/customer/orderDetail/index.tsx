@@ -29,7 +29,11 @@ import { IMenu, IOrder, IPayment, IUser } from '../../../types/index';
 // Hooks
 import { useAppDispatch, useAppSelector } from '../../../hooks/useRedux';
 
+import PushPermissionModal from '../../../components/PushPermissionModal';
 import StyledProfileImage from '../../../components/styledProfileImage';
+import { RequestPushPermission } from '../../../firebase';
+import { OptInPushNotificationsAPI } from '../../../services/api';
+import { ReadDataFromStorage, StoreDataToStorage } from '../../../utils/storage';
 import Container from '../../../layout/Container';
 import { hideLoading, showLoading } from '../../../reducers/loadingSlice';
 import {
@@ -71,6 +75,7 @@ const OrderDetail = () => {
   const [paymentMethod, onChangePaymentMethod] = useState<IPayment>();
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showPushModal, setShowPushModal] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -127,6 +132,11 @@ const OrderDetail = () => {
         pollingRef.current = null;
       }
 
+      // Show push permission modal after first completed order
+      if (resp.data.status === 3) {
+        checkPushPrompt();
+      }
+
       // Update time remaining if order is in requested status
       if (resp.data.status === 1 && resp.data.deadline_info) {
         setTimeRemaining(resp.data.deadline_info.seconds_remaining);
@@ -143,6 +153,26 @@ const OrderDetail = () => {
       const data = resp.data.find((x: IPayment) => x.active == 1);
       onChangePaymentMethod(data);
     }
+  };
+
+  const checkPushPrompt = async () => {
+    const alreadyShown = await ReadDataFromStorage('@push_prompt_shown');
+    if (alreadyShown) return;
+    setTimeout(() => setShowPushModal(true), 2000);
+  };
+
+  const handleAcceptPush = async () => {
+    setShowPushModal(false);
+    await StoreDataToStorage('@push_prompt_shown', true);
+    const granted = await RequestPushPermission();
+    if (granted && self?.id) {
+      await OptInPushNotificationsAPI(self.id);
+    }
+  };
+
+  const handleDeclinePush = async () => {
+    setShowPushModal(false);
+    await StoreDataToStorage('@push_prompt_shown', true);
   };
 
   const handleStatus = async (status: number) => {
@@ -564,6 +594,13 @@ const OrderDetail = () => {
             )}
         </View>
       </Container>
+
+      <PushPermissionModal
+        visible={showPushModal}
+        chefFirstName={chefInfo?.first_name ?? 'your chef'}
+        onAccept={handleAcceptPush}
+        onDecline={handleDeclinePush}
+      />
     </SafeAreaView>
   );
 };

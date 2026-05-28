@@ -7,6 +7,7 @@ import customerReducer from '../reducers/customerSlice';
 import deviceReducer from '../reducers/deviceSlice';
 import homeLoadingReducer from '../reducers/home_loading_slice';
 import loadingReducer from '../reducers/loadingSlice';
+import notificationReducer from '../reducers/notificationSlice';
 import tableReducer from '../reducers/tableSlice';
 import userReducer from '../reducers/userSlice';
 
@@ -24,6 +25,7 @@ const appReducer = combineReducers({
   table: tableReducer,
   customer: customerReducer,
   chef: chefReducer,
+  notification: notificationReducer,
 });
 
 const rootReducer = (state: any, action: any) => {

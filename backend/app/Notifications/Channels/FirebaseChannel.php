@@ -30,14 +30,35 @@ class FirebaseChannel
         try {
             $messaging = Firebase::messaging();
 
-            $message = CloudMessage::fromArray([
+            $messageArray = [
                 'token' => $notifiable->fcm_token,
                 'notification' => [
                     'title' => $firebaseData['title'],
                     'body' => $firebaseData['body'],
                 ],
                 'data' => $firebaseData['data'] ?? [],
-            ]);
+            ];
+
+            $imageUrl = $firebaseData['image'] ?? null;
+            if ($imageUrl) {
+                $messageArray['android'] = [
+                    'notification' => [
+                        'image' => $imageUrl,
+                    ],
+                ];
+                $messageArray['apns'] = [
+                    'payload' => [
+                        'aps' => [
+                            'mutable-content' => 1,
+                        ],
+                    ],
+                    'fcm_options' => [
+                        'image' => $imageUrl,
+                    ],
+                ];
+            }
+
+            $message = CloudMessage::fromArray($messageArray);
 
             $messaging->send($message);
         } catch (FirebaseException $e) {

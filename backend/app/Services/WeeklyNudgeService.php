@@ -8,6 +8,7 @@ use App\Notification;
 use App\Models\WeeklyNudgeLog;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use App\Models\DishPhoto;
 use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Exception\Messaging\NotFound;
 use Kreait\Firebase\Exception\Messaging\InvalidMessage;
@@ -133,14 +134,20 @@ class WeeklyNudgeService
                     continue;
                 }
 
+                $nudgeDishFilename = DishPhoto::where('status', 'approved')
+                    ->inRandomOrder()
+                    ->value('filename');
+
                 Notification::create([
                     'title' => $title,
                     'body' => $messageBody,
                     'image' => $customer->photo ?? '',
+                    'dish_image' => $nudgeDishFilename,
                     'fcm_token' => $customer->fcm_token,
                     'user_id' => $customer->id,
                     'navigation_id' => 'weekly_nudge',
                     'role' => 'customer',
+                    'category' => 'promo',
                 ]);
 
                 WeeklyNudgeLog::create([
@@ -222,16 +229,39 @@ class WeeklyNudgeService
             return false;
         }
 
-        $message = CloudMessage::withTarget('token', $token)
-            ->withNotification([
+        $imageUrl = DishPhoto::getRandomApprovedUrl();
+
+        $messageArray = [
+            'token' => $token,
+            'notification' => [
                 'title' => $title,
                 'body' => $body,
-            ])
-            ->withData([
+            ],
+            'data' => [
                 'type' => 'weekly_nudge',
                 'action' => 'open_inbox',
-            ]);
+            ],
+        ];
 
+        if ($imageUrl) {
+            $messageArray['android'] = [
+                'notification' => [
+                    'image' => $imageUrl,
+                ],
+            ];
+            $messageArray['apns'] = [
+                'payload' => [
+                    'aps' => [
+                        'mutable-content' => 1,
+                    ],
+                ],
+                'fcm_options' => [
+                    'image' => $imageUrl,
+                ],
+            ];
+        }
+
+        $message = CloudMessage::fromArray($messageArray);
         $this->firebaseMessaging->send($message);
         return true;
     }
