@@ -4,7 +4,9 @@ import {
   RefreshControl,
   SafeAreaView,
   ScrollView,
+  Share,
   Text,
+  TouchableOpacity,
   View
 } from 'react-native';
 // Types & Services
@@ -14,6 +16,8 @@ import { IOrder, IUser } from '../../../types/index';
 import { useAppDispatch, useAppSelector } from '../../../hooks/useRedux';
 
 import { navigate } from '@/app/utils/navigation';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
+import { faShareNodes } from '@fortawesome/free-solid-svg-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import moment from 'moment';
 import React from 'react';
@@ -24,7 +28,7 @@ import Container from '../../../layout/Container';
 import { setNotificationOrderId } from '../../../reducers/deviceSlice';
 import { hideLoading, showLoading } from '../../../reducers/loadingSlice';
 import { setUser } from '../../../reducers/userSlice';
-import { GetChefOrdersAPI, GetUserById, GetPaymentMethodAPI } from '../../../services/api';
+import { GetChefOrdersAPI, GetUserById, GetPaymentMethodAPI, getChefShareUrl } from '../../../services/api';
 import { getImageURL } from '../../../utils/functions';
 import { ShowErrorToast, ShowSuccessToast } from '../../../utils/toast';
 import { getDateStartTime } from '../../../utils/validations';
@@ -168,6 +172,16 @@ useFocusEffect(
     }
   };
 
+  const handleShareProfile = async () => {
+    const url = getChefShareUrl(self.id ?? 0);
+    try {
+      await Share.share({
+        message: `Order from my menu on Taist! ${url}`,
+        url,
+      });
+    } catch (_) {}
+  };
+
   const handleOrderDetail = (orderInfo: IOrder, customerInfo: IUser) => {
         navigate.toChef.orderDetail(orderInfo, customerInfo);
   };
@@ -271,6 +285,17 @@ useFocusEffect(
             <Text style={styles.userName}>{`${self.first_name
               } ${self.last_name?.substring(0, 1)}. `}</Text>
           </View>
+          {self.is_pending != 1 && (
+            <TouchableOpacity
+              testID="chefHome.shareButton"
+              onPress={handleShareProfile}
+              style={styles.shareButton}
+              activeOpacity={0.7}
+            >
+              <FontAwesomeIcon icon={faShareNodes} size={16} color="#fff" />
+              <Text style={styles.shareButtonText}>Share My Profile</Text>
+            </TouchableOpacity>
+          )}
           {self.is_pending == 1 && (
             <>
               <View style={styles.onboardingHeader}>

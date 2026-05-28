@@ -3,6 +3,7 @@ import {
   Pressable,
   SafeAreaView,
   ScrollView,
+  Share,
   Text,
   TouchableOpacity,
   View
@@ -10,7 +11,8 @@ import {
 
 // NPM
 import {
-  faAngleLeft
+  faAngleLeft,
+  faShareNodes
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -32,7 +34,7 @@ import StyledTabButton from '../../../components/styledTabButton';
 import Container from '../../../layout/Container';
 import { removeCustomerOrders } from '../../../reducers/customerSlice';
 import { hideLoading, showLoading } from '../../../reducers/loadingSlice';
-import { GetChefProfileAPI } from '../../../services/api';
+import { GetChefProfileAPI, getChefShareUrl } from '../../../services/api';
 import GlobalStyles from '../../../types/styles';
 import {
   ConvertStringToNumberArr,
@@ -143,6 +145,16 @@ const ChefDetail = () => {
     dispatch(removeCustomerOrders(chefInfo.id ?? 0));
   };
 
+  const handleShare = async () => {
+    const url = getChefShareUrl(chefInfo.id ?? 0);
+    try {
+      await Share.share({
+        message: `Check out ${chefInfo.first_name}'s menu on Taist! ${url}`,
+        url,
+      });
+    } catch (_) {}
+  };
+
   const filteredMenus = menus.filter(x => {
     var isInclude = false;
     const ids = ConvertStringToNumberArr(x.allergens ?? '');
@@ -156,9 +168,12 @@ const ChefDetail = () => {
     <SafeAreaView style={styles.main}>
       <Container>
         <ScrollView ref={scrollViewRef} contentContainerStyle={styles.pageView}>
-          <View style={styles.heading}>
+          <View style={[styles.heading, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
             <Pressable onPress={() => router.back()}>
               <FontAwesomeIcon icon={faAngleLeft} size={20} color="#ffffff" />
+            </Pressable>
+            <Pressable onPress={handleShare} hitSlop={12}>
+              <FontAwesomeIcon icon={faShareNodes} size={20} color="#ffffff" />
             </Pressable>
           </View>
           <StyledProfileImage url={getImageURL(chefInfo.photo)} size={160} />

@@ -105,6 +105,24 @@ export const styles = StyleSheet.create({
     color: '#fa4616', // Orange for next step
     fontWeight: '700',
   },
+  shareButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: AppColors.primary,
+    borderRadius: 12,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    marginTop: Spacing.md,
+    width: '100%',
+    ...Shadows.sm,
+  },
+  shareButtonText: {
+    color: AppColors.textOnPrimary,
+    fontSize: 16,
+    fontWeight: '700',
+  },
   tabContainer: {
     flex: 1,
     width: '100%',
