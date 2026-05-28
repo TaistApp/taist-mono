@@ -39,6 +39,38 @@ Route::get('/open/inbox', function () {
     return redirect('taistexpo://screens/common/inbox');
 });
 
+// Shareable chef profile landing page — renders OG tags for social previews
+// and redirects mobile users into the app via deep link.
+Route::get('/chef/{id}', function ($id) {
+    $chef = \App\Listener::where('id', $id)
+        ->where('user_type', 2)
+        ->where('is_pending', 0)
+        ->first();
+
+    if (!$chef) {
+        abort(404);
+    }
+
+    $reviews = \App\Models\Reviews::where('to_user_id', $chef->id)->get();
+    $menus = \App\Models\Menus::where('user_id', $chef->id)->where('is_live', 1)->get();
+    $availability = \App\Models\Availabilities::where('user_id', $chef->id)->first();
+
+    $reviewCount = $reviews->count();
+    $avgRating = $reviewCount > 0 ? $reviews->avg('rating') : 0;
+    $bio = $availability->bio ?? null;
+
+    $menuNames = $menus->pluck('name')->take(3)->implode(', ');
+    $ogDescription = $bio
+        ? \Illuminate\Support\Str::limit($bio, 120)
+        : ($menuNames ? "Try " . $menuNames . " and more on Taist." : "Order homemade food on Taist.");
+
+    $photoBaseUrl = config('app.url') . '/assets/uploads/images/';
+
+    return view('chef-profile', compact(
+        'chef', 'menus', 'reviews', 'reviewCount', 'avgRating', 'bio', 'ogDescription', 'photoBaseUrl'
+    ));
+})->where('id', '[0-9]+');
+
 // Public account deletion info page required for Google Play Data Safety policy.
 Route::view('/account-deletion', 'account-deletion')->name('account-deletion');
 
