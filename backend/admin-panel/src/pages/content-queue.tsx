@@ -28,7 +28,6 @@ import {
   FileDown,
   Sparkles,
   Utensils,
-  MessageSquare,
   MapPin,
   Star,
   Camera,
