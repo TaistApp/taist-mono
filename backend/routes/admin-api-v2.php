@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 // Public routes (no auth required)
 Route::post('login', 'AdminApiV2Controller@login');
 Route::post('waitlist', 'AdminApiV2Controller@waitlistStore');
+Route::get('newsletter-recipients', 'AdminApiV2Controller@newsletterRecipients');
 
 // Protected routes
 Route::group(['middleware' => ['auth:adminapi']], function () {

@@ -1361,4 +1361,60 @@ class AdminApiV2Controller extends Controller
             'created' => $entry->wasRecentlyCreated,
         ]);
     }
+
+    /**
+     * Public endpoint for Make to fetch newsletter recipients.
+     * Merges waitlist + app users, deduped by email.
+     * Protected by a simple API key (NEWSLETTER_API_KEY env var).
+     */
+    public function newsletterRecipients(Request $request)
+    {
+        $key = $request->header('X-Newsletter-Key') ?? $request->input('key');
+        $expected = config('app.newsletter_api_key');
+
+        if (!$expected || $key !== $expected) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $userType = $request->input('user_type');
+        if (!in_array($userType, ['1', '2'])) {
+            return response()->json(['error' => 'user_type must be 1 or 2'], 400);
+        }
+
+        // Waitlist contacts
+        $waitlistContacts = Waitlist::where('user_type', $userType)
+            ->select('email', 'first_name')
+            ->get()
+            ->map(function ($w) {
+                return [
+                    'email' => strtolower($w->email),
+                    'first_name' => $w->first_name,
+                    'source' => 'waitlist',
+                ];
+            });
+
+        // App users
+        $appContacts = app(Listener::class)
+            ->where('user_type', $userType)
+            ->whereIn('verified', [0, 1]) // pending or active
+            ->select('email', 'first_name')
+            ->get()
+            ->map(function ($u) {
+                return [
+                    'email' => strtolower($u->email),
+                    'first_name' => $u->first_name,
+                    'source' => 'app',
+                ];
+            });
+
+        // Merge and dedupe by email (app users take priority)
+        $merged = $appContacts->concat($waitlistContacts)
+            ->unique('email')
+            ->values();
+
+        return response()->json([
+            'count' => $merged->count(),
+            'recipients' => $merged,
+        ]);
+    }
 }
