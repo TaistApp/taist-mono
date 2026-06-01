@@ -147,6 +147,10 @@ export const InitializeNotification = () => {
             return;
           }
           
+          if (isWeeklyNudgeNotification(remoteMessage)) {
+            return;
+          }
+
           if (remoteMessage?.data?.role == 'chef') {
             navigate.toChef.orderDetailFromNotification({
               orderId: (remoteMessage?.data?.order_id || '0').toString(),
@@ -157,6 +161,7 @@ export const InitializeNotification = () => {
             });
           } else {
             const orderId = parseInt((remoteMessage?.data?.order_id || '0').toString());
+            if (!orderId) return;
             // Skip navigation if already viewing this order's detail page
             if (getActiveOrderDetailId() === orderId) return;
             const orderInfo = { id: orderId } as any;
@@ -371,10 +376,19 @@ const isChefUpdateNotification = (remoteMessage: any): boolean => {
   return remoteMessage?.data?.type === 'chef_update';
 };
 
+const isWeeklyNudgeNotification = (remoteMessage: any): boolean => {
+  return remoteMessage?.data?.type === 'weekly_nudge';
+};
+
 const handleNotificationNavigation = (remoteMessage: any) => {
   try {
     // Handle chef update notifications - open the home screen
     if (isChefUpdateNotification(remoteMessage)) {
+      return;
+    }
+
+    // Handle weekly nudge notifications - just open the app, no specific navigation needed
+    if (isWeeklyNudgeNotification(remoteMessage)) {
       return;
     }
 
@@ -413,6 +427,7 @@ const handleNotificationNavigation = (remoteMessage: any) => {
     } else {
       console.log('>>>Customer Role notification navigation>>>', JSON.stringify(remoteMessage));
       const orderId = parseInt((remoteMessage?.data?.order_id || '0').toString());
+      if (!orderId) return;
       // Skip navigation if already viewing this order's detail page
       if (getActiveOrderDetailId() === orderId) return;
       const orderInfo = { id: orderId } as any;
