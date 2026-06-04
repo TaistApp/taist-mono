@@ -17,6 +17,8 @@ use App\Models\Availabilities;
 use App\Models\Zipcodes;
 use App\Models\DiscountCodes;
 use App\Models\DiscountCodeUsage;
+use App\Models\Referral;
+use App\Models\ReferralSettings;
 use App\Models\DishPhoto;
 use App\Models\SocialContentQueue;
 use App\Models\Waitlist;
@@ -1084,6 +1086,84 @@ class AdminApiV2Controller extends Controller
         return response()->json(['success' => 1, 'data' => ['code' => $code, 'usages' => $usages]]);
     }
 
+    // ─── Referrals ────────────────────────────────────────────────
+
+    public function referralSettings()
+    {
+        $settings = ReferralSettings::getSettings();
+        return response()->json($settings);
+    }
+
+    public function referralSettingsUpdate(Request $request)
+    {
+        $settings = ReferralSettings::getSettings();
+        if (!$settings) {
+            return response()->json(['success' => 0, 'error' => 'Settings not found'], 404);
+        }
+
+        $updateData = [];
+        if ($request->has('discount_type')) $updateData['discount_type'] = $request->discount_type;
+        if ($request->has('discount_value')) $updateData['discount_value'] = $request->discount_value;
+        if ($request->has('max_referrals_per_customer')) $updateData['max_referrals_per_customer'] = $request->max_referrals_per_customer;
+        if ($request->has('credit_expiration_days')) $updateData['credit_expiration_days'] = $request->credit_expiration_days;
+        if ($request->has('minimum_order_amount')) $updateData['minimum_order_amount'] = $request->minimum_order_amount;
+        if ($request->has('maximum_discount_amount')) $updateData['maximum_discount_amount'] = $request->maximum_discount_amount;
+        if ($request->has('is_active')) $updateData['is_active'] = $request->is_active;
+
+        $settings->update($updateData);
+        return response()->json(['success' => 1, 'data' => $settings->fresh()]);
+    }
+
+    public function referrals(Request $request)
+    {
+        $query = DB::table('tbl_referrals as r')
+            ->join('tbl_users as referrer', 'r.referrer_user_id', '=', 'referrer.id')
+            ->leftJoin('tbl_users as referred', 'r.referred_user_id', '=', 'referred.id')
+            ->leftJoin('tbl_users as chef', 'r.chef_user_id', '=', 'chef.id')
+            ->leftJoin('tbl_discount_codes as referrer_code', 'r.referrer_discount_code_id', '=', 'referrer_code.id')
+            ->leftJoin('tbl_discount_codes as referred_code', 'r.referred_discount_code_id', '=', 'referred_code.id')
+            ->select([
+                'r.*',
+                'referrer.first_name as referrer_first_name',
+                'referrer.last_name as referrer_last_name',
+                'referrer.email as referrer_email',
+                'referred.first_name as referred_first_name',
+                'referred.last_name as referred_last_name',
+                'referred.email as referred_email',
+                'chef.first_name as chef_first_name',
+                'chef.last_name as chef_last_name',
+                'referrer_code.code as referrer_credit_code',
+                'referrer_code.current_uses as referrer_credit_used',
+                'referred_code.code as referred_credit_code',
+                'referred_code.current_uses as referred_credit_used',
+            ])
+            ->orderBy('r.created_at', 'desc');
+
+        if ($request->has('status') && $request->status !== 'all') {
+            $query->where('r.status', $request->status);
+        }
+        if ($request->has('type') && $request->type !== 'all') {
+            $query->where('r.referral_type', $request->type);
+        }
+
+        return response()->json($query->get());
+    }
+
+    public function referralStats()
+    {
+        $stats = [
+            'total' => DB::table('tbl_referrals')->count(),
+            'pending' => DB::table('tbl_referrals')->where('status', 'pending')->count(),
+            'signed_up' => DB::table('tbl_referrals')->where('status', 'signed_up')->count(),
+            'completed' => DB::table('tbl_referrals')->where('status', 'completed')->count(),
+            'expired' => DB::table('tbl_referrals')->where('status', 'expired')->count(),
+            'credits_issued' => DB::table('tbl_referrals')->whereNotNull('referrer_discount_code_id')->count(),
+        ];
+        return response()->json($stats);
+    }
+
+    // ─── Dish Photos ────────────────────────────────────────────
+
     public function dishPhotos(Request $request)
     {
         $query = DB::table('tbl_dish_photos as dp')
@@ -1381,6 +1461,46 @@ class AdminApiV2Controller extends Controller
             return response()->json(['error' => 'user_type must be 1 or 2'], 400);
         }
 
+        $merged = $this->buildNewsletterRecipients($userType);
+
+        return response()->json([
+            'count' => $merged->count(),
+            'recipients' => $merged,
+        ]);
+    }
+
+    /**
+     * Admin-authed preview of the newsletter audience for the admin panel.
+     * Returns the recipient count plus one real sample recipient (first_name +
+     * email) so the preview page can substitute live data into the template.
+     * Auth via auth:adminapi (Bearer token) — does NOT send any email.
+     */
+    public function newsletterPreview(Request $request)
+    {
+        $userType = $request->input('user_type');
+        if (!in_array($userType, ['1', '2'])) {
+            return response()->json(['error' => 'user_type must be 1 or 2'], 400);
+        }
+
+        $merged = $this->buildNewsletterRecipients($userType);
+        $sample = $merged->first();
+
+        return response()->json([
+            'count' => $merged->count(),
+            'sample' => $sample ? [
+                'first_name' => $sample['first_name'],
+                'email' => $sample['email'],
+            ] : null,
+        ]);
+    }
+
+    /**
+     * Build the merged newsletter recipient list for a given user_type.
+     * Combines waitlist contacts and app users, deduped by email (app users
+     * take priority). Shared by newsletterRecipients() and newsletterPreview().
+     */
+    private function buildNewsletterRecipients($userType)
+    {
         // Waitlist contacts
         $waitlistContacts = Waitlist::where('user_type', $userType)
             ->select('email', 'first_name')
@@ -1408,13 +1528,8 @@ class AdminApiV2Controller extends Controller
             });
 
         // Merge and dedupe by email (app users take priority)
-        $merged = $appContacts->concat($waitlistContacts)
+        return $appContacts->concat($waitlistContacts)
             ->unique('email')
             ->values();
-
-        return response()->json([
-            'count' => $merged->count(),
-            'recipients' => $merged,
-        ]);
     }
 }

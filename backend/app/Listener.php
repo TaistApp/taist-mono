@@ -20,7 +20,7 @@ class Listener extends Authenticatable
      * @var array
      */
     protected $fillable = [
-        'first_name', 'last_name', 'email', 'password', 'phone', 'birthday', 'address', 'city', 'state', 'zip', 'parking_type', 'parking_instructions', 'user_type', 'is_pending', 'quiz_completed', 'verified', 'photo', 'api_token', 'code', 'token_date', 'applicant_guid', 'order_guid', 'fcm_token', 'first_order_completed_at', 'push_opted_in', 'latitude', 'longitude', 'is_online', 'online_start', 'online_until', 'last_toggled_online_at', 'last_toggled_offline_at', 'last_online_reminder_sent_at', 'social_provider', 'social_id', 'email_verified'
+        'first_name', 'last_name', 'email', 'password', 'phone', 'birthday', 'address', 'city', 'state', 'zip', 'parking_type', 'parking_instructions', 'user_type', 'is_pending', 'quiz_completed', 'verified', 'photo', 'api_token', 'code', 'token_date', 'applicant_guid', 'order_guid', 'fcm_token', 'first_order_completed_at', 'push_opted_in', 'latitude', 'longitude', 'is_online', 'online_start', 'online_until', 'last_toggled_online_at', 'last_toggled_offline_at', 'last_online_reminder_sent_at', 'social_provider', 'social_id', 'email_verified', 'referral_code', 'referred_by_referral_id'
     ];
 
     /**
