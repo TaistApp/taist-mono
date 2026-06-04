@@ -61,6 +61,9 @@ Route::group(['middleware' => ['auth:adminapi']], function () {
     // Waitlist (admin panel)
     Route::get('waitlist', 'AdminApiV2Controller@waitlist');
 
+    // Newsletter preview (admin panel) — recipient count + sample, no sending
+    Route::get('newsletter-preview', 'AdminApiV2Controller@newsletterPreview');
+
     // Proxy legacy mutation endpoints so frontend baseURL (/admin-api-v2) works
     Route::get('adminapi/change_chef_status', 'AdminapiController@changeChefStatus');
     Route::get('adminapi/change_ticket_status', 'AdminapiController@changeTicketStatus');
