@@ -11,6 +11,7 @@ export default function CustomerLayout() {
       <Stack.Screen name="orderDetail" options={{ title: 'Order Detail' }} />
       <Stack.Screen name="checkout" options={{ title: 'Checkout' }} />
       <Stack.Screen name="earnByCooking" options={{ title: 'Earn By Cooking' }} />
+      <Stack.Screen name="referrals" options={{ title: 'Invite Friends' }} />
     </Stack>
   );
 }

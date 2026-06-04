@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -145,14 +146,36 @@ const ChefDetail = () => {
     dispatch(removeCustomerOrders(chefInfo.id ?? 0));
   };
 
-  const handleShare = async () => {
-    const url = getChefShareUrl(chefInfo.id ?? 0);
-    try {
-      await Share.share({
-        message: `Check out ${chefInfo.first_name}'s menu on Taist! ${url}`,
-        url,
-      });
-    } catch (_) {}
+  const handleShare = () => {
+    Alert.alert(
+      'Share',
+      `Share ${chefInfo.first_name}'s profile`,
+      [
+        {
+          text: 'Share Chef Link',
+          onPress: async () => {
+            const url = getChefShareUrl(chefInfo.id ?? 0);
+            try {
+              await Share.share({
+                message: `Check out ${chefInfo.first_name}'s menu on Taist! ${url}`,
+                url,
+              });
+            } catch (_) {}
+          },
+        },
+        {
+          text: 'Refer a Friend to This Chef',
+          onPress: () => {
+            navigate.toCustomer.referrals({
+              type: 'chef',
+              chefId: chefInfo.id ?? 0,
+              chefName: chefInfo.first_name || 'Chef',
+            });
+          },
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
   };
 
   const filteredMenus = menus.filter(x => {

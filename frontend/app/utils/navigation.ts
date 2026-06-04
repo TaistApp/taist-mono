@@ -166,6 +166,10 @@ export const navigate = {
       router.push('/screens/customer/(tabs)/(home)/checkout/creditCard' as any);
     },
     earnByCooking: () => router.push('/screens/customer/earnByCooking' as any),
+    referrals: (params?: { type?: 'general' | 'chef'; chefId?: number; chefName?: string }) => router.push({
+      pathname: '/screens/customer/referrals',
+      params: params || {},
+    } as any),
     cart: () => router.push('/screens/customer/cart' as any),
   },
   toChef: {

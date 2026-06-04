@@ -91,6 +91,12 @@ Route::group(['middleware' => ['auth:mapi']], function () {
 	// Discount Codes
 	Route::post('discount-codes/validate', 'MapiController@validateDiscountCode');
 
+	// Referrals
+	Route::get('referral/my-code', 'MapiController@getReferralCode');
+	Route::post('referral/send', 'MapiController@sendReferral');
+	Route::get('referral/stats', 'MapiController@getReferralStats');
+	Route::get('referral/history', 'MapiController@getReferralHistory');
+
 	Route::get('get_reviews', 'MapiController@getReviews');
 	Route::get('get_review/{id}', 'MapiController@getReview');
 	Route::post('create_review', 'MapiController@createReview');

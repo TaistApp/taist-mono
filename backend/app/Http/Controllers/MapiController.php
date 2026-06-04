@@ -39,6 +39,7 @@ use App\Notifications\NewMenuItemNotification;
 use App\Services\TwilioService;
 use App\Services\OrderSmsService;
 use App\Services\ChatSmsService;
+use App\Services\ReferralService;
 use App\Helpers\TimezoneHelper;
 use Illuminate\Support\Str;
 use Exception;
@@ -60,6 +61,7 @@ class MapiController extends Controller
     protected $notification; // Push Notification
     protected $orderSmsService; // SMS Notification Service
     protected $chatSmsService; // Chat SMS Alert Service
+    protected $referralService; // Customer Referral Service
 
     // TMA-037: Demand signaling & time blockout constants
     const DEMAND_SIGNAL_FAKE_PERCENTAGE = 40;       // % of chefs without orders that get fake "hot" badge
@@ -68,11 +70,12 @@ class MapiController extends Controller
     const ORDER_BUFFER_MINUTES = 30;                  // Buffer time (minutes) between orders
     const DEFAULT_ORDER_DURATION_MINUTES = 120;       // Fallback if chef has no live menu items
 
-    public function __construct(Request $request, OrderSmsService $orderSmsService, ChatSmsService $chatSmsService)
+    public function __construct(Request $request, OrderSmsService $orderSmsService, ChatSmsService $chatSmsService, ReferralService $referralService)
     {
         $this->request = $request;
         $this->orderSmsService = $orderSmsService;
         $this->chatSmsService = $chatSmsService;
+        $this->referralService = $referralService;
 
         try {
             $this->notification = Firebase::messaging();
@@ -449,6 +452,13 @@ class MapiController extends Controller
         ]);
 
         auth()->guard('listener')->attempt(['email' => $request->email, 'password' => $request->password]);
+
+        try {
+            $this->referralService->processSignup($user, $request->phone);
+        } catch (Exception $e) {
+            Log::error('Referral signup processing failed', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+        }
+
         return response()->json(['success' => 1, 'data' => ['api_token' => $api_token]]);
     }
 
@@ -2900,6 +2910,94 @@ Write only the review text:";
         ]);
     }
 
+    // Referrals
+
+    public function getReferralCode(Request $request)
+    {
+        if ($this->_checktaistApiKey($request->header('apiKey')) === false)
+            return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
+
+        $user = $this->_authUser();
+        if (!$user) {
+            return response()->json(['success' => 0, 'error' => 'User not authenticated']);
+        }
+
+        $code = $this->referralService->generateReferralCode($user);
+        $settings = \App\Models\ReferralSettings::getSettings();
+
+        return response()->json([
+            'success' => 1,
+            'data' => [
+                'referral_code' => $code,
+                'discount_description' => $settings ? $settings->getFormattedDiscount() : '',
+                'max_referrals' => $settings ? $settings->max_referrals_per_customer : 10,
+                'is_active' => $settings ? $settings->is_active : false,
+            ]
+        ]);
+    }
+
+    public function sendReferral(Request $request)
+    {
+        if ($this->_checktaistApiKey($request->header('apiKey')) === false)
+            return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
+
+        $user = $this->_authUser();
+        if (!$user) {
+            return response()->json(['success' => 0, 'error' => 'User not authenticated']);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'phone' => 'required|string',
+            'type' => 'required|in:general,chef',
+            'chef_id' => 'nullable|integer',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['success' => 0, 'error' => $validator->errors()->first()]);
+        }
+
+        $result = $this->referralService->sendReferral(
+            $user,
+            $request->phone,
+            $request->type,
+            $request->chef_id
+        );
+
+        if (!$result['success']) {
+            return response()->json(['success' => 0, 'error' => $result['error']]);
+        }
+
+        return response()->json(['success' => 1, 'data' => $result['data']]);
+    }
+
+    public function getReferralStats(Request $request)
+    {
+        if ($this->_checktaistApiKey($request->header('apiKey')) === false)
+            return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
+
+        $user = $this->_authUser();
+        if (!$user) {
+            return response()->json(['success' => 0, 'error' => 'User not authenticated']);
+        }
+
+        $stats = $this->referralService->getReferralStats($user->id);
+        return response()->json(['success' => 1, 'data' => $stats]);
+    }
+
+    public function getReferralHistory(Request $request)
+    {
+        if ($this->_checktaistApiKey($request->header('apiKey')) === false)
+            return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
+
+        $user = $this->_authUser();
+        if (!$user) {
+            return response()->json(['success' => 0, 'error' => 'User not authenticated']);
+        }
+
+        $history = $this->referralService->getReferralHistory($user->id);
+        return response()->json(['success' => 1, 'data' => $history]);
+    }
+
     // Reviews
 
     public function getReviews(Request $request)
@@ -4230,6 +4328,12 @@ Write only the review text:";
             // Track first order completion for progressive push permission
             if (is_null($user->first_order_completed_at)) {
                 $user->update(['first_order_completed_at' => now()]);
+
+                try {
+                    $this->referralService->processOrderCompletion($order);
+                } catch (Exception $e) {
+                    Log::error('Referral order completion processing failed', ['order_id' => $id, 'error' => $e->getMessage()]);
+                }
             }
         } else if ($request->status == 4) {
             // Order completed - notify customer

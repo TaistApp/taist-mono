@@ -915,6 +915,32 @@ export const ValidateDiscountCodeAPI = async (
   return response;
 };
 
+// Referrals
+
+export const GetReferralCodeAPI = async () => {
+  var response = await GETAPICALL("referral/my-code", {});
+  return response;
+};
+
+export const SendReferralAPI = async (params: {
+  phone: string;
+  type: "general" | "chef";
+  chef_id?: number;
+}) => {
+  var response = await POSTAPICALL("referral/send", params);
+  return response;
+};
+
+export const GetReferralStatsAPI = async () => {
+  var response = await GETAPICALL("referral/stats", {});
+  return response;
+};
+
+export const GetReferralHistoryAPI = async () => {
+  var response = await GETAPICALL("referral/history", {});
+  return response;
+};
+
 export const UpdateOrderStatusAPI = async (params: IOrder, dispatch?: any) => {
   var response = await POSTAPICALL(`update_order_status/${params.id}`, params);
   if (response.success == 1 && dispatch) {
