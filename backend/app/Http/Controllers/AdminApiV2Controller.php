@@ -1381,6 +1381,46 @@ class AdminApiV2Controller extends Controller
             return response()->json(['error' => 'user_type must be 1 or 2'], 400);
         }
 
+        $merged = $this->buildNewsletterRecipients($userType);
+
+        return response()->json([
+            'count' => $merged->count(),
+            'recipients' => $merged,
+        ]);
+    }
+
+    /**
+     * Admin-authed preview of the newsletter audience for the admin panel.
+     * Returns the recipient count plus one real sample recipient (first_name +
+     * email) so the preview page can substitute live data into the template.
+     * Auth via auth:adminapi (Bearer token) — does NOT send any email.
+     */
+    public function newsletterPreview(Request $request)
+    {
+        $userType = $request->input('user_type');
+        if (!in_array($userType, ['1', '2'])) {
+            return response()->json(['error' => 'user_type must be 1 or 2'], 400);
+        }
+
+        $merged = $this->buildNewsletterRecipients($userType);
+        $sample = $merged->first();
+
+        return response()->json([
+            'count' => $merged->count(),
+            'sample' => $sample ? [
+                'first_name' => $sample['first_name'],
+                'email' => $sample['email'],
+            ] : null,
+        ]);
+    }
+
+    /**
+     * Build the merged newsletter recipient list for a given user_type.
+     * Combines waitlist contacts and app users, deduped by email (app users
+     * take priority). Shared by newsletterRecipients() and newsletterPreview().
+     */
+    private function buildNewsletterRecipients($userType)
+    {
         // Waitlist contacts
         $waitlistContacts = Waitlist::where('user_type', $userType)
             ->select('email', 'first_name')
@@ -1408,13 +1448,8 @@ class AdminApiV2Controller extends Controller
             });
 
         // Merge and dedupe by email (app users take priority)
-        $merged = $appContacts->concat($waitlistContacts)
+        return $appContacts->concat($waitlistContacts)
             ->unique('email')
             ->values();
-
-        return response()->json([
-            'count' => $merged->count(),
-            'recipients' => $merged,
-        ]);
     }
 }
