@@ -134,6 +134,12 @@ class SocialAuthController extends Controller
                 'social_id' => $providerId,
                 'email_verified' => $verified['email_verified'] ? 1 : 0,
             ]);
+
+            try {
+                app(\App\Services\ReferralService::class)->processSignup($user, $user->phone);
+            } catch (\Exception $e) {
+                Log::error('Referral signup processing failed (social auth)', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+            }
         } else {
             // Existing user — refresh api_token if missing so the session is usable.
             if (empty($user->api_token)) {

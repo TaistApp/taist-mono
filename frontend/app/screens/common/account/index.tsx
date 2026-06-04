@@ -730,6 +730,21 @@ const Account = () => {
               }}
             />
           </View>
+          {from !== "Signup" && userInfo.user_type === 1 && (
+            <View style={styles.vcenter}>
+              <StyledButton
+                testID="account.inviteFriendsButton"
+                title="Invite Friends"
+                onPress={() => router.push("/screens/customer/referrals" as any)}
+                style={{
+                  backgroundColor: "transparent",
+                  borderWidth: 1.5,
+                  borderColor: AppColors.primary,
+                }}
+                titleStyle={{ color: AppColors.primary }}
+              />
+            </View>
+          )}
           <View style={styles.vcenter}>
             <StyledButton
               testID="account.saveButton"

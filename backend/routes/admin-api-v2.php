@@ -47,6 +47,12 @@ Route::group(['middleware' => ['auth:adminapi']], function () {
     Route::post('discount-codes/{id}/activate', 'AdminApiV2Controller@discountCodeActivate');
     Route::get('discount-codes/{id}/usage', 'AdminApiV2Controller@discountCodeUsage');
 
+    // Referrals
+    Route::get('referral-settings', 'AdminApiV2Controller@referralSettings');
+    Route::put('referral-settings', 'AdminApiV2Controller@referralSettingsUpdate');
+    Route::get('referrals', 'AdminApiV2Controller@referrals');
+    Route::get('referrals/stats', 'AdminApiV2Controller@referralStats');
+
     // Dish Photos (content management)
     Route::get('dish-photos', 'AdminApiV2Controller@dishPhotos');
     Route::put('dish-photos/{id}', 'AdminApiV2Controller@dishPhotoUpdate');
@@ -60,6 +66,9 @@ Route::group(['middleware' => ['auth:adminapi']], function () {
 
     // Waitlist (admin panel)
     Route::get('waitlist', 'AdminApiV2Controller@waitlist');
+
+    // Newsletter preview (admin panel) — recipient count + sample, no sending
+    Route::get('newsletter-preview', 'AdminApiV2Controller@newsletterPreview');
 
     // Proxy legacy mutation endpoints so frontend baseURL (/admin-api-v2) works
     Route::get('adminapi/change_chef_status', 'AdminapiController@changeChefStatus');

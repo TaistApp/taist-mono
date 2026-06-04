@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [32.3.0] - 2026-06-04
+
+### Added
+- Customer referral system with SMS-based invite flow (referral codes, credits, and chef-specific referrals)
+
+### Fixed
+- Referrals migration foreign-key types now match legacy signed-INT `tbl_users`/`tbl_orders` id columns
+
+### Changed
+- Bumped iOS build number to 40
+- Bumped Android versionCode to 162
+
+---
+
 ## [29.0.0] - 2026-01-16
 
 ### Changed
