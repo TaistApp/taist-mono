@@ -104,10 +104,27 @@ class SocialController extends Controller
             'success' => 1,
             'menuId' => (int) $row->menu_id,
             'chefId' => (int) $row->chef_id,
-            'chefName' => trim($row->chef_first_name),
+            // First name + last initial (e.g. "Martin L.") — house style for
+            // chef attribution on social posts. Falls back to first name only
+            // if the chef has no last name on file.
+            'chefName' => $this->formatChefName($row->chef_first_name, $row->chef_last_name),
             'headline' => $row->menu_title,
             'subtext' => $row->menu_description,
         ]);
+    }
+
+    /**
+     * Format a chef's name as "First L." (first name + last initial) for
+     * social attribution. Returns just the first name if no last name.
+     */
+    private function formatChefName(?string $firstName, ?string $lastName): string
+    {
+        $first = trim((string) $firstName);
+        $last = trim((string) $lastName);
+        if ($last === '') {
+            return $first;
+        }
+        return trim($first . ' ' . strtoupper(substr($last, 0, 1)) . '.');
     }
 
     /**
