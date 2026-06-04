@@ -52,15 +52,11 @@ Compare it against the version currently live on the App Store. If they are out 
 - **Project ID:** `db11fb8c-995e-4b39-8fa5-8b426fada4dd`
 - **EAS Dashboard:** https://expo.dev/accounts/taistapp/projects/taist
 
-## Android Production Builds (Temporary)
+## Android Production Builds
 
-Until the upload key reset to the EAS key is completed, Android production builds must use Billy's keystore:
-1. Copy `~/Downloads/@bgroble__Taist.jks` → `frontend/taist-upload.jks`
-2. Create `frontend/credentials.json` with alias `taist`, passwords `12345678`
-3. Add `"credentialsSource": "local"` to `eas.json` → build → production → android
-4. After build: delete `taist-upload.jks`, `credentials.json`, and revert `eas.json`
+The Google Play upload-key reset to the EAS key completed **May 21, 2026**. Android production builds now use **EAS remote credentials** (the default) — no local keystore, no `credentialsSource: "local"` in `eas.json`. Just run the normal `eas build --platform android --profile production --auto-submit`.
 
-Files are gitignored (`*.jks`, `credentials.json`). See memory file `android_keystore_info.md` for full details.
+The active upload key is the `taistapp` org EAS keystore (`Build Credentials KodeuX6pP8`, SHA1 `4A:CC:92:7E…`). Billy's original key (`A5:68…`) is retired. See memory file `android_keystore_info.md` for the full keystore history and the retired-key backups kept in `~/Downloads/`.
 
 ## Email & SMS Infrastructure
 
