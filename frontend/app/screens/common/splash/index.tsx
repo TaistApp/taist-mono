@@ -114,6 +114,11 @@ const Splash = () => {
   const [isOutdated, setIsOutdated] = useState(false);
   const [socialBusy, setSocialBusy] = useState<SocialProvider | null>(null);
   const [appleAvailable, setAppleAvailable] = useState(false);
+  // Role-first signup: pick customer/chef BEFORE seeing the auth options.
+  // Login stays one-tap via the "Already have an account? Log in" link.
+  const [signupView, setSignupView] = useState<"choose" | "customer" | "chef">(
+    "choose",
+  );
   const dispatch = useAppDispatch();
 
   // nativeAppVersion is always available in production EAS builds;
@@ -124,10 +129,6 @@ const Splash = () => {
 
   const handleLogin = () => {
     navigate.toCommon.login();
-  };
-
-  const handleSignup = () => {
-    navigate.toCommon.signup();
   };
 
   useEffect(() => {
@@ -444,6 +445,14 @@ const Splash = () => {
     );
   }
 
+  const loginPrompt = (
+    <Pressable style={styles.loginRow} onPress={handleLogin}>
+      <Text style={styles.loginRowText}>
+        Already have an account? <Text style={styles.loginRowLink}>Log in</Text>
+      </Text>
+    </Pressable>
+  );
+
   return (
     <SafeAreaView style={styles.main}>
       <Image
@@ -451,54 +460,117 @@ const Splash = () => {
         source={require("../../../assets/images/logo-2.png")}
       />
       <View style={styles.buttonsWrapper}>
-        {Platform.OS === "ios" && appleAvailable &&
-          (socialBusy === "apple" ? (
-            <View style={[styles.socialButton, styles.appleButton]}>
-              <ActivityIndicator color="#fff" />
-            </View>
-          ) : (
-            <AppleAuthentication.AppleAuthenticationButton
-              buttonType={
-                AppleAuthentication.AppleAuthenticationButtonType.CONTINUE
-              }
-              buttonStyle={
-                AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
-              }
-              cornerRadius={12}
-              style={styles.appleNativeButton}
-              onPress={handleApple}
-            />
-          ))}
-        <Pressable
-          style={[styles.socialButton, styles.googleButton]}
-          onPress={handleGoogle}
-          disabled={socialBusy !== null}
-        >
-          {socialBusy === "google" ? (
-            <ActivityIndicator color="#3c4043" />
-          ) : (
-            <>
-              <View style={styles.socialIcon}>
-                <GoogleIcon />
-              </View>
-              <Text style={[styles.socialButtonText, styles.googleButtonText]}>
-                Continue with Google
+        {/* Step 1 — choose role before any auth method is shown */}
+        {signupView === "choose" && (
+          <>
+            <Text style={styles.roleHeading}>How do you want to use Taist?</Text>
+            <Pressable
+              style={styles.roleCard}
+              onPress={() => setSignupView("customer")}
+            >
+              <Text style={styles.roleCardTitle}>I'm a customer</Text>
+              <Text style={styles.roleCardText}>
+                Order delicious meals from chefs in your area.
               </Text>
-            </>
-          )}
-        </Pressable>
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>or</Text>
-          <View style={styles.dividerLine} />
-        </View>
+            </Pressable>
+            <Pressable
+              style={styles.roleCard}
+              onPress={() => setSignupView("chef")}
+            >
+              <Text style={styles.roleCardTitle}>I want to be a chef</Text>
+              <Text style={styles.roleCardText}>
+                Cook for people near you and earn on your own schedule.
+              </Text>
+            </Pressable>
+            {loginPrompt}
+          </>
+        )}
 
-        <Pressable style={styles.button} onPress={handleLogin}>
-          <Text style={styles.buttonText}>Login With Email</Text>
-        </Pressable>
-        <Pressable style={styles.button} onPress={handleSignup}>
-          <Text style={styles.buttonText}>Signup With Email</Text>
-        </Pressable>
+        {/* Step 2a — customer: full set of auth options carrying the customer role */}
+        {signupView === "customer" && (
+          <>
+            {Platform.OS === "ios" && appleAvailable &&
+              (socialBusy === "apple" ? (
+                <View style={[styles.socialButton, styles.appleButton]}>
+                  <ActivityIndicator color="#fff" />
+                </View>
+              ) : (
+                <AppleAuthentication.AppleAuthenticationButton
+                  buttonType={
+                    AppleAuthentication.AppleAuthenticationButtonType.CONTINUE
+                  }
+                  buttonStyle={
+                    AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+                  }
+                  cornerRadius={12}
+                  style={styles.appleNativeButton}
+                  onPress={handleApple}
+                />
+              ))}
+            <Pressable
+              style={[styles.socialButton, styles.googleButton]}
+              onPress={handleGoogle}
+              disabled={socialBusy !== null}
+            >
+              {socialBusy === "google" ? (
+                <ActivityIndicator color="#3c4043" />
+              ) : (
+                <>
+                  <View style={styles.socialIcon}>
+                    <GoogleIcon />
+                  </View>
+                  <Text
+                    style={[styles.socialButtonText, styles.googleButtonText]}
+                  >
+                    Continue with Google
+                  </Text>
+                </>
+              )}
+            </Pressable>
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or</Text>
+              <View style={styles.dividerLine} />
+            </View>
+            <Pressable
+              style={styles.button}
+              onPress={() => navigate.toCommon.signup({ role: 1 })}
+            >
+              <Text style={styles.buttonText}>Sign Up With Email</Text>
+            </Pressable>
+            {loginPrompt}
+            <Pressable
+              style={styles.backRow}
+              onPress={() => setSignupView("choose")}
+            >
+              <Text style={styles.backText}>← Back</Text>
+            </Pressable>
+          </>
+        )}
+
+        {/* Step 2b — chef: email signup only (chefs need a full onboarding + approval) */}
+        {signupView === "chef" && (
+          <>
+            <Text style={styles.roleHeading}>Become a Taist chef</Text>
+            <Text style={styles.chefNote}>
+              Chefs sign up with email. You'll add your details and a photo, then
+              we'll review your application.
+            </Text>
+            <Pressable
+              style={styles.button}
+              onPress={() => navigate.toCommon.signup({ role: 2 })}
+            >
+              <Text style={styles.buttonText}>Sign Up With Email</Text>
+            </Pressable>
+            {loginPrompt}
+            <Pressable
+              style={styles.backRow}
+              onPress={() => setSignupView("choose")}
+            >
+              <Text style={styles.backText}>← Back</Text>
+            </Pressable>
+          </>
+        )}
       </View>
     </SafeAreaView>
   );

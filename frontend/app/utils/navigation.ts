@@ -229,7 +229,12 @@ export const navigate = {
   toCommon: {
     splash: () => router.replace('/screens/common/splash' as any),
     login: () => router.push('/screens/common/login' as any),
-    signup: () => router.push('/screens/common/signup' as any),
+    // Optional `role` (1 = customer, 2 = chef) pre-selects the user type so the
+    // in-flow role step is skipped (role-first signup chosen on the splash).
+    signup: (params?: { role?: 1 | 2 }) => router.push({
+      pathname: '/screens/common/signup',
+      params: params?.role ? { role: String(params.role) } : {},
+    } as any),
     forget: () => router.push('/screens/common/forgot' as any),
     account: (user: IUser, from: string) => router.push({
       pathname: '/screens/common/account',
