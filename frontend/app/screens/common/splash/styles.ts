@@ -120,6 +120,62 @@ export const styles = StyleSheet.create({
 	googleButtonText: {
 		color: '#3c4043',
 	},
+	// Role-first selection (shown before the auth options)
+	roleHeading: {
+		color: AppColors.text,
+		fontSize: 20,
+		fontWeight: '700',
+		textAlign: 'center',
+		marginBottom: Spacing.sm,
+	},
+	roleCard: {
+		width: '100%',
+		borderRadius: 16,
+		backgroundColor: AppColors.surface,
+		padding: Spacing.xl,
+		...Shadows.md,
+	},
+	roleCardTitle: {
+		color: AppColors.text,
+		fontSize: 18,
+		fontWeight: '700',
+		textAlign: 'center',
+		marginBottom: 6,
+	},
+	roleCardText: {
+		color: AppColors.textSecondary,
+		fontSize: 14,
+		textAlign: 'center',
+		lineHeight: 20,
+	},
+	chefNote: {
+		color: AppColors.textSecondary,
+		fontSize: 14,
+		textAlign: 'center',
+		lineHeight: 20,
+		marginBottom: Spacing.sm,
+	},
+	loginRow: {
+		paddingVertical: Spacing.sm,
+		alignItems: 'center',
+	},
+	loginRowText: {
+		color: AppColors.textSecondary,
+		fontSize: 14,
+	},
+	loginRowLink: {
+		color: AppColors.primary,
+		fontWeight: '700',
+	},
+	backRow: {
+		paddingVertical: Spacing.xs,
+		alignItems: 'center',
+	},
+	backText: {
+		color: AppColors.textSecondary,
+		fontSize: 14,
+		fontWeight: '600',
+	},
 	divider: {
 		flexDirection: 'row',
 		alignItems: 'center',
