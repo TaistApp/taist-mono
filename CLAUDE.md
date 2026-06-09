@@ -37,8 +37,8 @@ Compare it against the version currently live on the App Store. If they are out 
 
 | Service           | Account                   | Owner  |
 | ----------------- | ------------------------- | ------ |
-| Expo / EAS        | a.daynearnett@gmail.com   | Dayne — org: `taistapp` |
-| App Store Connect | a.daynearnett@gmail.com   | Dayne — Apple Team ID: WXY2PMFQB7 |
+| Expo / EAS        | **contact@taist.app**     | Taist — org: `taistapp`. ⚠️ NOT `a.daynearnett@gmail.com` (no access — that's the BluBranch Expo login) |
+| App Store Connect | a.daynearnett@gmail.com   | Dayne — Apple Team ID: WXY2PMFQB7 (Apple ID for submission; separate from the Expo org login) |
 | Firebase / GCP    | contact@taist.app         | Taist — project: `taist-mobile-app` |
 | GitHub            | TaistApp org              | contact@taist.app |
 | Google Play       | daryl@taist.org           | Daryl — pending migration to daryl@taist.app |
@@ -51,6 +51,17 @@ Compare it against the version currently live on the App Store. If they are out 
 - **App slug:** `taist`
 - **Project ID:** `db11fb8c-995e-4b39-8fa5-8b426fada4dd`
 - **EAS Dashboard:** https://expo.dev/accounts/taistapp/projects/taist
+
+## ⚠️ Expo Account Switching (Taist ↔ BluBranch)
+
+The EAS CLI login is shared across projects on this machine. **Taist builds require the `contact@taist.app` Expo account** (owner of the `taistapp` org). The `a.daynearnett@gmail.com` login is the **BluBranch** account and has **no access** to the Taist project (`db11fb8c-995e-4b39-8fa5-8b426fada4dd`) — builds and `eas build:list` fail with `Entity not authorized`.
+
+**Before every Taist EAS build, check `eas whoami` and switch if needed:**
+```bash
+eas whoami        # must be contact@taist.app for Taist
+eas login         # switch if it shows a.daynearnett@gmail.com (BluBranch)
+```
+The **Apple ID** prompted during iOS submission is still `a.daynearnett@gmail.com` (Apple Team `WXY2PMFQB7`) — that is correct and separate from the Expo org login.
 
 ## Android Production Builds
 

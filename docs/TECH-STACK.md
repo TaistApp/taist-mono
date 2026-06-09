@@ -424,7 +424,7 @@ Mobile API covers: auth, allergens, appliances, availability, categories, conver
 | Service           | Account                                 | Owner                                        |
 | ----------------- | --------------------------------------- | -------------------------------------------- |
 | App Store Connect | a.daynearnett@gmail.com                 | Dayne — Apple Team ID: WXY2PMFQB7            |
-| Expo / EAS        | a.daynearnett@gmail.com                 | Dayne — owner: `taistapp`                    |
+| Expo / EAS        | contact@taist.app                       | Taist — owner of org `taistapp`. ⚠️ NOT a.daynearnett@gmail.com (BluBranch login, no access) — `eas login` as contact@taist.app before Taist builds |
 | Railway           | TaistApp GitHub org                     | Linked via GitHub SSO                        |
 | Stripe            | Dayne/Daryl                             | Account prefix: `51KWXqK...`                 |
 | Twilio            | Dayne/Daryl                             | SID: `ACdb49fd...`, Phone: +1 (317) 854-6026 |
