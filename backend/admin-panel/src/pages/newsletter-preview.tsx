@@ -1,8 +1,16 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Mail, Users, ChefHat } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Mail, Users, ChefHat, Filter, Save } from "lucide-react";
 
 /**
  * Newsletter preview — purely visual. Renders the exact HTML templates that
@@ -24,10 +32,54 @@ const SUBJECTS = {
 
 interface PreviewData {
   count: number;
+  total: number;
+  filter_mode: string;
   sample: { first_name: string; email: string } | null;
 }
 
+interface SettingsData {
+  settings: { user_type: number; filter_mode: string }[];
+}
+
 type UserType = 1 | 2;
+
+// Human labels + helper text for each filter mode, per audience. The order
+// here is the order shown in the dropdown.
+const MODE_OPTIONS: Record<UserType, { value: string; label: string; hint: string }[]> = {
+  1: [
+    {
+      value: "service_area",
+      label: "Service-area zips only",
+      hint: "Only customers whose zip is in your Service Areas list.",
+    },
+    {
+      value: "all",
+      label: "All customers",
+      hint: "Every waitlist signup and app customer, regardless of zip.",
+    },
+  ],
+  2: [
+    {
+      value: "active",
+      label: "Active / approved chefs only",
+      hint: "Approved chefs only. Excludes pending applicants and waitlist leads.",
+    },
+    {
+      value: "active_pending",
+      label: "Active + pending applicants",
+      hint: "Approved chefs plus people mid-application. Excludes waitlist leads.",
+    },
+    {
+      value: "all",
+      label: "All chefs & leads",
+      hint: "Everyone, including waitlist chef leads.",
+    },
+  ],
+};
+
+function defaultMode(userType: UserType) {
+  return MODE_OPTIONS[userType][0].value;
+}
 
 function render(template: string, first_name: string, email: string) {
   return template
@@ -36,14 +88,46 @@ function render(template: string, first_name: string, email: string) {
 }
 
 export default function NewsletterPreviewPage() {
+  const queryClient = useQueryClient();
   const [userType, setUserType] = useState<UserType>(1);
+  // Pending (possibly unsaved) filter selection per audience.
+  const [pendingMode, setPendingMode] = useState<Record<UserType, string | null>>({
+    1: null,
+    2: null,
+  });
+
+  // Saved settings (source of truth for what Make sends to).
+  const { data: settings } = useQuery<SettingsData>({
+    queryKey: ["newsletter-settings"],
+    queryFn: () => api.get("/newsletter-settings").then((r) => r.data),
+  });
+
+  const savedMode =
+    settings?.settings.find((s) => s.user_type === userType)?.filter_mode ??
+    defaultMode(userType);
+  // What the preview/count reflects: a pending edit if any, else the saved mode.
+  const activeMode = pendingMode[userType] ?? savedMode;
+  const dirty = pendingMode[userType] !== null && pendingMode[userType] !== savedMode;
 
   const { data, isLoading } = useQuery<PreviewData>({
-    queryKey: ["newsletter-preview", userType],
+    queryKey: ["newsletter-preview", userType, activeMode],
     queryFn: () =>
       api
-        .get("/newsletter-preview", { params: { user_type: userType } })
+        .get("/newsletter-preview", {
+          params: { user_type: userType, filter_mode: activeMode },
+        })
         .then((r) => r.data),
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: (mode: string) =>
+      api.put("/newsletter-settings", { user_type: userType, filter_mode: mode }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["newsletter-settings"] });
+      setPendingMode((p) => ({ ...p, [userType]: null }));
+      toast.success("Audience filter saved — Make will use it on the next send.");
+    },
+    onError: () => toast.error("Couldn't save the audience filter."),
   });
 
   // Fall back to placeholder data if no recipients exist yet.
@@ -54,6 +138,13 @@ export default function NewsletterPreviewPage() {
   const html = render(template, sample.first_name, sample.email);
   const subject = render(SUBJECTS[userType], sample.first_name, sample.email);
 
+  const excluded =
+    data && data.total > data.count ? data.total - data.count : 0;
+  const activeOption = MODE_OPTIONS[userType].find((o) => o.value === activeMode);
+
+  const setMode = (mode: string) =>
+    setPendingMode((p) => ({ ...p, [userType]: mode }));
+
   return (
     <div>
       <div className="mb-4 flex items-center gap-2">
@@ -61,9 +152,9 @@ export default function NewsletterPreviewPage() {
         <h1 className="text-2xl font-bold">Newsletter Preview</h1>
       </div>
       <p className="mb-4 max-w-2xl text-sm text-muted-foreground">
-        Visual preview only — this page never sends email. The templates mirror the
-        Make.com scenarios (#5233475 customer, #5233482 chef). A real recipient's
-        first name and email are substituted in below.
+        Preview the email and choose who receives it. The templates mirror the
+        Make.com scenarios (#5233475 customer, #5233482 chef); the audience filter
+        controls who those scenarios actually send to. This page never sends email.
       </p>
 
       {/* Audience toggle */}
@@ -88,6 +179,43 @@ export default function NewsletterPreviewPage() {
         </Button>
       </div>
 
+      {/* Audience filter control */}
+      <div className="mb-4 rounded-lg border bg-card p-4">
+        <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <Filter className="h-3.5 w-3.5" />
+          Who receives this newsletter
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <Select value={activeMode} onValueChange={setMode}>
+            <SelectTrigger className="w-[280px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {MODE_OPTIONS[userType].map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            size="sm"
+            onClick={() => saveMutation.mutate(activeMode)}
+            disabled={!dirty || saveMutation.isPending}
+            className="gap-2"
+          >
+            <Save className="h-4 w-4" />
+            {saveMutation.isPending ? "Saving…" : "Save"}
+          </Button>
+          {dirty && (
+            <span className="text-xs text-amber-600">Unsaved — preview only</span>
+          )}
+        </div>
+        {activeOption && (
+          <p className="mt-2 text-sm text-muted-foreground">{activeOption.hint}</p>
+        )}
+      </div>
+
       {/* Recipient summary */}
       <div className="mb-4 flex flex-wrap items-center gap-4">
         <div className="rounded-lg border bg-card p-4 text-center">
@@ -97,6 +225,11 @@ export default function NewsletterPreviewPage() {
           <div className="text-sm text-muted-foreground">
             {userType === 1 ? "Customers" : "Chefs"} would receive
           </div>
+          {!isLoading && excluded > 0 && (
+            <div className="mt-1 text-xs text-muted-foreground">
+              {excluded} of {data?.total} excluded by filter
+            </div>
+          )}
         </div>
         <div className="rounded-lg border bg-card p-4">
           <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -107,7 +240,7 @@ export default function NewsletterPreviewPage() {
             <span className="text-muted-foreground">&lt;{sample.email}&gt;</span>
             {usingFallback && (
               <span className="ml-2 text-xs text-amber-600">
-                (placeholder — no recipients yet)
+                (placeholder — none match this filter yet)
               </span>
             )}
           </div>
