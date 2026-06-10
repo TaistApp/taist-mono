@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Mail, Users, ChefHat, Filter, Save } from "lucide-react";
+import { Mail, Users, ChefHat, Filter, Save, ChevronRight, ChevronDown } from "lucide-react";
 
 /**
  * Newsletter preview — purely visual. Renders the exact HTML templates that
@@ -30,11 +30,18 @@ const SUBJECTS = {
   2: "It's official, Chef {{2.first_name}}. Taist is live in Indy.",
 } as const;
 
+interface Recipient {
+  first_name: string;
+  last_initial: string;
+  source: string;
+}
+
 interface PreviewData {
   count: number;
   total: number;
   filter_mode: string;
   sample: { first_name: string; email: string } | null;
+  recipients: Recipient[];
 }
 
 interface SettingsData {
@@ -90,6 +97,7 @@ function render(template: string, first_name: string, email: string) {
 export default function NewsletterPreviewPage() {
   const queryClient = useQueryClient();
   const [userType, setUserType] = useState<UserType>(1);
+  const [showList, setShowList] = useState(false);
   // Pending (possibly unsaved) filter selection per audience.
   const [pendingMode, setPendingMode] = useState<Record<UserType, string | null>>({
     1: null,
@@ -251,6 +259,44 @@ export default function NewsletterPreviewPage() {
           </div>
           <div className="mt-1 text-sm font-medium">{subject}</div>
         </div>
+      </div>
+
+      {/* Recipient list */}
+      <div className="mb-4 rounded-lg border bg-card p-4">
+        <button
+          type="button"
+          onClick={() => setShowList((s) => !s)}
+          className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-[#fa4616]"
+        >
+          {showList ? (
+            <ChevronDown className="h-4 w-4" />
+          ) : (
+            <ChevronRight className="h-4 w-4" />
+          )}
+          {showList ? "Hide" : "Show"} recipient list ({data?.recipients?.length ?? 0})
+        </button>
+        {showList && (
+          <div className="mt-3">
+            {(data?.recipients?.length ?? 0) === 0 ? (
+              <p className="text-sm text-muted-foreground">No one matches this filter yet.</p>
+            ) : (
+              <ul className="grid max-h-72 grid-cols-2 gap-x-6 gap-y-1 overflow-y-auto sm:grid-cols-3">
+                {data!.recipients.map((r, i) => (
+                  <li key={i} className="text-sm">
+                    {r.first_name} {r.last_initial}
+                    {r.source === "waitlist" && (
+                      <span className="ml-1 text-xs text-muted-foreground">(lead)</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="mt-3 text-xs text-muted-foreground">
+              First name + last initial only. This is exactly who the newsletter would
+              send to with the selected filter.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Rendered email */}

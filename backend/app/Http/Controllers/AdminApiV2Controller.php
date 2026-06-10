@@ -1464,9 +1464,18 @@ class AdminApiV2Controller extends Controller
 
         $merged = $this->buildNewsletterRecipients($userType);
 
+        // Make only needs email + first_name; don't expose last names via this key.
+        $recipients = $merged->map(function ($r) {
+            return [
+                'email' => $r['email'],
+                'first_name' => $r['first_name'],
+                'source' => $r['source'],
+            ];
+        })->values();
+
         return response()->json([
             'count' => $merged->count(),
-            'recipients' => $merged,
+            'recipients' => $recipients,
         ]);
     }
 
@@ -1498,6 +1507,16 @@ class AdminApiV2Controller extends Controller
         $merged = $this->buildNewsletterRecipients($userType, $mode);
         $sample = $merged->first();
 
+        // Privacy-light recipient list for the admin view: first name + last initial.
+        $recipients = $merged->map(function ($r) {
+            $last = trim((string) ($r['last_name'] ?? ''));
+            return [
+                'first_name' => $r['first_name'],
+                'last_initial' => $last !== '' ? strtoupper(substr($last, 0, 1)) . '.' : '',
+                'source' => $r['source'],
+            ];
+        })->values();
+
         return response()->json([
             'count' => $merged->count(),
             'total' => $this->buildNewsletterRecipients($userType, 'all')->count(),
@@ -1506,6 +1525,7 @@ class AdminApiV2Controller extends Controller
                 'first_name' => $sample['first_name'],
                 'email' => $sample['email'],
             ] : null,
+            'recipients' => $recipients,
         ]);
     }
 
@@ -1591,6 +1611,7 @@ class AdminApiV2Controller extends Controller
                     return [
                         'email' => strtolower($w->email),
                         'first_name' => $w->first_name,
+                        'last_name' => null, // waitlist has no last name
                         'source' => 'waitlist',
                     ];
                 });
@@ -1615,12 +1636,13 @@ class AdminApiV2Controller extends Controller
         }
 
         $appContacts = $appQuery
-            ->select('email', 'first_name')
+            ->select('email', 'first_name', 'last_name')
             ->get()
             ->map(function ($u) {
                 return [
                     'email' => strtolower($u->email),
                     'first_name' => $u->first_name,
+                    'last_name' => $u->last_name,
                     'source' => 'app',
                 ];
             });
