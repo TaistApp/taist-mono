@@ -2,10 +2,10 @@ import { navigate } from "@/app/utils/navigation";
 import { Text, TextInput } from "react-native-paper";
 import React, { useRef } from "react";
 import { Image, Pressable, View } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import KeyboardAwareScrollView from "../../../components/KeyboardAwareScrollView";
 import { IUser } from "../../../types/index";
-import { ShowErrorToast } from "../../../utils/toast";
+import { ShowErrorToast, ShowSuccessToast } from "../../../utils/toast";
 import {
   emailValidation,
   passwordValidation,
@@ -27,8 +27,16 @@ import { RegisterAPI, LoginAPI } from "../../../services/api";
 
 const Signup = () => {
   const dispatch = useAppDispatch();
-  const [step, setStep] = React.useState(0);
-  const [userType, setUserType] = React.useState(1);
+
+  // Role is now chosen on the splash *before* the auth options (role-first
+  // signup), and passed in as a param. When present we skip the in-flow role
+  // step. Chefs (role=2) sign up via email only and jump straight to the form;
+  // customers (role=1) still see the onboarding carousel first.
+  const params = useLocalSearchParams<{ role?: string }>();
+  const presetRole = params.role === "2" ? 2 : params.role === "1" ? 1 : null;
+
+  const [step, setStep] = React.useState(presetRole === 2 ? 2 : 0);
+  const [userType, setUserType] = React.useState(presetRole ?? 1);
   const [errors, setErrors] = React.useState("");
   const [successMessage, setSuccessMessage] = React.useState("");
   const [email, onChangeEmail] = React.useState("");
@@ -145,28 +153,23 @@ const Signup = () => {
     dispatch(showLoading());
     try {
       const resp_register = await RegisterAPI(registrationData, dispatch);
+      dispatch(hideLoading());
       if (resp_register.success === 0) {
-        dispatch(hideLoading());
         ShowErrorToast(resp_register.message ?? resp_register.error);
         return;
       }
 
-      // Auto-login after registration
-      const resp_login = await LoginAPI(
-        { email, password, remember: true },
-        dispatch,
+      // Chefs are created as pending (is_pending = 1) and cannot log in until an
+      // admin approves them. Do NOT auto-login here: the login endpoint rejects
+      // pending accounts with "Your account is currently deactivated", which made a
+      // *successful* signup look like a failure — and tapping Continue again then
+      // re-ran register() against the row we just created, surfacing
+      // "The email has already been taken." Instead, confirm and send them to login.
+      ShowSuccessToast(
+        "We'll review your application and notify you once you're approved.",
+        "Chef application submitted!",
       );
-
-      if (resp_login.success === 0) {
-        dispatch(hideLoading());
-        ShowErrorToast(resp_login.message ?? resp_login.error);
-        return;
-      }
-
-      dispatch(hideLoading());
-
-      // Navigate to chef home (they'll see pending approval message)
-      router.replace("/screens/chef/(tabs)/home");
+      navigate.toCommon.login();
     } catch (error) {
       dispatch(hideLoading());
       ShowErrorToast("An error occurred during signup. Please try again.");
@@ -225,7 +228,8 @@ const Signup = () => {
       {step === 0 && (
         <Onboarding
           onStart={() => {
-            setStep(1);
+            // Skip the in-flow role step when the role was already chosen on the splash.
+            setStep(presetRole === 1 ? 2 : 1);
           }}
         />
       )}

@@ -20,8 +20,9 @@ Complete guide for deploying the Taist mobile app to TestFlight and production a
 # Navigate to frontend directory
 cd /Users/williamgroble/taist-mono/frontend
 
-# Ensure you're logged into EAS
-npx eas-cli whoami
+# Ensure you're logged into EAS as the Taist org owner (contact@taist.app).
+# ⚠️ a.daynearnett@gmail.com is the BluBranch login and has NO access here.
+npx eas-cli whoami   # must be contact@taist.app — run `eas login` to switch
 
 # Build and submit to TestFlight
 npx eas-cli build --platform ios --profile preview
@@ -37,7 +38,7 @@ Requires: Apple Admin access
 
 ### Required Access
 
-- ✅ **Expo Account**: Access to `@taistapp/taist` project
+- ✅ **Expo Account**: Logged in as `contact@taist.app` (owner of the `taistapp` org). ⚠️ NOT `a.daynearnett@gmail.com` — that's the BluBranch login and cannot access `@taistapp/taist`.
 - ✅ **Apple Developer**: Admin role in Taist, Inc. (WXY2PMFQB7)
 - ✅ **App Store Connect**: Access to Taist app
 - ✅ **GitHub**: Push access to `TaistApp/taist-mono`

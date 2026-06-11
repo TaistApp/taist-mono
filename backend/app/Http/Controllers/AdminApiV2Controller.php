@@ -22,6 +22,7 @@ use App\Models\ReferralSettings;
 use App\Models\DishPhoto;
 use App\Models\SocialContentQueue;
 use App\Models\Waitlist;
+use App\Models\NewsletterSettings;
 use App\Notification;
 use DB;
 use Illuminate\Support\Facades\Log;
@@ -1463,17 +1464,30 @@ class AdminApiV2Controller extends Controller
 
         $merged = $this->buildNewsletterRecipients($userType);
 
+        // Make only needs email + first_name; don't expose last names via this key.
+        $recipients = $merged->map(function ($r) {
+            return [
+                'email' => $r['email'],
+                'first_name' => $r['first_name'],
+                'source' => $r['source'],
+            ];
+        })->values();
+
         return response()->json([
             'count' => $merged->count(),
-            'recipients' => $merged,
+            'recipients' => $recipients,
         ]);
     }
 
     /**
      * Admin-authed preview of the newsletter audience for the admin panel.
-     * Returns the recipient count plus one real sample recipient (first_name +
-     * email) so the preview page can substitute live data into the template.
+     * Returns the recipient count (after the configured audience filter), the
+     * unfiltered total, the active filter mode, and one real sample recipient
+     * (first_name + email) so the preview page can substitute live data.
      * Auth via auth:adminapi (Bearer token) — does NOT send any email.
+     *
+     * Accepts an optional `filter_mode` query param to preview a not-yet-saved
+     * selection; if omitted the stored setting is used.
      */
     public function newsletterPreview(Request $request)
     {
@@ -1482,47 +1496,153 @@ class AdminApiV2Controller extends Controller
             return response()->json(['error' => 'user_type must be 1 or 2'], 400);
         }
 
-        $merged = $this->buildNewsletterRecipients($userType);
+        $mode = $request->input('filter_mode');
+        if ($mode !== null && !NewsletterSettings::isValidMode($userType, $mode)) {
+            return response()->json(['error' => 'invalid filter_mode'], 400);
+        }
+        if ($mode === null) {
+            $mode = NewsletterSettings::modeForType($userType);
+        }
+
+        $merged = $this->buildNewsletterRecipients($userType, $mode);
         $sample = $merged->first();
+
+        // Privacy-light recipient list for the admin view: first name + last initial.
+        $recipients = $merged->map(function ($r) {
+            $last = trim((string) ($r['last_name'] ?? ''));
+            return [
+                'first_name' => $r['first_name'],
+                'last_initial' => $last !== '' ? strtoupper(substr($last, 0, 1)) . '.' : '',
+                'source' => $r['source'],
+            ];
+        })->values();
 
         return response()->json([
             'count' => $merged->count(),
+            'total' => $this->buildNewsletterRecipients($userType, 'all')->count(),
+            'filter_mode' => $mode,
             'sample' => $sample ? [
                 'first_name' => $sample['first_name'],
                 'email' => $sample['email'],
             ] : null,
+            'recipients' => $recipients,
         ]);
     }
 
     /**
-     * Build the merged newsletter recipient list for a given user_type.
-     * Combines waitlist contacts and app users, deduped by email (app users
-     * take priority). Shared by newsletterRecipients() and newsletterPreview().
+     * Get the stored newsletter audience filter settings (one entry per
+     * user_type). Includes the allowed modes so the UI can render controls.
      */
-    private function buildNewsletterRecipients($userType)
+    public function newsletterSettings()
     {
-        // Waitlist contacts
-        $waitlistContacts = Waitlist::where('user_type', $userType)
-            ->select('email', 'first_name')
-            ->get()
-            ->map(function ($w) {
-                return [
-                    'email' => strtolower($w->email),
-                    'first_name' => $w->first_name,
-                    'source' => 'waitlist',
-                ];
-            });
+        return response()->json([
+            'settings' => [
+                ['user_type' => 1, 'filter_mode' => NewsletterSettings::modeForType(1)],
+                ['user_type' => 2, 'filter_mode' => NewsletterSettings::modeForType(2)],
+            ],
+            'allowed_modes' => NewsletterSettings::MODES,
+        ]);
+    }
 
-        // App users
-        $appContacts = app(Listener::class)
-            ->where('user_type', $userType)
-            ->whereIn('verified', [0, 1]) // pending or active
-            ->select('email', 'first_name')
+    /**
+     * Update the audience filter mode for one user_type. This controls who the
+     * Make.com newsletter scenarios actually send to (they call
+     * newsletterRecipients, which reads these settings).
+     */
+    public function newsletterSettingsUpdate(Request $request)
+    {
+        $userType = $request->input('user_type');
+        $mode = $request->input('filter_mode');
+
+        if (!in_array((string) $userType, ['1', '2'], true)) {
+            return response()->json(['success' => 0, 'error' => 'user_type must be 1 or 2'], 400);
+        }
+        if (!NewsletterSettings::isValidMode($userType, $mode)) {
+            return response()->json(['success' => 0, 'error' => 'invalid filter_mode'], 400);
+        }
+
+        $settings = NewsletterSettings::updateOrCreate(
+            ['user_type' => (int) $userType],
+            ['filter_mode' => $mode]
+        );
+
+        return response()->json(['success' => 1, 'data' => $settings->fresh()]);
+    }
+
+    /**
+     * Build the merged newsletter recipient list for a given user_type,
+     * applying the audience filter. Combines waitlist contacts and app users,
+     * deduped by email (app users take priority).
+     *
+     * Filter modes:
+     *   Customers (user_type 1):
+     *     - service_area : only zips listed in tbl_zipcodes (waitlist + app users)
+     *     - all          : every customer, no zip filter
+     *   Chefs (user_type 2):
+     *     - active         : approved app chefs only (verified=1, is_pending=0); no leads
+     *     - active_pending : app chefs only, approved or mid-application (verified 0/1); no leads
+     *     - all            : app chefs (verified 0/1) plus waitlist leads
+     *
+     * If $mode is null the stored setting for the user_type is used.
+     */
+    private function buildNewsletterRecipients($userType, $mode = null)
+    {
+        if ($mode === null) {
+            $mode = NewsletterSettings::modeForType($userType);
+        }
+
+        $isChef = ((int) $userType) === 2;
+
+        // ---- Waitlist contacts (leads) ----
+        // Chef "active"/"active_pending" modes exclude waitlist leads entirely.
+        $includeWaitlist = !($isChef && in_array($mode, ['active', 'active_pending'], true));
+
+        $waitlistContacts = collect([]);
+        if ($includeWaitlist) {
+            $waitlistQuery = Waitlist::where('user_type', $userType);
+            if (!$isChef && $mode === 'service_area') {
+                $zips = $this->serviceAreaZips();
+                $waitlistQuery->whereIn('zip', $zips);
+            }
+            $waitlistContacts = $waitlistQuery
+                ->select('email', 'first_name')
+                ->get()
+                ->map(function ($w) {
+                    return [
+                        'email' => strtolower($w->email),
+                        'first_name' => $w->first_name,
+                        'last_name' => null, // waitlist has no last name
+                        'source' => 'waitlist',
+                    ];
+                });
+        }
+
+        // ---- App users ----
+        $appQuery = app(Listener::class)->where('user_type', $userType);
+
+        if ($isChef) {
+            // Chef status via verified/is_pending.
+            if ($mode === 'active') {
+                $appQuery->where('verified', 1)->where('is_pending', 0);
+            } else {
+                // active_pending + all: approved or mid-application, never rejected/suspended.
+                $appQuery->whereIn('verified', [0, 1]);
+            }
+        } else {
+            $appQuery->whereIn('verified', [0, 1]); // pending or active customer
+            if ($mode === 'service_area') {
+                $appQuery->whereIn('zip', $this->serviceAreaZips());
+            }
+        }
+
+        $appContacts = $appQuery
+            ->select('email', 'first_name', 'last_name')
             ->get()
             ->map(function ($u) {
                 return [
                     'email' => strtolower($u->email),
                     'first_name' => $u->first_name,
+                    'last_name' => $u->last_name,
                     'source' => 'app',
                 ];
             });
@@ -1531,5 +1651,18 @@ class AdminApiV2Controller extends Controller
         return $appContacts->concat($waitlistContacts)
             ->unique('email')
             ->values();
+    }
+
+    /**
+     * Parsed list of served zip codes from tbl_zipcodes (the Service Areas
+     * setting). Returns [] if unset — callers should treat that as "no match".
+     */
+    private function serviceAreaZips(): array
+    {
+        $record = app(Zipcodes::class)->first();
+        if (!$record || !$record->zipcodes) {
+            return [];
+        }
+        return array_values(array_filter(array_map('trim', explode(',', $record->zipcodes))));
     }
 }

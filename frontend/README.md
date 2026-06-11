@@ -411,8 +411,9 @@ npm run format
 ### EAS Build Setup
 
 **Current Expo Project:** `@taistapp/taist`  
+**Expo org owner:** `contact@taist.app` — ⚠️ **NOT** `a.daynearnett@gmail.com` (that's the BluBranch Expo login and has no access to this project)  
 **Bundle Identifier:** `org.taist.taist`  
-**Apple Team:** Taist, Inc. (WXY2PMFQB7)
+**Apple Team:** Taist, Inc. (WXY2PMFQB7) — Apple ID for submission is `a.daynearnett@gmail.com` (separate from the Expo login)
 
 #### Prerequisites
 
@@ -420,8 +421,10 @@ npm run format
 # Install EAS CLI
 npm install -g eas-cli
 
-# Login to Expo
-npx eas-cli login
+# Login to Expo — MUST be contact@taist.app (owner of the taistapp org).
+# a.daynearnett@gmail.com is the BluBranch account and cannot access this project.
+npx eas-cli whoami   # verify it shows contact@taist.app before building
+npx eas-cli login    # switch accounts if needed
 
 # Login to Apple Developer account (for iOS builds)
 # You'll be prompted during build: a.daynearnett@gmail.com

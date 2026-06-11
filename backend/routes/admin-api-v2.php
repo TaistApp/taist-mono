@@ -70,6 +70,10 @@ Route::group(['middleware' => ['auth:adminapi']], function () {
     // Newsletter preview (admin panel) — recipient count + sample, no sending
     Route::get('newsletter-preview', 'AdminApiV2Controller@newsletterPreview');
 
+    // Newsletter audience filter settings (admin panel) — controls who Make sends to
+    Route::get('newsletter-settings', 'AdminApiV2Controller@newsletterSettings');
+    Route::put('newsletter-settings', 'AdminApiV2Controller@newsletterSettingsUpdate');
+
     // Proxy legacy mutation endpoints so frontend baseURL (/admin-api-v2) works
     Route::get('adminapi/change_chef_status', 'AdminapiController@changeChefStatus');
     Route::get('adminapi/change_ticket_status', 'AdminapiController@changeTicketStatus');
