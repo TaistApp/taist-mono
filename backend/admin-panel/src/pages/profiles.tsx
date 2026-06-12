@@ -138,6 +138,7 @@ export default function ProfilesPage() {
         <div className="text-gray-500">Loading...</div>
       ) : (
         <DataTable
+          viewKey="profiles"
           columns={columns}
           data={profiles}
           searchPlaceholder="Search profiles..."

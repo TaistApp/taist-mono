@@ -236,6 +236,7 @@ export default function CategoriesPage() {
         <div className="text-gray-500">Loading...</div>
       ) : (
         <DataTable
+          viewKey="categories"
           columns={columns}
           data={filteredCategories}
           searchPlaceholder="Search categories..."

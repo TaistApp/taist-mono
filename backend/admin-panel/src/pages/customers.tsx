@@ -330,6 +330,7 @@ export default function CustomersPage() {
         <div className="text-gray-500">Loading...</div>
       ) : (
         <DataTable
+          viewKey="customers"
           columns={columns}
           data={customers}
           searchPlaceholder="Search customers..."

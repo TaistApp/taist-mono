@@ -187,6 +187,7 @@ export default function MenusPage() {
         <div className="text-gray-500">Loading...</div>
       ) : (
         <DataTable
+          viewKey="menus"
           columns={columns}
           data={menus}
           searchPlaceholder="Search menu items..."
