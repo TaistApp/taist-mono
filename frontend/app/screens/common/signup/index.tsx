@@ -5,7 +5,7 @@ import { Image, Pressable, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import KeyboardAwareScrollView from "../../../components/KeyboardAwareScrollView";
 import { IUser } from "../../../types/index";
-import { ShowErrorToast, ShowSuccessToast } from "../../../utils/toast";
+import { ShowErrorToast } from "../../../utils/toast";
 import {
   emailValidation,
   passwordValidation,
@@ -153,23 +153,29 @@ const Signup = () => {
     dispatch(showLoading());
     try {
       const resp_register = await RegisterAPI(registrationData, dispatch);
-      dispatch(hideLoading());
       if (resp_register.success === 0) {
+        dispatch(hideLoading());
         ShowErrorToast(resp_register.message ?? resp_register.error);
         return;
       }
 
-      // Chefs are created as pending (is_pending = 1) and cannot log in until an
-      // admin approves them. Do NOT auto-login here: the login endpoint rejects
-      // pending accounts with "Your account is currently deactivated", which made a
-      // *successful* signup look like a failure — and tapping Continue again then
-      // re-ran register() against the row we just created, surfacing
-      // "The email has already been taken." Instead, confirm and send them to login.
-      ShowSuccessToast(
-        "We'll review your application and notify you once you're approved.",
-        "Chef application submitted!",
+      // Auto-login and land on the chef home onboarding checklist. Pending chefs
+      // (is_pending=1) are allowed to log in — they must create a menu, set
+      // availability, connect Stripe, and pass the background check in-app before
+      // their application goes under review.
+      const resp_login = await LoginAPI(
+        { email, password, remember: true },
+        dispatch,
       );
-      navigate.toCommon.login();
+
+      if (resp_login.success === 0) {
+        dispatch(hideLoading());
+        ShowErrorToast(resp_login.message ?? resp_login.error);
+        return;
+      }
+
+      dispatch(hideLoading());
+      router.replace("/screens/chef/(tabs)/home");
     } catch (error) {
       dispatch(hideLoading());
       ShowErrorToast("An error occurred during signup. Please try again.");

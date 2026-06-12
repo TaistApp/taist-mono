@@ -155,8 +155,11 @@ class SocialAuthController extends Controller
         if ($user->verified != 1) {
             return response()->json(['success' => 0, 'error' => 'You need to verify the account first.']);
         }
-        if ($user->is_pending == 1) {
-            return response()->json(['success' => 0, 'error' => 'Your account is currently deactivated. Please contact support.']);
+        // Pending chefs (is_pending=1, user_type=2) may log in to finish onboarding —
+        // same exception as MapiController::login(). Rejected/banned are blocked by
+        // the verified check above.
+        if ($user->is_pending == 1 && $user->user_type != 2) {
+            return response()->json(['success' => 0, 'error' => 'Your account is currently deactivated. Please email contact@taist.app.']);
         }
 
         // Re-fetch so the response includes the latest fields.

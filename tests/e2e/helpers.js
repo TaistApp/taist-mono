@@ -41,6 +41,10 @@ function testChef() {
     state: 'Texas',
     zip: '75201',
     user_type: 2,
+    // The app registers chefs as pending (awaiting admin approval). The login
+    // step in the chef flow then covers the regression where pending chefs were
+    // rejected with "account is currently deactivated" and locked out of onboarding.
+    is_pending: 1,
   };
 }
 
