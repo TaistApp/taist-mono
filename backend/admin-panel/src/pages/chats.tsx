@@ -112,6 +112,7 @@ export default function ChatsPage() {
         <div className="text-gray-500">Loading...</div>
       ) : (
         <DataTable
+          viewKey="chats"
           columns={columns}
           data={chats}
           searchPlaceholder="Search chats..."

@@ -98,6 +98,7 @@ export default function ReviewsPage() {
         <div className="text-gray-500">Loading...</div>
       ) : (
         <DataTable
+          viewKey="reviews"
           columns={columns}
           data={reviews}
           searchPlaceholder="Search reviews..."

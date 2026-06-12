@@ -116,6 +116,7 @@ export default function TransactionsPage() {
         <div className="text-gray-500">Loading...</div>
       ) : (
         <DataTable
+          viewKey="transactions"
           columns={columns}
           data={transactions}
           searchPlaceholder="Search transactions..."

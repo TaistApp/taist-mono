@@ -319,6 +319,7 @@ export default function ContactsPage() {
         <div className="text-gray-500">Loading...</div>
       ) : (
         <DataTable
+          viewKey="contacts"
           columns={columns}
           data={filteredContacts}
           searchPlaceholder="Search tickets..."

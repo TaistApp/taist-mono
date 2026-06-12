@@ -133,6 +133,7 @@ export default function EarningsPage() {
         <div className="text-gray-500">Loading...</div>
       ) : (
         <DataTable
+          viewKey="earnings"
           columns={columns}
           data={earnings}
           searchPlaceholder="Search chefs..."

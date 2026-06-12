@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use App\Models\Admins;
+use App\Models\AdminTableView;
 use App\Listener;
 use App\Models\Categories;
 use App\Models\Allergens;
@@ -118,6 +119,65 @@ class AdminApiV2Controller extends Controller
         Admins::where('id', $user->id)->update([
             'password' => Hash::make($request->new_password),
         ]);
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * All saved table views for the authenticated admin, keyed by page.
+     */
+    public function tableViews()
+    {
+        $adminId = Auth::guard('adminapi')->user()->id;
+
+        $views = AdminTableView::where('admin_id', $adminId)->get();
+
+        return response()->json(
+            $views->mapWithKeys(function ($view) {
+                return [$view->page_key => json_decode($view->state, true)];
+            })
+        );
+    }
+
+    /**
+     * Save (upsert) the authenticated admin's view for one table page.
+     */
+    public function tableViewSave(Request $request, $pageKey)
+    {
+        if (!preg_match('/^[a-z0-9-]{1,50}$/', $pageKey)) {
+            return response()->json(['error' => 'Invalid page key.'], 422);
+        }
+
+        $state = $request->input('state');
+        if (!is_array($state)) {
+            return response()->json(['error' => 'State must be an object.'], 422);
+        }
+
+        $encoded = json_encode($state);
+        if (strlen($encoded) > 16384) {
+            return response()->json(['error' => 'View state is too large.'], 422);
+        }
+
+        AdminTableView::updateOrCreate(
+            [
+                'admin_id' => Auth::guard('adminapi')->user()->id,
+                'page_key' => $pageKey,
+            ],
+            ['state' => $encoded]
+        );
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Delete the authenticated admin's saved view for one table page.
+     */
+    public function tableViewDelete($pageKey)
+    {
+        AdminTableView::where([
+            'admin_id' => Auth::guard('adminapi')->user()->id,
+            'page_key' => $pageKey,
+        ])->delete();
 
         return response()->json(['success' => true]);
     }
