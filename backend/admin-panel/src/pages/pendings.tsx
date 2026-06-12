@@ -307,6 +307,7 @@ export default function PendingsPage() {
         <div className="text-gray-500">Loading...</div>
       ) : (
         <DataTable
+          viewKey="pendings"
           columns={columns}
           data={pendings}
           searchPlaceholder="Search pending chefs..."

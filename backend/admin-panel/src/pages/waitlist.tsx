@@ -89,7 +89,6 @@ const columns: ColumnDef<WaitlistEntry>[] = [
         </Badge>
       );
     },
-    filterFn: (row, id, value) => value.includes(row.getValue(id)),
   },
   {
     accessorKey: "source",
@@ -104,7 +103,6 @@ const columns: ColumnDef<WaitlistEntry>[] = [
         </Badge>
       );
     },
-    filterFn: (row, id, value) => value.includes(row.getValue(id)),
   },
   {
     accessorKey: "household",
@@ -131,7 +129,6 @@ const columns: ColumnDef<WaitlistEntry>[] = [
         </Badge>
       );
     },
-    filterFn: (row, id, value) => value.includes(row.getValue(id)),
   },
   {
     accessorKey: "converted",
@@ -227,6 +224,7 @@ export default function WaitlistPage() {
         <div className="text-gray-500">Loading...</div>
       ) : (
         <DataTable
+          viewKey="waitlist"
           columns={columns}
           data={entries}
           searchPlaceholder="Search waitlist..."

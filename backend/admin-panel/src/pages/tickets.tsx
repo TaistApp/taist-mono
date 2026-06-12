@@ -331,6 +331,7 @@ export default function TicketsPage() {
         <div className="text-gray-500">Loading...</div>
       ) : (
         <DataTable
+          viewKey="tickets"
           columns={columns}
           data={filteredContacts}
           searchPlaceholder="Search tickets..."

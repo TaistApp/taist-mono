@@ -448,6 +448,7 @@ export default function DiscountCodesPage() {
         <div className="text-gray-500">Loading...</div>
       ) : (
         <DataTable
+          viewKey="discount-codes"
           columns={columns}
           data={codes}
           searchPlaceholder="Search discount codes..."

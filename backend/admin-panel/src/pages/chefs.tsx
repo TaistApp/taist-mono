@@ -103,15 +103,6 @@ export interface ChefRow {
 
 // ---------- Helpers ----------
 
-function arrIncludesFilter(
-  row: { getValue: (id: string) => unknown },
-  columnId: string,
-  filterValue: string[]
-): boolean {
-  const val = String(row.getValue(columnId) ?? "");
-  return filterValue.includes(val);
-}
-
 const statusColors: Record<string, string> = {
   Active: "bg-emerald-500/15 text-emerald-700 border-emerald-500/20",
   Pending: "bg-amber-500/15 text-amber-700 border-amber-500/20",
@@ -196,7 +187,6 @@ const baseColumns: ColumnDef<ChefRow>[] = [
         </Badge>
       );
     },
-    filterFn: arrIncludesFilter,
   },
   {
     accessorKey: "phone",
@@ -222,21 +212,18 @@ const baseColumns: ColumnDef<ChefRow>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="City" />
     ),
-    filterFn: arrIncludesFilter,
   },
   {
     accessorKey: "state",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="State" />
     ),
-    filterFn: arrIncludesFilter,
   },
   {
     accessorKey: "zip",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Zip" />
     ),
-    filterFn: arrIncludesFilter,
   },
   {
     accessorKey: "photo",
@@ -677,6 +664,7 @@ export default function ChefsPage() {
         <div className="text-gray-500">Loading...</div>
       ) : (
         <DataTable
+          viewKey="chefs"
           columns={columns}
           data={filteredRows}
           searchPlaceholder="Search chefs..."

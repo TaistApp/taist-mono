@@ -432,6 +432,7 @@ export default function ReferralsPage() {
             </div>
           ) : (
             <DataTable
+              viewKey="referrals"
               columns={columns}
               data={referrals}
               searchPlaceholder="Search by referrer name..."

@@ -400,6 +400,7 @@ export default function OrdersPage() {
         <div className="text-gray-500">Loading...</div>
       ) : (
         <DataTable
+          viewKey="orders"
           columns={columns}
           data={filteredOrders}
           searchPlaceholder="Search orders..."

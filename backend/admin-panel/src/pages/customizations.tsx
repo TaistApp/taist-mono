@@ -116,6 +116,7 @@ export default function CustomizationsPage() {
         <div className="text-gray-500">Loading...</div>
       ) : (
         <DataTable
+          viewKey="customizations"
           columns={columns}
           data={customizations}
           searchPlaceholder="Search customizations..."

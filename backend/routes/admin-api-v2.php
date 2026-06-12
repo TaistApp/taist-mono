@@ -12,6 +12,12 @@ Route::group(['middleware' => ['auth:adminapi']], function () {
     Route::post('logout', 'AdminApiV2Controller@logout');
     Route::get('me', 'AdminApiV2Controller@me');
     Route::post('change-password', 'AdminApiV2Controller@changePassword');
+
+    // Per-admin saved table views (column order/visibility/etc.)
+    Route::get('table-views', 'AdminApiV2Controller@tableViews');
+    Route::put('table-views/{pageKey}', 'AdminApiV2Controller@tableViewSave');
+    Route::delete('table-views/{pageKey}', 'AdminApiV2Controller@tableViewDelete');
+
     Route::get('dashboard', 'AdminApiV2Controller@dashboard');
     Route::get('chefs', 'AdminApiV2Controller@chefs');
     Route::get('pendings', 'AdminApiV2Controller@pendings');
