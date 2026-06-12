@@ -265,20 +265,17 @@
             var isMobile = /iPhone|iPad|iPod|Android/i.test(ua);
             if (!isMobile) return;
 
-            var deepLink = 'taistexpo://chef/{{ $chef->id }}';
-            var appStoreUrl = /iPhone|iPad|iPod/i.test(ua)
-                ? 'https://apps.apple.com/app/taist/id6476880498'
-                : 'https://play.google.com/store/apps/details?id=com.taist.app';
+            // In-app browsers (Facebook, Instagram, Messenger, etc.) silently
+            // block custom-scheme redirects, so the deep link attempt would
+            // only kick the visitor to the app store. Leave the page readable
+            // and let them use the buttons instead.
+            var isInAppBrowser = /FBAN|FBAV|FB_IAB|Instagram|Messenger|Line\/|MicroMessenger|Snapchat|TikTok|musical_ly/i.test(ua);
+            if (isInAppBrowser) return;
 
-            // Try opening the app, fall back to store after timeout
-            var start = Date.now();
-            window.location.href = deepLink;
-
-            setTimeout(function() {
-                if (Date.now() - start < 2000) {
-                    window.location.href = appStoreUrl;
-                }
-            }, 1500);
+            // Try opening the app. If it isn't installed nothing happens and
+            // the visitor stays on this page — the store links are right
+            // there, so never auto-redirect away from the menu.
+            window.location.href = 'taistexpo://chef/{{ $chef->id }}';
         })();
     </script>
 </body>
