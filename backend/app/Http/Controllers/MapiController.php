@@ -530,8 +530,13 @@ class MapiController extends Controller
             if ($user['verified'] != 1) {
                 return response()->json(['success' => 0, 'error' => 'You need to verify the account first.']);
             }
-            if ($user['is_pending'] == 1) {
-                return response()->json(['success' => 0, 'error' => 'Your account is currently deactivated. Please contact support.']);
+            // Chefs register with is_pending=1 and must be able to log in to complete
+            // onboarding (menu, availability, Stripe, background check) — chef home
+            // shows the checklist and pending chefs can't receive orders. Only
+            // non-chefs are blocked here; rejected/banned chefs are already blocked
+            // by the verified check above (verified=2/3).
+            if ($user['is_pending'] == 1 && $user['user_type'] != 2) {
+                return response()->json(['success' => 0, 'error' => 'Your account is currently deactivated. Please email contact@taist.app.']);
             }
             $api_token = $this->_generateToken();
             app(Listener::class)->where(['id' => $user->id])->update(['api_token' => $api_token]);
