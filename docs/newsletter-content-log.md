@@ -1,89 +1,70 @@
 # Newsletter Content Log
 
-Tracks which product updates have been featured in each newsletter edition, so we
-**never repeat the same feature update across newsletters**. When drafting the next
-edition, pull from the **Backlog** and move items up to **Featured** once that edition
-is sent.
+Tracks what goes out in each newsletter, so we **never repeat a feature update across
+editions** and can keep cadence sane. When drafting the next edition, pull from the
+**Backlog** and move items up to **Featured** once that edition is sent.
 
-- Customer newsletter: Make scenario **#5233475**
-- Chef newsletter: Make scenario **#5233482**
-- Audience preview / who-receives: admin panel → **Marketing → Newsletter Preview**
+## Channels
+
+| Channel | Make scenario / location | Cadence |
+| --- | --- | --- |
+| Customer newsletter | #5233475 | biweekly |
+| **Chef Regular** | **#5233482** ("Newsletter - Chef Regular (biweekly)") | biweekly — feature & progress updates |
+| **Chef Special** | **#5380856** ("Newsletter - Chef Special (ad-hoc)") | ad-hoc — events & promotions, sent on demand |
+| **Chef welcome email** | backend, `resources/views/emails/chef-welcome.blade.php` | triggered automatically when a chef is approved (not a newsletter) |
+
+- Audience preview / who-receives: admin panel → **Marketing → Newsletter Preview**.
+- Recipients come from `GET /admin-api-v2/newsletter-recipients?user_type=2` (active/approved chefs only).
 - Mirrored in Claude memory (`newsletter_chef_backlog`).
 
 ## Rules
 
-- **Never feature the same update in more than one newsletter edition.** Check this log first.
-- Chef copy: use **"order"**, not "booking".
-- No em dashes in any newsletter copy (use periods/commas).
-- Keep the updates list to ~3 items per edition.
+- **Never feature the same update in more than one edition.** Check this log first.
+- **Regular** = feature & progress updates, biweekly. **Special** = events/promos, ad-hoc.
+- Space Regular and Special sends out so chefs don't get two emails back to back (avoid spammy feel).
+- Chef copy: use **"order"**, not "booking". No em dashes anywhere. Updates list ~3 items.
 - "Featured" only counts once an edition has actually been **sent**.
 
 ---
 
-## Chef newsletter (#5233482)
+## Chef — Regular (#5233482, biweekly)
 
-### Featured
+### Featured / scheduled
 
-| Edition | Status | Updates featured |
+| Edition | Status | Content |
 | --- | --- | --- |
-| 1 — "Welcome In" (first chef newsletter) | Drafted, not yet sent | Minimum order total · Arrival & parking details · Share-your-profile links |
-| 2 — "Pool party in Carmel" (event edition) | Planned, draft below | Sophia Square pool-party chef call (hero) · Richer notifications + notification center (single update) |
+| 1 — "Welcome In" | **Scheduled: Sun June 14, 2026, evening ET** | Founder note + funding; 3 updates: minimum order total · arrival & parking details · share-your-profile links |
 
-### Backlog (not yet featured)
+### Backlog (for Regular #2 onward)
 
+- **Richer notifications + in-app notification center** — order alerts include dish photos; one place for all messages. (PR #21.)
 - **Dish photo capture after orders** — chefs are prompted to snap the finished dish for approval/social. (PRs #12, #13.)
 - _Add newly shipped chef features here as they reach production (`origin/main`)._
 
-### Edition 2 draft — pool-party event edition
+---
 
-Centered on a marketing event that needs one or two chefs. Send after edition 1, with
-enough lead time before the event. Load into Make scenario #5233482 once edition 1 has
-been sent (the scenario can only hold one edition at a time).
+## Chef — Special (#5380856, ad-hoc)
+
+### Featured / planned
+
+| Send | Status | Content |
+| --- | --- | --- |
+| Pool party (Sophia Square) | **Loaded, planned for week of June 15, 2026** | Carmel pool-party chef call — needs 1–2 chefs to serve sample dishes; claim by reply |
 
 **Event facts (confirmed by Dayne, 2026-06-12):**
-- Pool party at **Sophia Square Apartments, Carmel, IN**
-- **Thursday, July 16**, 5:30 to 8:00 pm ET
-- Chef **arrival and setup at 4:30 pm ET**
-- Need **one or two chefs** to provide **sample dishes** for residents
+- **Sophia Square Apartments, Carmel, IN** — Thursday, **July 16**, 5:30 to 8:00 pm ET; chef arrival/setup **4:30 pm ET**.
+- Need **1–2 chefs** to provide **sample dishes**. Chefs claim a spot by replying to the email.
+- Subject: `Chef {{2.first_name}}, want to cook at our Carmel pool party?`
+- Event-only (no feature update — those belong in Regular).
 
-**Subject:** `Chef {{2.first_name}}, want to cook at our Carmel pool party?`
+---
 
-**Preheader:** `We need one or two chefs to serve sample dishes on July 16.`
+## Chef welcome email (triggered, not a newsletter)
 
-**Tag line:** `YOU'RE INVITED`
-
-**Heading:** `Hey Chef {{2.first_name}}, we have a gig for you.`
-
-**Body copy:**
-
-> This update is a fun one. Taist is teaming up with Sophia Square Apartments in
-> Carmel for their summer pool party, and we want Taist chefs front and center.
->
-> We're looking for one or two chefs to serve sample dishes to residents. It's a
-> chance to put your food in front of a crowd of potential customers, with Taist
-> handling the promotion.
->
-> **Details box (orange border, centered):**
-> Thursday, July 16 · 5:30 to 8:00 pm ET
-> Sophia Square Apartments, Carmel, IN
-> Arrive 4:30 pm ET for setup
->
-> **Numbered list (why do it):**
-> 1. **Meet a crowd of potential customers.** Residents taste your food and meet you in person.
-> 2. **Show off your signature dishes.** You pick what to serve. We'll feature it on our socials.
-> 3. **First come, first served.** Only one or two spots. Reply to this email to claim one.
->
-> **One quick app update while we have you:** order alerts now include dish photos,
-> and the new notification center keeps all your messages in one place, so you never
-> miss an order. *(This uses the "Richer notifications" backlog item.)*
->
-> Want the spot? Just hit reply and tell us what you'd love to serve. We read every one.
-
-**CTA button:** keep `Cook with Taist →` linking to https://taist.app/cook-with-taist, or
-swap to a `mailto:contact@taist.app` "Claim a spot" button (decide at load time).
-
-House-style check: no em dashes, "order" not "booking", event is the hero with a single
-backlog update featured.
+Sent automatically via Resend the moment an admin approves a chef (`changeChefStatus`,
+status=1), unless **Silent Activate** is used. Evergreen content: congrats + next steps
+(finish profile/menu, set availability, share profile). Template:
+`backend/resources/views/emails/chef-welcome.blade.php`.
 
 ---
 
@@ -93,7 +74,7 @@ backlog update featured.
 
 | Edition | Status | Content |
 | --- | --- | --- |
-| 1 — "Welcome In" (first customer newsletter) | Drafted, not yet sent | Welcome / how-to-order (Download & discount · Browse chefs · Order). Not feature-update style. |
+| 1 — "Welcome In" | Drafted, not yet sent | Welcome / how-to-order (Download & discount · Browse chefs · Order). Not feature-update style. |
 
 ### Backlog (not yet featured)
 
