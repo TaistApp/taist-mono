@@ -80,6 +80,7 @@ Route::group(['middleware' => ['auth:mapi']], function () {
 	Route::post('generate-menu-description', 'MapiController@generateMenuDescription');
 	Route::post('enhance-menu-description', 'MapiController@enhanceMenuDescription');
 	Route::post('analyze-menu-metadata', 'MapiController@analyzeMenuMetadata');
+	Route::post('suggest-add-ons', 'MapiController@suggestAddOns');
 
 	Route::get('get_orders', 'MapiController@getOrders');
 	Route::get('get_order/{id}', 'MapiController@getOrder');

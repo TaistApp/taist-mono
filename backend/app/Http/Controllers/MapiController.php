@@ -2221,6 +2221,108 @@ Respond ONLY with valid JSON:
     }
 
     /**
+     * Suggest likely add-ons for a menu item using AI.
+     * Given a dish name + description, returns a short list of optional
+     * extras a chef could charge for (extra protein, sauces, sides, etc.).
+     */
+    public function suggestAddOns(Request $request)
+    {
+        if ($this->_checktaistApiKey($request->header('apiKey')) === false)
+            return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
+
+        $user = $this->_authUser();
+
+        try {
+            $openAI = new \App\Services\OpenAIService();
+
+            $dishName = $request->dish_name ?? '';
+            $description = $request->description ?? '';
+
+            if (empty($dishName)) {
+                return response()->json([
+                    'success' => 0,
+                    'error' => 'Dish name is required'
+                ]);
+            }
+
+            $prompt = "You are helping a home chef set up optional paid add-ons for a menu item.
+
+Dish: {$dishName}
+Description: {$description}
+
+Suggest 4 to 6 optional add-ons a customer could pay extra for with this dish. Think extra proteins, extra cheese, sauces, sides, or larger portions that genuinely fit THIS dish. Keep names short (1-3 words). Use realistic US dollar upcharges (typically \$0.50 to \$6.00).
+
+Respond ONLY with valid JSON in this exact shape:
+{
+  \"suggestions\": [
+    { \"name\": \"Extra Cheese\", \"upcharge_price\": 1.50 },
+    { \"name\": \"Side Salad\", \"upcharge_price\": 3.00 }
+  ]
+}";
+
+            $result = $openAI->chat(
+                $prompt,
+                \App\Services\OpenAIService::MODEL_GPT_5_MINI,
+                ['temperature' => 0.5, 'max_tokens' => 250]
+            );
+
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => 0,
+                    'error' => 'Failed to suggest add-ons'
+                ]);
+            }
+
+            // Parse the JSON response (strip any markdown fences)
+            $content = trim($result['content']);
+            $content = preg_replace('/```json\s*/', '', $content);
+            $content = preg_replace('/```\s*/', '', $content);
+            $content = trim($content);
+
+            $parsed = json_decode($content, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                Log::error('JSON Parse Error in suggestAddOns', [
+                    'content' => $content,
+                    'error' => json_last_error_msg()
+                ]);
+                return response()->json([
+                    'success' => 0,
+                    'error' => 'Failed to parse AI response'
+                ]);
+            }
+
+            // Normalize: keep only well-formed {name, upcharge_price} entries
+            $suggestions = [];
+            foreach (($parsed['suggestions'] ?? []) as $s) {
+                $name = isset($s['name']) ? trim((string) $s['name']) : '';
+                if ($name === '') continue;
+                $price = isset($s['upcharge_price']) ? round((float) $s['upcharge_price'], 2) : 0;
+                if ($price < 0) $price = 0;
+                $suggestions[] = [
+                    'name' => $name,
+                    'upcharge_price' => $price,
+                ];
+            }
+
+            return response()->json([
+                'success' => 1,
+                'suggestions' => $suggestions
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Suggest Add-ons Error', [
+                'message' => $e->getMessage(),
+                'dish_name' => $request->dish_name
+            ]);
+
+            return response()->json([
+                'success' => 0,
+                'error' => 'An error occurred while suggesting add-ons'
+            ]);
+        }
+    }
+
+    /**
      * Generate 3 AI reviews based on an authentic review
      * Called automatically when a new authentic review is created
      */
