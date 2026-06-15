@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import { View, TextInput, Text, StyleSheet, Platform } from "react-native";
 import { AppColors } from "../../../constants/theme";
 
@@ -17,38 +17,14 @@ const OTPInput: React.FC<OTPInputProps> = ({
   autoFocus = false,
   testID,
 }) => {
-  const inputRef = useRef<TextInput>(null);
   const [isFocused, setIsFocused] = useState(false);
-
-  const handlePress = () => {
-    inputRef.current?.focus();
-  };
 
   const digits = value.split("").slice(0, length);
 
   return (
     <View style={styles.wrapper}>
-      {/* Hidden TextInput that receives keyboard/autofill input */}
-      <TextInput
-        ref={inputRef}
-        testID={testID}
-        value={value}
-        onChangeText={(text) =>
-          onChangeText(text.replace(/[^0-9]/g, "").slice(0, length))
-        }
-        keyboardType="number-pad"
-        textContentType="oneTimeCode"
-        autoComplete={Platform.OS === "android" ? "sms-otp" : "one-time-code"}
-        maxLength={length}
-        autoFocus={autoFocus}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-        style={styles.hiddenInput}
-        caretHidden
-      />
-
-      {/* Visible digit boxes */}
-      <View style={styles.boxRow} onTouchEnd={handlePress}>
+      {/* Visible digit boxes (non-interactive — the overlay input handles touches) */}
+      <View style={styles.boxRow} pointerEvents="none">
         {Array.from({ length }, (_, i) => {
           const isActive =
             isFocused && i === Math.min(digits.length, length - 1);
@@ -66,6 +42,31 @@ const OTPInput: React.FC<OTPInputProps> = ({
           );
         })}
       </View>
+
+      {/*
+        Full-size, on-screen TextInput overlaid on top of the boxes with
+        transparent text. iOS only surfaces the "From Messages" one-time-code
+        suggestion above the keyboard when the focused field is actually
+        rendered on screen with real dimensions — a 1x1 / opacity:0 field is
+        ignored. Keeping it transparent-but-present is what enables autofill.
+      */}
+      <TextInput
+        testID={testID}
+        value={value}
+        onChangeText={(text) =>
+          onChangeText(text.replace(/[^0-9]/g, "").slice(0, length))
+        }
+        keyboardType="number-pad"
+        textContentType="oneTimeCode"
+        autoComplete={Platform.OS === "android" ? "sms-otp" : "one-time-code"}
+        maxLength={length}
+        autoFocus={autoFocus}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        style={styles.overlayInput}
+        caretHidden
+        selectionColor="transparent"
+      />
     </View>
   );
 };
@@ -75,11 +76,18 @@ const styles = StyleSheet.create({
     width: "100%",
     position: "relative",
   },
-  hiddenInput: {
+  overlayInput: {
     position: "absolute",
-    opacity: 0,
-    height: 1,
-    width: 1,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    // Present on screen (so iOS QuickType offers the SMS code), but invisible:
+    // transparent text/caret means the digits only show in the boxes below.
+    color: "transparent",
+    fontSize: 24,
+    textAlign: "center",
+    backgroundColor: "transparent",
   },
   boxRow: {
     flexDirection: "row",
