@@ -1923,22 +1923,27 @@ class MapiController extends Controller
 
         app(Menus::class)->where('id', $id)->update($ary);
 
-        app(Customizations::class)->where(['menu_id' => $id])->delete();
+        // Only rewrite add-ons when the client actually sends the field, so a
+        // partial update (e.g. editing just the price) never wipes existing
+        // customizations.
+        if ($request->has('customizations')) {
+            app(Customizations::class)->where(['menu_id' => $id])->delete();
 
-        $customizations = json_decode($request->customizations, true);
+            $customizations = json_decode($request->customizations, true) ?? [];
 
-        $customizations_data = [];
-        foreach ($customizations as $c) {
-            $customizations_data[] = [
-                'menu_id' => $id,
-                'name' => $c['name'],
-                'upcharge_price' => $c['upcharge_price'],
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
+            $customizations_data = [];
+            foreach ($customizations as $c) {
+                $customizations_data[] = [
+                    'menu_id' => $id,
+                    'name' => $c['name'],
+                    'upcharge_price' => $c['upcharge_price'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+
+            if (count($customizations_data) > 0) app(Customizations::class)->insert($customizations_data);
         }
-
-        if (count($customizations_data) > 0) app(Customizations::class)->insert($customizations_data);
 
         $data = app(Menus::class)->where(['id' => $id])->first();
         $data['customizations'] = app(Customizations::class)->where(['menu_id' => $id])->get();

@@ -43,9 +43,16 @@ const AddMenuItem = () => {
     ? JSON.parse(params.info as string)
     : (params?.info as IMenu | undefined);
 
+  // Edit mode = we have an existing item id. In edit mode the wizard opens on
+  // the Review summary and each section is edited individually (no linear walk).
+  const isEdit = !!(info && info.id !== undefined);
+
   // Multi-step state
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(isEdit ? 8 : 1);
   const [menuItemData, setMenuItemData] = useState<Partial<IMenu>>({});
+
+  // In edit mode, finishing/leaving any single step returns to the Review hub.
+  const backToReview = () => setStep(8);
 
   // Initialize data from existing menu item (edit mode)
   useEffect(() => {
@@ -256,8 +263,8 @@ const AddMenuItem = () => {
           <StepMenuItemName
             menuItemData={menuItemData}
             onUpdateMenuItemData={handleUpdateMenuItemData}
-            onNext={() => setStep(2)}
-            onBack={goBack}
+            onNext={isEdit ? backToReview : () => setStep(2)}
+            onBack={isEdit ? backToReview : goBack}
           />
         );
       case 2:
@@ -267,9 +274,9 @@ const AddMenuItem = () => {
             onUpdateMenuItemData={handleUpdateMenuItemData}
             onNext={async (finalDescription?: string) => {
               await analyzeAndPopulateMetadata(finalDescription);
-              setStep(3);
+              setStep(isEdit ? 8 : 3);
             }}
-            onBack={() => setStep(1)}
+            onBack={isEdit ? backToReview : () => setStep(1)}
           />
         );
       case 3:
@@ -277,8 +284,8 @@ const AddMenuItem = () => {
           <StepMenuItemCategories
             menuItemData={menuItemData}
             onUpdateMenuItemData={handleUpdateMenuItemData}
-            onNext={() => setStep(4)}
-            onBack={() => setStep(2)}
+            onNext={isEdit ? backToReview : () => setStep(4)}
+            onBack={isEdit ? backToReview : () => setStep(2)}
           />
         );
       case 4:
@@ -286,8 +293,8 @@ const AddMenuItem = () => {
           <StepMenuItemAllergens
             menuItemData={menuItemData}
             onUpdateMenuItemData={handleUpdateMenuItemData}
-            onNext={() => setStep(5)}
-            onBack={() => setStep(3)}
+            onNext={isEdit ? backToReview : () => setStep(5)}
+            onBack={isEdit ? backToReview : () => setStep(3)}
           />
         );
       case 5:
@@ -295,8 +302,8 @@ const AddMenuItem = () => {
           <StepMenuItemKitchen
             menuItemData={menuItemData}
             onUpdateMenuItemData={handleUpdateMenuItemData}
-            onNext={() => setStep(6)}
-            onBack={() => setStep(4)}
+            onNext={isEdit ? backToReview : () => setStep(6)}
+            onBack={isEdit ? backToReview : () => setStep(4)}
           />
         );
       case 6:
@@ -304,8 +311,8 @@ const AddMenuItem = () => {
           <StepMenuItemPricing
             menuItemData={menuItemData}
             onUpdateMenuItemData={handleUpdateMenuItemData}
-            onNext={() => setStep(7)}
-            onBack={() => setStep(5)}
+            onNext={isEdit ? backToReview : () => setStep(7)}
+            onBack={isEdit ? backToReview : () => setStep(5)}
           />
         );
       case 7:
@@ -313,9 +320,9 @@ const AddMenuItem = () => {
           <StepMenuItemCustomizations
             menuItemData={menuItemData}
             onUpdateMenuItemData={handleUpdateMenuItemData}
-            onNext={() => setStep(8)}
-            onBack={() => setStep(6)}
-            onSkip={() => setStep(8)}
+            onNext={isEdit ? backToReview : () => setStep(8)}
+            onBack={isEdit ? backToReview : () => setStep(6)}
+            onSkip={isEdit ? backToReview : () => setStep(8)}
           />
         );
       case 8:
@@ -324,7 +331,8 @@ const AddMenuItem = () => {
             menuItemData={menuItemData}
             onUpdateMenuItemData={handleUpdateMenuItemData}
             onComplete={handleCompleteMenuItem}
-            onBack={() => setStep(7)}
+            onBack={isEdit ? goBack : () => setStep(7)}
+            onEditSection={isEdit ? (n: number) => setStep(n) : undefined}
           />
         );
       default:
@@ -334,7 +342,14 @@ const AddMenuItem = () => {
 
   // Handle back button press from Container header
   const handleHeaderBack = () => {
-    if (step === 1) {
+    if (isEdit) {
+      // Edit mode: from the Review hub exit; from a single section return to it
+      if (step === 8) {
+        goBack();
+      } else {
+        backToReview();
+      }
+    } else if (step === 1) {
       // If on first step, exit the flow
       goBack();
     } else {
