@@ -29,11 +29,13 @@ editions** and can keep cadence sane. When drafting the next edition, pull from 
 
 ## Chef — Regular (#5233482, biweekly)
 
-### Featured / scheduled
+### Featured / sent
 
 | Edition | Status | Content |
 | --- | --- | --- |
-| 1 — "Welcome In" | **Scheduled: Sun June 14, 2026, evening ET** | Founder note + funding; 3 updates: minimum order total · arrival & parking details · share-your-profile links |
+| 1 — "Welcome In" | **SENT June 15, 2026 ET** to 10 active chefs (Dayne BCC'd) | Founder note + funding; 3 updates: minimum order total · arrival & parking details · share-your-profile links |
+
+**Used updates — do NOT repeat in any future edition:** minimum order total, arrival & parking details, share-your-profile links.
 
 ### Backlog (for Regular #2 onward)
 
@@ -49,7 +51,7 @@ editions** and can keep cadence sane. When drafting the next edition, pull from 
 
 | Send | Status | Content |
 | --- | --- | --- |
-| Pool party (Sophia Square) | **Loaded, planned for week of June 15, 2026** | Carmel pool-party chef call — needs 1–2 chefs to serve sample dishes; claim by reply |
+| Pool party (Sophia Square) | **NOT SENT — handled via manual outreach instead (2026-06-16).** Kept in Make #5380856 as a reusable template for a future company/event. | Carmel pool-party chef call — needs 1–2 chefs to serve sample dishes; claim by reply |
 
 **Event facts (confirmed by Dayne, 2026-06-12):**
 - **Sophia Square Apartments, Carmel, IN** — Thursday, **July 16**, 5:30 to 8:00 pm ET; chef arrival/setup **4:30 pm ET**.
