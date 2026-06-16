@@ -161,7 +161,7 @@ const Container = ({
               gap: 4,
               alignItems: 'center',
             }}>
-            {isInChefContext && user?.is_pending !== 1 && <GoLiveToggle />}
+            {isInChefContext && user?.is_pending !== 1 && user?.is_paused !== 1 && <GoLiveToggle />}
             {isInCustomerContext && <CartIcon />}
             <TouchableOpacity
               testID="header.chatButton"

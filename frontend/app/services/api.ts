@@ -456,6 +456,16 @@ export const RemoveUserAPI = async (params: IUser) => {
   return response;
 };
 
+// Soft "pause" — hides a chef from customer search and stops availability
+// reminders without deleting their account. Reversible via ReactivateAccountAPI.
+export const PauseAccountAPI = async (user: IUser, dispatch?: any) => {
+  return await UpdateUserAPI({ ...user, is_paused: 1 }, dispatch);
+};
+
+export const ReactivateAccountAPI = async (user: IUser, dispatch?: any) => {
+  return await UpdateUserAPI({ ...user, is_paused: 0 }, dispatch);
+};
+
 //////////-------Customer-------/////////////////////
 
 export const GetCustomerOrdersAPI = async (

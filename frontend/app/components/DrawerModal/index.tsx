@@ -4,12 +4,12 @@ import { useSegments } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Animated, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useAppSelector } from '../../hooks/useRedux';
-import { HTML_URL, RemoveUserAPI } from '../../services/api';
+import { useAppDispatch, useAppSelector } from '../../hooks/useRedux';
+import { GetChefOrdersAPI, HTML_URL, PauseAccountAPI, RemoveUserAPI } from '../../services/api';
 import { store } from '../../store';
 import { navigate } from '../../utils/navigation';
 import { ClearStorage } from '../../utils/storage';
-import { ShowErrorToast } from '../../utils/toast';
+import { ShowErrorToast, ShowSuccessToast } from '../../utils/toast';
 
 interface DrawerModalProps {
   visible: boolean;
@@ -18,6 +18,7 @@ interface DrawerModalProps {
 
 const DrawerModal: React.FC<DrawerModalProps> = ({ visible, onClose }) => {
   const user = useAppSelector(x => x.user.user);
+  const dispatch = useAppDispatch();
   const segments = useSegments();
   const slideAnim = useRef(new Animated.Value(-300)).current; // Start off-screen to the left
   const [modalVisible, setModalVisible] = useState(false);
@@ -127,22 +128,38 @@ const DrawerModal: React.FC<DrawerModalProps> = ({ visible, onClose }) => {
   };
 
   const showDeleteAccountPopup = () => {
+    // For chefs, offer the reversible "pause" as a softer alternative to the
+    // permanent delete so they don't lose their profile, menus, and reviews.
+    const buttons: any[] = [
+      {
+        text: 'CANCEL',
+        style: 'cancel',
+        onPress: () => false,
+      },
+    ];
+
+    if (isInChefContext && user?.is_paused != 1) {
+      buttons.push({
+        text: 'PAUSE INSTEAD',
+        onPress: () => showPauseAccountPopup(),
+      });
+    }
+
+    buttons.push({
+      text: 'DELETE',
+      style: 'destructive',
+      onPress: () => {
+        store.dispatch({ type: 'USER_LOGOUT' });
+        handleDeleteAccount();
+      },
+    });
+
     Alert.alert(
       'Delete Account',
-      'Permanently delete your account and all associated data.\nThis action cannot be undone.',
-      [
-        {
-          text: 'CANCEL',
-          onPress: () => false,
-        },
-        {
-          text: 'DELETE',
-          onPress: () => {
-            store.dispatch({ type: 'USER_LOGOUT' });
-            handleDeleteAccount();
-          },
-        },
-      ],
+      isInChefContext
+        ? 'Permanently delete your account and all associated data, including your menus and reviews. This cannot be undone.\n\nJust need a break? Pause your account instead — you stay hidden from customers and stop reminders, and can reactivate anytime.'
+        : 'Permanently delete your account and all associated data.\nThis action cannot be undone.',
+      buttons,
     );
   };
 
@@ -154,6 +171,56 @@ const DrawerModal: React.FC<DrawerModalProps> = ({ visible, onClose }) => {
     }
     ClearStorage();
     navigate.toCommon.splash();
+  };
+
+  const showPauseAccountPopup = () => {
+    Alert.alert(
+      'Pause Account',
+      'Your profile will be hidden from customers and you\'ll stop getting availability reminders. Your menus and reviews are kept, and you can reactivate anytime from your home screen.',
+      [
+        {
+          text: 'CANCEL',
+          style: 'cancel',
+          onPress: () => false,
+        },
+        {
+          text: 'PAUSE',
+          onPress: () => handlePauseAccount(),
+        },
+      ],
+    );
+  };
+
+  const handlePauseAccount = async () => {
+    // Block pausing while the chef still has commitments to customers:
+    // open requests (status 1) or accepted/upcoming orders (status 2 or 7).
+    const now = Math.floor(Date.now() / 1000);
+    const ordersResp = await GetChefOrdersAPI({
+      user_id: user?.id ?? 0,
+      start_time: 0,
+      end_time: now + 60 * 60 * 24 * 365,
+    });
+    if (ordersResp?.success === 1) {
+      const hasActiveOrder = (ordersResp.data || []).some(
+        (o: any) => o.status == 1 || o.status == 2 || o.status == 7,
+      );
+      if (hasActiveOrder) {
+        Alert.alert(
+          'Active Orders',
+          'You have open order requests or upcoming orders. Please complete or cancel them before pausing your account.',
+        );
+        return;
+      }
+    }
+
+    const resp = await PauseAccountAPI(user, dispatch);
+    if (resp.success !== 1) {
+      ShowErrorToast(resp.error || resp.message);
+      return;
+    }
+    ShowSuccessToast('Your account is paused. Reactivate anytime.');
+    handleClose();
+    setTimeout(() => navigate.toChef.tabs(), 150);
   };
 
   return (
@@ -249,7 +316,16 @@ const DrawerModal: React.FC<DrawerModalProps> = ({ visible, onClose }) => {
             <TouchableOpacity testID="drawer.logout" onPress={handleLogOut} style={styles.drawerItem}>
               <Text style={styles.drawerItemText}>LOGOUT</Text>
             </TouchableOpacity>
-            
+
+            {isInChefContext && user?.is_paused != 1 && (
+              <TouchableOpacity
+                testID="drawer.pauseAccount"
+                onPress={showPauseAccountPopup}
+                style={styles.drawerItem}>
+                <Text style={styles.drawerItemText}>PAUSE ACCOUNT</Text>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
               testID="drawer.deleteAccount"
               onPress={showDeleteAccountPopup}
