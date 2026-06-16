@@ -60,7 +60,7 @@ import {
   VerifyPhoneAPI,
 } from "../../../services/api";
 import { checkLocalPath, getImageURL } from "../../../utils/functions";
-import { ShowErrorToast } from "../../../utils/toast";
+import { ShowErrorToast, ShowSuccessToast } from "../../../utils/toast";
 import { getFormattedDate } from "../../../utils/validations";
 import { AppColors } from "../../../../constants/theme";
 import { styles } from "./styles";
@@ -280,7 +280,7 @@ const Account = () => {
           state: addressData.region || userInfo.state,
           zip: addressData.postalCode || userInfo.zip,
         });
-        ShowErrorToast("Address filled from your location!");
+        ShowSuccessToast("Address filled from your location!");
       } else {
         ShowErrorToast("Could not determine address from location");
       }

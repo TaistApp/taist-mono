@@ -67,7 +67,7 @@ const Menu = () => {
   };
 
   const handleNewItemAdd = () => {
-    navigate.toChef.addMenuItem();
+    navigate.toChef.menuItemType();
   };
 
   const handleItemEdit = (item: IMenu) => {
@@ -109,6 +109,11 @@ const Menu = () => {
         style={styles.card}
         key={`cc_${item.id}`}
         onPress={() => handleItemEdit(item)}>
+        {item.item_type === 'meal_prep' && (
+          <View style={styles.mealPrepBadge}>
+            <Text style={styles.mealPrepBadgeText}>MEAL PREP</Text>
+          </View>
+        )}
         <Text style={styles.cardTitle}>{item.title}</Text>
         <Text style={styles.cardText}>{item.description}</Text>
         <Text style={styles.cardText}>{`Price: $${(item.price ?? 0).toFixed(

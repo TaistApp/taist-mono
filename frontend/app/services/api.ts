@@ -788,6 +788,14 @@ export const AnalyzeMenuMetadataAPI = async (params: {
   return response;
 };
 
+export const SuggestAddOnsAPI = async (params: {
+  dish_name: string;
+  description?: string;
+}) => {
+  const response = await POSTAPICALL("suggest-add-ons", params);
+  return response;
+};
+
 export const CreateCustomizationAPI = async (
   params: IMenuCustomization,
   dispatch?: any

@@ -208,10 +208,14 @@ export const navigate = {
     } as any),
     howToDoIt: () => router.push('/screens/chef/howToDo' as any),
     menuDetails: () => router.push('/screens/chef/menu' as any),
-    // Add menu item navigation
-    addMenuItem: (menuItem?: IMenu) => router.push({
+    // Item-type picker shown before creating a new menu item
+    menuItemType: () => router.push('/screens/chef/menuItemType' as any),
+    // Add menu item navigation. `itemType` only applies when creating (no menuItem).
+    addMenuItem: (menuItem?: IMenu, itemType?: 'standard' | 'meal_prep') => router.push({
       pathname: '/screens/chef/addMenuItem',
-      params: menuItem ? { info: JSON.stringify(menuItem) } : {}
+      params: menuItem
+        ? { info: JSON.stringify(menuItem) }
+        : (itemType ? { item_type: itemType } : {})
     } as any),
     profileDetails: () => router.push('/screens/chef/profile' as any),
     addOnCustomization: (onAddCustomization?: (item: { name: string; upcharge_price: number }) => void) => {

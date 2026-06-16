@@ -56,6 +56,20 @@ export const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowColor: '#000000',
   },
+  mealPrepBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: AppColors.primary,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    marginBottom: 2,
+  },
+  mealPrepBadgeText: {
+    color: AppColors.textOnPrimary,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
   cardTitle: {
     fontSize: 18,
     fontWeight: '500',

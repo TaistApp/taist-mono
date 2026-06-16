@@ -5,7 +5,7 @@ import { faAngleDown, faClose, faSearch, faLocationArrow } from '@fortawesome/fr
 import { SelectList } from 'react-native-dropdown-select-list';
 import { AppColors, Spacing, Shadows } from '../../constants/theme';
 import { IUser } from '../types/index';
-import { ShowErrorToast } from '../utils/toast';
+import { ShowErrorToast, ShowSuccessToast } from '../utils/toast';
 import StyledTextInput from './styledTextInput';
 import StyledButton from './styledButton';
 import ParkingPicker from './ParkingPicker';
@@ -142,7 +142,7 @@ export const AddressCollectionModal: React.FC<AddressCollectionModalProps> = ({
         setCity(addressData.city || city);
         setState(addressData.region || state);
         setZip(addressData.postalCode || zip);
-        ShowErrorToast('Location filled successfully!');
+        ShowSuccessToast('Location filled successfully!');
       } else {
         ShowErrorToast('Could not determine address from location');
       }

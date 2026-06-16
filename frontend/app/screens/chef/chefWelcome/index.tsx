@@ -8,155 +8,117 @@ import {
   StyleSheet,
   Image,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { navigate } from '../../../utils/navigation';
 import { AppColors } from '../../../../constants/theme';
 
 const ChefWelcome = () => {
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient
-        colors={[AppColors.primary, '#FF8C5A', AppColors.primary]}
-        style={styles.gradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
+        {/* Header */}
+        <View style={styles.header}>
+          <Image
+            source={require('../../../assets/images/logo-2.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.pageTitle}>What Chefs Love</Text>
+        </View>
+
+        {/* Benefits */}
+        <View style={styles.card}>
+          <View style={styles.benefitRow}>
+            <Text style={styles.icon}>⏰</Text>
+            <View style={styles.benefitText}>
+              <Text style={styles.benefitTitle}>Work 24/7</Text>
+              <Text style={styles.benefitDescription}>
+                You choose when and how much you want to work
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.benefitRow}>
+            <Text style={styles.icon}>💰</Text>
+            <View style={styles.benefitText}>
+              <Text style={styles.benefitTitle}>Set Your Prices</Text>
+              <Text style={styles.benefitDescription}>
+                Control your own pricing and profit margins
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.benefitRow}>
+            <Text style={styles.icon}>🍳</Text>
+            <View style={styles.benefitText}>
+              <Text style={styles.benefitTitle}>Custom Menus</Text>
+              <Text style={styles.benefitDescription}>
+                Make whatever you'd like and switch out items anytime
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Equipment Checklist Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>What You'll Need</Text>
+          <Text style={styles.cardSubtitle}>
+            You'll cook in the customer's kitchen. Bring these for each order:
+          </Text>
+
+          <View style={styles.checklistItem}>
+            <Text style={styles.checkmark}>✓</Text>
+            <Text style={styles.checklistText}>
+              Your cooking equipment (pots, pans, utensils)
+            </Text>
+          </View>
+
+          <View style={styles.checklistItem}>
+            <Text style={styles.checkmark}>✓</Text>
+            <Text style={styles.checklistText}>
+              All ingredients (bring extras just in case!)
+            </Text>
+          </View>
+
+          <View style={styles.checklistItem}>
+            <Text style={styles.checkmark}>✓</Text>
+            <Text style={styles.checklistText}>
+              Cooler with ice for perishable ingredients
+            </Text>
+          </View>
+
+          <View style={styles.checklistItem}>
+            <Text style={styles.checkmark}>✓</Text>
+            <Text style={styles.checklistText}>
+              Cleaning supplies (soap, sponge, spray, paper towels)
+            </Text>
+          </View>
+        </View>
+
+        {/* Insurance Info */}
+        <View style={styles.infoCard}>
+          <Text style={styles.infoText}>
+            🛡️ <Text style={styles.infoBold}>We cover your insurance</Text>
+          </Text>
+          <Text style={styles.infoText}>
+            ✅ <Text style={styles.infoBold}>Background check required</Text>
+          </Text>
+        </View>
+
+        {/* CTA Button */}
+        <TouchableOpacity
+          style={styles.ctaButton}
+          onPress={() => navigate.toChef.safetyQuiz()}
+          activeOpacity={0.9}
         >
-          {/* Header Section */}
-          <View style={styles.header}>
-            <Image
-              source={require('../../../assets/images/logo.png')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
-            <Text style={styles.subtitle}>Let's get you started as a chef!</Text>
-          </View>
+          <Text style={styles.ctaText}>Start Safety Quiz</Text>
+          <Text style={styles.ctaSubtext}>5 quick questions →</Text>
+        </TouchableOpacity>
 
-          {/* Hero Image */}
-          <View style={styles.heroContainer}>
-            <Image
-              source={require('../../../assets/images/chefDelivery.png')}
-              style={styles.heroImage}
-              resizeMode="contain"
-            />
-          </View>
-
-          {/* Scroll Indicator */}
-          <View style={styles.scrollIndicator}>
-            <Text style={styles.scrollText}>Scroll to learn more</Text>
-            <Text style={styles.scrollArrow}>↓</Text>
-          </View>
-
-          {/* Benefits Card */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Here's What Chefs Love</Text>
-
-            <View style={styles.benefitRow}>
-              <View style={styles.iconCircle}>
-                <Text style={styles.icon}>⏰</Text>
-              </View>
-              <View style={styles.benefitText}>
-                <Text style={styles.benefitTitle}>Work 24/7</Text>
-                <Text style={styles.benefitDescription}>
-                  You choose when and how much you want to work
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.benefitRow}>
-              <View style={styles.iconCircle}>
-                <Text style={styles.icon}>💰</Text>
-              </View>
-              <View style={styles.benefitText}>
-                <Text style={styles.benefitTitle}>Set Your Prices</Text>
-                <Text style={styles.benefitDescription}>
-                  Control your own pricing and profit margins
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.benefitRow}>
-              <View style={styles.iconCircle}>
-                <Text style={styles.icon}>🍳</Text>
-              </View>
-              <View style={styles.benefitText}>
-                <Text style={styles.benefitTitle}>Custom Menus</Text>
-                <Text style={styles.benefitDescription}>
-                  Make whatever you'd like and switch out items anytime
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Equipment Checklist Card */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>What You'll Need</Text>
-            <Text style={styles.cardSubtitle}>
-              You'll cook in the customer's kitchen. Bring these for each order:
-            </Text>
-
-            <View style={styles.checklistItem}>
-              <Text style={styles.checkmark}>✓</Text>
-              <Text style={styles.checklistText}>
-                Your cooking equipment (pots, pans, utensils)
-              </Text>
-            </View>
-
-            <View style={styles.checklistItem}>
-              <Text style={styles.checkmark}>✓</Text>
-              <Text style={styles.checklistText}>
-                All ingredients (bring extras just in case!)
-              </Text>
-            </View>
-
-            <View style={styles.checklistItem}>
-              <Text style={styles.checkmark}>✓</Text>
-              <Text style={styles.checklistText}>
-                Cooler with ice for perishable ingredients
-              </Text>
-            </View>
-
-            <View style={styles.checklistItem}>
-              <Text style={styles.checkmark}>✓</Text>
-              <Text style={styles.checklistText}>
-                Cleaning supplies (soap, sponge, spray, paper towels)
-              </Text>
-            </View>
-          </View>
-
-          {/* Insurance Info */}
-          <View style={styles.infoCard}>
-            <Text style={styles.infoText}>
-              🛡️ <Text style={styles.infoBold}>We cover your insurance</Text>
-            </Text>
-            <Text style={styles.infoText}>
-              ✅ <Text style={styles.infoBold}>Background check required</Text>
-            </Text>
-          </View>
-
-          {/* CTA Button */}
-          <TouchableOpacity
-            style={styles.ctaButton}
-            onPress={() => navigate.toChef.safetyQuiz()}
-            activeOpacity={0.9}
-          >
-            <LinearGradient
-              colors={['#FFFFFF', '#F5F5F5']}
-              style={styles.buttonGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-            >
-              <Text style={styles.ctaText}>Start Safety Quiz</Text>
-              <Text style={styles.ctaSubtext}>5 quick questions →</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <View style={styles.spacer} />
-        </ScrollView>
-      </LinearGradient>
+        <View style={styles.spacer} />
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -164,9 +126,7 @@ const ChefWelcome = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  gradient: {
-    flex: 1,
+    backgroundColor: AppColors.background,
   },
   scrollContent: {
     paddingBottom: 40,
@@ -178,69 +138,22 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   logo: {
-    width: 80,
-    height: 80,
+    width: 120,
+    height: 60,
     marginBottom: 16,
   },
-  welcomeTitle: {
-    fontSize: 36,
+  pageTitle: {
+    fontSize: 30,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: AppColors.text,
     textAlign: 'center',
-    marginBottom: 8,
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  subtitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    textAlign: 'center',
-    opacity: 0.95,
-    paddingHorizontal: 20,
-    lineHeight: 36,
-  },
-  heroContainer: {
-    paddingHorizontal: 28,
-    marginBottom: 24,
-  },
-  heroImage: {
-    width: '100%',
-    height: 280,
-    borderRadius: 20,
-    borderWidth: 3,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  scrollIndicator: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  scrollText: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    opacity: 0.9,
-    marginBottom: 4,
-    lineHeight: 20,
-    includeFontPadding: false,
-    textAlignVertical: 'center',
-  },
-  scrollArrow: {
-    fontSize: 20,
-    color: '#FFFFFF',
-    opacity: 0.9,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: AppColors.surface,
     marginHorizontal: 24,
     marginBottom: 16,
     borderRadius: 20,
     padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
   },
   cardTitle: {
     fontSize: 22,
@@ -258,26 +171,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginBottom: 16,
-    minHeight: 60,
-  },
-  iconCircle: {
-    width: 50,
-    height: 50,
     minHeight: 50,
-    maxHeight: 50,
-    borderRadius: 25,
-    backgroundColor: AppColors.primaryLight || '#FFE8DC',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
   },
   icon: {
-    fontSize: 24,
+    fontSize: 28,
+    width: 44,
+    textAlign: 'center',
+    marginRight: 12,
   },
   benefitText: {
     flex: 1,
     flexShrink: 1,
-    paddingTop: 4,
+    paddingTop: 2,
   },
   benefitTitle: {
     fontSize: 18,
@@ -297,7 +202,7 @@ const styles = StyleSheet.create({
   },
   checkmark: {
     fontSize: 20,
-    color: '#4CAF50',
+    color: AppColors.success,
     fontWeight: '700',
     width: 24,
     marginTop: 2,
@@ -310,17 +215,17 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   infoCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: AppColors.surface,
     marginHorizontal: 24,
     marginBottom: 24,
     borderRadius: 16,
     padding: 20,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
+    borderWidth: 1,
+    borderColor: AppColors.border,
   },
   infoText: {
     fontSize: 16,
-    color: '#FFFFFF',
+    color: AppColors.text,
     marginBottom: 12,
     lineHeight: 24,
   },
@@ -331,13 +236,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 24,
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 10,
-  },
-  buttonGradient: {
+    backgroundColor: AppColors.primary,
     paddingVertical: 20,
     paddingHorizontal: 32,
     alignItems: 'center',
@@ -345,12 +244,13 @@ const styles = StyleSheet.create({
   ctaText: {
     fontSize: 22,
     fontWeight: '800',
-    color: AppColors.primary,
+    color: AppColors.textOnPrimary,
     marginBottom: 4,
   },
   ctaSubtext: {
     fontSize: 14,
-    color: AppColors.textSecondary,
+    color: AppColors.textOnPrimary,
+    opacity: 0.9,
     fontWeight: '600',
   },
   spacer: {

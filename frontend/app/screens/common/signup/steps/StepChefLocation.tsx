@@ -6,7 +6,7 @@ import { SelectList } from 'react-native-dropdown-select-list';
 import { SignupStepContainer } from '../components/SignupStepContainer';
 import { AppColors, Spacing, Shadows } from '../../../../../constants/theme';
 import { IUser } from '../../../../types/index';
-import { ShowErrorToast } from '../../../../utils/toast';
+import { ShowErrorToast, ShowSuccessToast } from '../../../../utils/toast';
 import StyledTextInput from '../../../../components/styledTextInput';
 import StyledButton from '../../../../components/styledButton';
 import * as Location from 'expo-location';
@@ -166,7 +166,7 @@ export const StepChefLocation: React.FC<StepChefLocationProps> = ({
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
         });
-        ShowErrorToast('Location details filled in successfully!');
+        ShowSuccessToast('Location details filled in successfully!');
       } else {
         ShowErrorToast('Could not determine address from your location');
       }

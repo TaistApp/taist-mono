@@ -17,7 +17,7 @@ export const CHEF_SAFETY_QUIZ: QuizQuestion[] = [
   {
     id: 1,
     category: 'Food Storage & Transportation Safety',
-    question: 'You bought ingredients the day before a Taist order. What\'s the correct way to store them?',
+    question: 'You bought cold ingredients the day before a Taist order. What\'s the correct way to store them?',
     answers: [
       {
         id: 'A',
@@ -26,7 +26,7 @@ export const CHEF_SAFETY_QUIZ: QuizQuestion[] = [
       },
       {
         id: 'B',
-        text: 'Refrigerate them until you leave for the order',
+        text: 'Refrigerate them until you leave and while in transit to the order',
         isCorrect: true
       },
       {
@@ -36,7 +36,7 @@ export const CHEF_SAFETY_QUIZ: QuizQuestion[] = [
       }
     ],
     correctAnswerId: 'B',
-    explanation: 'Ingredients bought ahead of time must stay refrigerated until you head out to keep them safe.'
+    explanation: 'Cold ingredients must stay refrigerated until you leave, and kept cold (cooler with ice) while in transit to keep them safe.'
   },
   {
     id: 2,

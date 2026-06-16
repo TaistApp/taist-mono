@@ -324,6 +324,22 @@ useFocusEffect(
             <Text style={styles.userName}>{`${self.first_name
               } ${self.last_name?.substring(0, 1)}. `}</Text>
           </View>
+          {self.is_pending != 1 && checkEmptyFieldInProfile() !== '' && (
+            <View style={styles.itemContainer}>
+              <View style={styles.onboardingHeader}>
+                <Text style={styles.onboardingTitle}>Finish Your Setup</Text>
+                <Text style={styles.onboardingSubtitle}>
+                  Complete your profile so customers can find and book you
+                </Text>
+              </View>
+              <SettingItem
+                title={'Complete Your Profile'}
+                completed={false}
+                isNext={true}
+                onPress={() => navigate.toChef.profile()}
+              />
+            </View>
+          )}
           {self.is_pending != 1 && (
             <TouchableOpacity
               testID="chefHome.shareButton"
@@ -363,36 +379,24 @@ useFocusEffect(
                   }}
                 />
                 <SettingItem
-                  title={'3. Complete Your Profile'}
-                  completed={checkEmptyFieldInProfile() == ''}
-                  isNext={checkEmptyFieldInUserInfo() == '' && menus.length > 0 && checkEmptyFieldInProfile() !== ''}
-                  onPress={() => {
-                    if (menus.length == 0) {
-                      ShowErrorToast('Create Your Menu!');
-                      return;
-                    }
-                    navigate.toChef.profile();
-                  }}
-                />
-                <SettingItem
-                  title={'4. Submit Payment Info'}
+                  title={'3. Submit Payment Info'}
                   completed={payment?.verification_complete === true}
-                  isNext={checkEmptyFieldInProfile() == '' && !payment?.stripe_account_id}
+                  isNext={menus.length > 0 && !payment?.stripe_account_id}
                   subtitle={
                     payment?.stripe_account_id && !payment?.verification_complete
                       ? 'Verification pending...'
                       : undefined
                   }
                   onPress={() => {
-                    if (checkEmptyFieldInProfile() !== '') {
-                      ShowErrorToast('Complete Your Profile');
+                    if (menus.length == 0) {
+                      ShowErrorToast('Create Your Menu!');
                       return;
                     }
                     setStripeDialogVisible(true);
                    }}
                 />
                 <SettingItem
-                  title={'5. Background Check'}
+                  title={'4. Background Check'}
                   completed={self.applicant_guid ? true : false}
                   isNext={payment?.verification_complete === true && !self.applicant_guid}
                   onPress={() => {

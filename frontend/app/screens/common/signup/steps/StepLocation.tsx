@@ -5,7 +5,7 @@ import { faLocationArrow } from '@fortawesome/free-solid-svg-icons';
 import { SignupStepContainer } from '../components/SignupStepContainer';
 import { AppColors, Spacing, Shadows } from '../../../../../constants/theme';
 import { IUser } from '../../../../types/index';
-import { ShowErrorToast } from '../../../../utils/toast';
+import { ShowErrorToast, ShowSuccessToast } from '../../../../utils/toast';
 import StyledTextInput from '../../../../components/styledTextInput';
 import StyledButton from '../../../../components/styledButton';
 import * as Location from 'expo-location';
@@ -86,7 +86,7 @@ export const StepLocation: React.FC<StepLocationProps> = ({
           city: address.city || undefined,
           state: address.region || undefined,
         });
-        ShowErrorToast('Location set successfully!');
+        ShowSuccessToast('Location set successfully!');
       } else {
         ShowErrorToast('Could not determine ZIP code from your location');
       }
