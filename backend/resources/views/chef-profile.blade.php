@@ -246,7 +246,7 @@
             </a>
 
             <div class="store-links">
-                <a class="store-link" href="https://apps.apple.com/app/taist/id6476880498">
+                <a class="store-link" href="https://apps.apple.com/app/id1598624809">
                     &#63743; App Store
                 </a>
                 <a class="store-link" href="https://play.google.com/store/apps/details?id=com.taist.app">

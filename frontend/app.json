@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "org.taist.taist",
-      "buildNumber": "41",
+      "buildNumber": "42",
       "googleServicesFile": "./GoogleService-Info.plist",
       "usesAppleSignIn": true,
       "infoPlist": {
@@ -42,7 +42,7 @@
       "icon": "./assets/images/icon.png",
       "edgeToEdgeEnabled": true,
       "package": "com.taist.app",
-      "versionCode": 163,
+      "versionCode": 164,
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.INTERNET",
@@ -63,7 +63,10 @@
               "scheme": "exp+taist-expo"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -109,7 +112,9 @@
           "color": "#fa4616",
           "androidMode": "default",
           "androidCollapsedTitle": "Taist",
-          "sounds": ["./assets/sounds/notification.wav"]
+          "sounds": [
+            "./assets/sounds/notification.wav"
+          ]
         }
       ],
       [
@@ -142,7 +147,9 @@
             "enableProguardInReleaseBuilds": true,
             "enableShrinkResourcesInReleaseBuilds": true,
             "packagingOptions": {
-              "pickFirst": ["**/libc++_shared.so"]
+              "pickFirst": [
+                "**/libc++_shared.so"
+              ]
             },
             "extraProguardRules": "-keep class com.swmansion.reanimated.** { *; }\n-keep class com.facebook.react.turbomodule.** { *; }\n-dontwarn com.stripe.android.pushProvisioning.**\n-keep class com.stripe.android.** { *; }\n-keep class com.reactnativestripesdk.** { *; }",
             "enableMinifyInReleaseBuilds": true
