@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
   RefreshControl,
   SafeAreaView,
   ScrollView,
@@ -34,6 +33,7 @@ import { ShowErrorToast, ShowSuccessToast } from '../../../utils/toast';
 import { getDateStartTime } from '../../../utils/validations';
 import ChefOrderCard from './components/chefOrderCard';
 import SettingItem from './components/settingItem';
+import StripeOnboardingDialog from './components/stripeOnboardingDialog';
 import { styles } from './styles';
 
 
@@ -53,6 +53,7 @@ const Home = () => {
   const [passed, setPassed] = useState(false);
   const [tabId, onChangeTabId] = useState('1');
   const [orders, setOrders] = useState<Array<IOrder>>([]);
+  const [stripeDialogVisible, setStripeDialogVisible] = useState(false);
 
   const tabs = useMemo(
     () => [
@@ -387,33 +388,7 @@ useFocusEffect(
                       ShowErrorToast('Complete Your Profile');
                       return;
                     }
-
-                    // If account exists but not verified, offer to refresh or continue
-                    if (payment?.stripe_account_id && !payment?.verification_complete) {
-                      Alert.alert(
-                        'Stripe Verification',
-                        'Your Stripe account is pending verification. What would you like to do?',
-                        [
-                          {
-                            text: 'Refresh Status',
-                            onPress: async () => {
-                              await GetPaymentMethodAPI();
-                              ShowSuccessToast('Status updated');
-                            },
-                          },
-                          {
-                            text: 'Continue Setup',
-                            onPress: () => navigate.toChef.setupStrip(),
-                          },
-                          {
-                            text: 'Cancel',
-                            style: 'cancel',
-                          },
-                        ]
-                      );
-                    } else {
-                      navigate.toChef.setupStrip();
-                    }
+                    setStripeDialogVisible(true);
                    }}
                 />
                 <SettingItem
@@ -474,6 +449,13 @@ useFocusEffect(
           )}
         </ScrollView>
       </Container>
+      <StripeOnboardingDialog
+        visible={stripeDialogVisible}
+        onClose={() => setStripeDialogVisible(false)}
+        hasPendingAccount={
+          !!payment?.stripe_account_id && !payment?.verification_complete
+        }
+      />
     </SafeAreaView>
   );
 };

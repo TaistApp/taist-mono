@@ -46,7 +46,6 @@ type NavigationStackType =
       HowToDoIt: undefined;
       BackgroundCheck: undefined;
       CancelApplication: undefined;
-      SetupStrip: undefined;
       Feedback: undefined;
     }
   | Record<string, object | undefined>;

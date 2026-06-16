@@ -95,7 +95,13 @@ const BackgroundCheck = () => {
   ];
 
   useEffect(() => {
-    setBgInfo(self);
+    // If the chef already entered their SSN during the Stripe step, fill the
+    // input with bullets so they don't have to retype it. Backend treats a
+    // blank/bullets value as "use the SSN already on file".
+    setBgInfo({
+      ...self,
+      ssn: (self as any).has_ssn ? '•••-••-••••' : '',
+    });
   }, []);
 
   const handleSave = async () => {
@@ -211,9 +217,10 @@ const BackgroundCheck = () => {
           </View>
           <View style={styles.switchWrapper}>
             <Text style={styles.agreeText}>
-              I agree to submit this information to Taist’s third party
-              background check service. Taist does not retain any of the
-              information provided{' '}
+              I agree to submit this information to Taist's third party
+              background check service. Your SSN is stored securely (encrypted)
+              and used only to verify your identity with Stripe and our
+              background check provider.{' '}
             </Text>
             <StyledSwitch
               label="Yes "
