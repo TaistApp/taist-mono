@@ -97,6 +97,7 @@ export const StepMenuItemReview: React.FC<StepMenuItemReviewProps> = ({
   )?.value ?? 'Not set';
 
   const customizations = menuItemData.customizations ?? [];
+  const isMealPrep = menuItemData.item_type === 'meal_prep';
 
   return (
     <MenuItemStepContainer
@@ -149,21 +150,55 @@ export const StepMenuItemReview: React.FC<StepMenuItemReviewProps> = ({
           </Text>
         </View>
 
-        {/* Appliances */}
-        <View style={styles.reviewSection}>
-          <SectionHeader label="Required Appliances" step={5} />
-          <Text style={styles.reviewValue}>
-            {selectedAppliances.length > 0
-              ? selectedAppliances.map(a => a.name).join(', ')
-              : 'None selected'}
-          </Text>
-        </View>
+        {isMealPrep ? (
+          <>
+            {/* Meals per Package */}
+            <View style={styles.reviewSection}>
+              <SectionHeader label="Meals per Package" step={5} />
+              <Text style={styles.reviewValue}>
+                {menuItemData.meals_per_package
+                  ? `${menuItemData.meals_per_package} meals`
+                  : 'Not set'}
+              </Text>
+            </View>
 
-        {/* Completion Time */}
-        <View style={styles.reviewSection}>
-          <SectionHeader label="Estimated Completion Time" step={5} />
-          <Text style={styles.reviewValue}>{completionTime}</Text>
-        </View>
+            {/* Shelf Life */}
+            <View style={styles.reviewSection}>
+              <SectionHeader label="Shelf Life" step={5} />
+              <Text style={styles.reviewValue}>
+                {menuItemData.shelf_life_days
+                  ? `${menuItemData.shelf_life_days} days`
+                  : 'Not set'}
+              </Text>
+            </View>
+
+            {/* Storage & Reheating */}
+            <View style={styles.reviewSection}>
+              <SectionHeader label="Storage & Reheating" step={5} />
+              <Text style={styles.reviewValue}>
+                {menuItemData.storage_instructions || 'Not set'}
+              </Text>
+            </View>
+          </>
+        ) : (
+          <>
+            {/* Appliances */}
+            <View style={styles.reviewSection}>
+              <SectionHeader label="Required Appliances" step={5} />
+              <Text style={styles.reviewValue}>
+                {selectedAppliances.length > 0
+                  ? selectedAppliances.map(a => a.name).join(', ')
+                  : 'None selected'}
+              </Text>
+            </View>
+
+            {/* Completion Time */}
+            <View style={styles.reviewSection}>
+              <SectionHeader label="Estimated Completion Time" step={5} />
+              <Text style={styles.reviewValue}>{completionTime}</Text>
+            </View>
+          </>
+        )}
 
         {/* Serving & Price */}
         <View style={styles.reviewSection}>

@@ -1829,12 +1829,18 @@ class MapiController extends Controller
             return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
 
         $user = $this->_authUser();
+        $itemType = $request->item_type === 'meal_prep' ? 'meal_prep' : 'standard';
         $ary = [
             'user_id' => $user->id,
+            'item_type' => $itemType,
             'title' => $request->title,
             'description' => $request->description,
             'price' => $request->price,
             'serving_size' => $request->serving_size && $request->serving_size > 0 ? $request->serving_size : 1,
+            // Meal-prep-only fields (left null for standard items)
+            'meals_per_package' => $itemType === 'meal_prep' ? ($request->meals_per_package ?: null) : null,
+            'shelf_life_days' => $itemType === 'meal_prep' ? ($request->shelf_life_days ?: null) : null,
+            'storage_instructions' => $itemType === 'meal_prep' ? ($request->storage_instructions ?: null) : null,
             'meals' => $request->meals,
             'category_ids' => $request->category_ids,
             'allergens' => isset($request->allergens) ? $request->allergens : '',
@@ -1914,6 +1920,10 @@ class MapiController extends Controller
         if (isset($request->serving_size)) {
             $ary['serving_size'] = $request->serving_size && $request->serving_size > 0 ? $request->serving_size : 1;
         }
+        if ($request->item_type) $ary['item_type'] = $request->item_type === 'meal_prep' ? 'meal_prep' : 'standard';
+        if ($request->has('meals_per_package')) $ary['meals_per_package'] = $request->meals_per_package ?: null;
+        if ($request->has('shelf_life_days')) $ary['shelf_life_days'] = $request->shelf_life_days ?: null;
+        if ($request->has('storage_instructions')) $ary['storage_instructions'] = $request->storage_instructions ?: null;
         if ($request->meals) $ary['meals'] = $request->meals;
         if ($request->category_ids) $ary['category_ids'] = $request->category_ids;
         if ($request->allergens) $ary['allergens'] = $request->allergens;

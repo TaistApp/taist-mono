@@ -26,6 +26,7 @@ import { StepMenuItemDescription } from './steps/StepMenuItemDescription';
 import { StepMenuItemCategories } from './steps/StepMenuItemCategories';
 import { StepMenuItemAllergens } from './steps/StepMenuItemAllergens';
 import { StepMenuItemKitchen } from './steps/StepMenuItemKitchen';
+import { StepMenuItemMealPrep } from './steps/StepMenuItemMealPrep';
 import { StepMenuItemPricing } from './steps/StepMenuItemPricing';
 import { StepMenuItemCustomizations } from './steps/StepMenuItemCustomizations';
 import { StepMenuItemReview } from './steps/StepMenuItemReview';
@@ -47,9 +48,18 @@ const AddMenuItem = () => {
   // the Review summary and each section is edited individually (no linear walk).
   const isEdit = !!(info && info.id !== undefined);
 
+  // Item type ('standard' | 'meal_prep'). On create it comes from the picker
+  // param; on edit it comes from the existing item (populated in the effect).
+  const initialItemType: 'standard' | 'meal_prep' =
+    params?.item_type === 'meal_prep' ? 'meal_prep' : 'standard';
+
   // Multi-step state
   const [step, setStep] = useState(isEdit ? 8 : 1);
-  const [menuItemData, setMenuItemData] = useState<Partial<IMenu>>({});
+  const [menuItemData, setMenuItemData] = useState<Partial<IMenu>>(
+    isEdit ? {} : { item_type: initialItemType }
+  );
+
+  const isMealPrep = menuItemData.item_type === 'meal_prep';
 
   // In edit mode, finishing/leaving any single step returns to the Review hub.
   const backToReview = () => setStep(8);
@@ -93,6 +103,7 @@ const AddMenuItem = () => {
 
       setMenuItemData({
         id: info.id,
+        item_type: info.item_type === 'meal_prep' ? 'meal_prep' : 'standard',
         title: info.title ?? '',
         description: info.description ?? '',
         category_ids: categoryIds as any,
@@ -101,6 +112,9 @@ const AddMenuItem = () => {
         completion_time_id: completionTimeId,
         estimated_time: info.estimated_time,
         serving_size: info.serving_size ?? 1,
+        meals_per_package: info.meals_per_package ?? null,
+        shelf_life_days: info.shelf_life_days ?? null,
+        storage_instructions: info.storage_instructions ?? '',
         price: info.price,
         price_string: info.price ? info.price.toFixed(2) : '',
         is_live: info.is_live ?? 1,
@@ -204,11 +218,18 @@ const AddMenuItem = () => {
         : [];
 
       // Prepare API params
+      const itemType = menuItemData.item_type === 'meal_prep' ? 'meal_prep' : 'standard';
       const params: IMenu & any = {
+        item_type: itemType,
         title: menuItemData.title,
         description: menuItemData.description,
         price: menuItemData.price_string ?? menuItemData.price,
         serving_size: menuItemData.serving_size && menuItemData.serving_size > 0 ? menuItemData.serving_size : 1,
+        // Meal-prep-only fields (sent as null for standard items so an edited
+        // item that changes type is cleaned up server-side)
+        meals_per_package: itemType === 'meal_prep' ? (menuItemData.meals_per_package ?? null) : null,
+        shelf_life_days: itemType === 'meal_prep' ? (menuItemData.shelf_life_days ?? null) : null,
+        storage_instructions: itemType === 'meal_prep' ? (menuItemData.storage_instructions ?? null) : null,
         meals: 'breakfast',
         category_ids: category_id_list.join(','),
         allergens: allergyIds.join(','),
@@ -298,7 +319,16 @@ const AddMenuItem = () => {
           />
         );
       case 5:
-        return (
+        // Meal-prep items get the meal-prep details step here instead of the
+        // on-site kitchen-requirements step.
+        return isMealPrep ? (
+          <StepMenuItemMealPrep
+            menuItemData={menuItemData}
+            onUpdateMenuItemData={handleUpdateMenuItemData}
+            onNext={isEdit ? backToReview : () => setStep(6)}
+            onBack={isEdit ? backToReview : () => setStep(4)}
+          />
+        ) : (
           <StepMenuItemKitchen
             menuItemData={menuItemData}
             onUpdateMenuItemData={handleUpdateMenuItemData}
@@ -362,7 +392,7 @@ const AddMenuItem = () => {
     <SafeAreaView style={styles.main}>
       <Container
         backMode
-        title={info ? 'Edit Menu Item' : 'Add Menu Item'}
+        title={info ? 'Edit Menu Item' : isMealPrep ? 'Add Meal Prep' : 'Add Menu Item'}
         containerStyle={{ marginBottom: 0 }}
         onBack={handleHeaderBack}
       >

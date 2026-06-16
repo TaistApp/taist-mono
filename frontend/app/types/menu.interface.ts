@@ -3,10 +3,15 @@ import {IMenuCustomization} from '.';
 export default interface MenuInterface {
   id?: number;
   user_id?: number;
+  item_type?: 'standard' | 'meal_prep';
   title?: string;
   description?: string;
   price?: number;
   serving_size?: number;
+  // Meal-prep-only fields (null/undefined for standard items)
+  meals_per_package?: number | null;
+  shelf_life_days?: number | null;
+  storage_instructions?: string | null;
   meals?: string;
   category_ids?: string;
   allergens?: string;
