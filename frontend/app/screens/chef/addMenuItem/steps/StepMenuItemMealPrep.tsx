@@ -21,9 +21,10 @@ const toInt = (text: string): number | null => {
 };
 
 /**
- * Meal-prep-only details step. For meal-prep items this takes the place of the
- * on-site "Kitchen Requirements" step (appliances/time), which doesn't apply to
- * pre-made meals the customer reheats.
+ * Meal-prep-only details step. This is an extra page in the meal-prep flow
+ * (in addition to all the standard steps). Like every Taist item, meal-prep
+ * meals are cooked in the customer's kitchen — these fields just capture how
+ * many meals the order covers and how the customer stores/reheats leftovers.
  */
 export const StepMenuItemMealPrep: React.FC<StepMenuItemMealPrepProps> = ({
   menuItemData,
@@ -50,18 +51,18 @@ export const StepMenuItemMealPrep: React.FC<StepMenuItemMealPrepProps> = ({
   return (
     <MenuItemStepContainer
       title="Meal Prep Details"
-      subtitle="Tell customers how this meal-prep package works."
-      currentStep={5}
-      totalSteps={8}
+      subtitle="A few extras for a meal-prep order — you'll still cook it all in the customer's kitchen."
+      currentStep={6}
+      totalSteps={9}
     >
       <View>
-        <Text style={styles.sectionTitle}>Meals per package</Text>
+        <Text style={styles.sectionTitle}>Number of meals</Text>
         <Text style={styles.sectionSubtitle}>
-          How many individual meals does one order include?
+          How many individual meals will you prepare for this order?
         </Text>
         <StyledTextInput
           testID="menuWizard.mealsPerPackageInput"
-          label="Meals per package"
+          label="Number of meals"
           placeholder="e.g. 5"
           value={mealsPerPackage != null ? String(mealsPerPackage) : ''}
           onChangeText={text => onUpdateMenuItemData({ meals_per_package: toInt(text) })}
@@ -72,7 +73,7 @@ export const StepMenuItemMealPrep: React.FC<StepMenuItemMealPrepProps> = ({
       <View>
         <Text style={styles.sectionTitle}>Shelf life</Text>
         <Text style={styles.sectionSubtitle}>
-          How many days will the meals stay good once delivered?
+          How many days will the meals stay good once they're made?
         </Text>
         <StyledTextInput
           testID="menuWizard.shelfLifeInput"
@@ -87,7 +88,7 @@ export const StepMenuItemMealPrep: React.FC<StepMenuItemMealPrepProps> = ({
       <View>
         <Text style={styles.sectionTitle}>Storage & reheating</Text>
         <Text style={styles.sectionSubtitle}>
-          How should customers store and reheat the meals? (optional)
+          How should the customer store and reheat the leftovers? (optional)
         </Text>
         <StyledTextInput
           testID="menuWizard.storageInstructionsInput"

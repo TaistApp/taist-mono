@@ -150,11 +150,27 @@ export const StepMenuItemReview: React.FC<StepMenuItemReviewProps> = ({
           </Text>
         </View>
 
-        {isMealPrep ? (
+        {/* Appliances */}
+        <View style={styles.reviewSection}>
+          <SectionHeader label="Required Appliances" step={5} />
+          <Text style={styles.reviewValue}>
+            {selectedAppliances.length > 0
+              ? selectedAppliances.map(a => a.name).join(', ')
+              : 'None selected'}
+          </Text>
+        </View>
+
+        {/* Completion Time */}
+        <View style={styles.reviewSection}>
+          <SectionHeader label="Estimated Completion Time" step={5} />
+          <Text style={styles.reviewValue}>{completionTime}</Text>
+        </View>
+
+        {/* Meal-prep details (meal-prep items only) — step 9 in the wizard */}
+        {isMealPrep && (
           <>
-            {/* Meals per Package */}
             <View style={styles.reviewSection}>
-              <SectionHeader label="Meals per Package" step={5} />
+              <SectionHeader label="Meals per Order" step={9} />
               <Text style={styles.reviewValue}>
                 {menuItemData.meals_per_package
                   ? `${menuItemData.meals_per_package} meals`
@@ -162,9 +178,8 @@ export const StepMenuItemReview: React.FC<StepMenuItemReviewProps> = ({
               </Text>
             </View>
 
-            {/* Shelf Life */}
             <View style={styles.reviewSection}>
-              <SectionHeader label="Shelf Life" step={5} />
+              <SectionHeader label="Shelf Life" step={9} />
               <Text style={styles.reviewValue}>
                 {menuItemData.shelf_life_days
                   ? `${menuItemData.shelf_life_days} days`
@@ -172,30 +187,11 @@ export const StepMenuItemReview: React.FC<StepMenuItemReviewProps> = ({
               </Text>
             </View>
 
-            {/* Storage & Reheating */}
             <View style={styles.reviewSection}>
-              <SectionHeader label="Storage & Reheating" step={5} />
+              <SectionHeader label="Storage & Reheating" step={9} />
               <Text style={styles.reviewValue}>
                 {menuItemData.storage_instructions || 'Not set'}
               </Text>
-            </View>
-          </>
-        ) : (
-          <>
-            {/* Appliances */}
-            <View style={styles.reviewSection}>
-              <SectionHeader label="Required Appliances" step={5} />
-              <Text style={styles.reviewValue}>
-                {selectedAppliances.length > 0
-                  ? selectedAppliances.map(a => a.name).join(', ')
-                  : 'None selected'}
-              </Text>
-            </View>
-
-            {/* Completion Time */}
-            <View style={styles.reviewSection}>
-              <SectionHeader label="Estimated Completion Time" step={5} />
-              <Text style={styles.reviewValue}>{completionTime}</Text>
             </View>
           </>
         )}

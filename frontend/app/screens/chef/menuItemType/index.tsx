@@ -17,13 +17,13 @@ const MenuItemType = () => {
       type: 'standard' as const,
       emoji: '🍽️',
       title: 'Standard Item',
-      description: 'A single dish you cook fresh on-site for the customer.',
+      description: 'A single dish you cook fresh in the customer\'s kitchen.',
     },
     {
       type: 'meal_prep' as const,
-      emoji: '🥡',
+      emoji: '🥗',
       title: 'Meal Prep',
-      description: 'A package of ready-to-eat meals the customer heats and enjoys later.',
+      description: 'Several meals you cook in the customer\'s kitchen for them to store and reheat later.',
     },
   ];
 

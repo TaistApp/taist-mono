@@ -10,6 +10,7 @@ import { useAppDispatch, useAppSelector } from '../../../hooks/useRedux';
 import { goBack, navigate } from '@/app/utils/navigation';
 import { useLocalSearchParams } from 'expo-router';
 import Container from '../../../layout/Container';
+import { MenuWizardStepContext } from './components/MenuItemStepContainer';
 import { hideLoading, showLoading } from '../../../reducers/loadingSlice';
 import {
   CreateCategoryAPI,
@@ -60,6 +61,20 @@ const AddMenuItem = () => {
   );
 
   const isMealPrep = menuItemData.item_type === 'meal_prep';
+
+  // Map internal step number -> ordered key. Meal prep inserts an extra
+  // "mealprep" step (internal 9) right after kitchen, so its flow is 9 steps.
+  const STEP_KEY: Record<number, string> = {
+    1: 'name', 2: 'description', 3: 'categories', 4: 'allergens',
+    5: 'kitchen', 9: 'mealprep', 6: 'pricing', 7: 'customizations', 8: 'review',
+  };
+  const stepOrder = isMealPrep
+    ? ['name', 'description', 'categories', 'allergens', 'kitchen', 'mealprep', 'pricing', 'customizations', 'review']
+    : ['name', 'description', 'categories', 'allergens', 'kitchen', 'pricing', 'customizations', 'review'];
+  const orderIndex = stepOrder.indexOf(STEP_KEY[step]); // 0-based position of current step
+  // Dots are hidden in edit mode (single-section editing); otherwise reflect position.
+  const displayStep = isEdit ? undefined : orderIndex + 1;
+  const displayTotal = isEdit ? undefined : stepOrder.length;
 
   // In edit mode, finishing/leaving any single step returns to the Review hub.
   const backToReview = () => setStep(8);
@@ -319,21 +334,22 @@ const AddMenuItem = () => {
           />
         );
       case 5:
-        // Meal-prep items get the meal-prep details step here instead of the
-        // on-site kitchen-requirements step.
-        return isMealPrep ? (
+        return (
+          <StepMenuItemKitchen
+            menuItemData={menuItemData}
+            onUpdateMenuItemData={handleUpdateMenuItemData}
+            // Meal-prep items get an extra "Meal Prep Details" step (9) after this
+            onNext={isEdit ? backToReview : () => setStep(isMealPrep ? 9 : 6)}
+            onBack={isEdit ? backToReview : () => setStep(4)}
+          />
+        );
+      case 9:
+        return (
           <StepMenuItemMealPrep
             menuItemData={menuItemData}
             onUpdateMenuItemData={handleUpdateMenuItemData}
             onNext={isEdit ? backToReview : () => setStep(6)}
-            onBack={isEdit ? backToReview : () => setStep(4)}
-          />
-        ) : (
-          <StepMenuItemKitchen
-            menuItemData={menuItemData}
-            onUpdateMenuItemData={handleUpdateMenuItemData}
-            onNext={isEdit ? backToReview : () => setStep(6)}
-            onBack={isEdit ? backToReview : () => setStep(4)}
+            onBack={isEdit ? backToReview : () => setStep(5)}
           />
         );
       case 6:
@@ -342,7 +358,7 @@ const AddMenuItem = () => {
             menuItemData={menuItemData}
             onUpdateMenuItemData={handleUpdateMenuItemData}
             onNext={isEdit ? backToReview : () => setStep(7)}
-            onBack={isEdit ? backToReview : () => setStep(5)}
+            onBack={isEdit ? backToReview : () => setStep(isMealPrep ? 9 : 5)}
           />
         );
       case 7:
@@ -379,12 +395,16 @@ const AddMenuItem = () => {
       } else {
         backToReview();
       }
-    } else if (step === 1) {
+    } else if (orderIndex <= 0) {
       // If on first step, exit the flow
       goBack();
     } else {
-      // Otherwise, go back one step
-      setStep(step - 1);
+      // Otherwise, go back one step in the (type-aware) order
+      const prevKey = stepOrder[orderIndex - 1];
+      const prevStep = Number(
+        Object.keys(STEP_KEY).find(k => STEP_KEY[Number(k)] === prevKey)
+      );
+      setStep(prevStep);
     }
   };
 
@@ -396,7 +416,9 @@ const AddMenuItem = () => {
         containerStyle={{ marginBottom: 0 }}
         onBack={handleHeaderBack}
       >
-        {renderStep()}
+        <MenuWizardStepContext.Provider value={{ currentStep: displayStep, totalSteps: displayTotal }}>
+          {renderStep()}
+        </MenuWizardStepContext.Provider>
       </Container>
     </SafeAreaView>
   );
