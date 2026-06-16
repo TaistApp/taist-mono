@@ -38,4 +38,3 @@ export { default as Chef_Feedback } from './chef/feedback';
 export { default as Chef_HowToDoIt } from './chef/howToDo';
 export { default as Chef_Onboarding } from './chef/onboarding';
 export { default as Chef_OrderDetail } from './chef/orderDetail';
-export { default as Chef_SetupStrip } from './chef/setupStrip';

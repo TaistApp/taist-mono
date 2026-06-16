@@ -81,12 +81,14 @@ class AdminapiController extends Controller
         $auser = app(Listener::class)->whereIn('id',$ids)->get();
         if (isset($auser)) {
             if ($request->status == 0) {
-                app(Listener::class)->whereIn('id',$ids)->update(['is_pending'=>1, 'api_token'=>'']);
+                app(Listener::class)->whereIn('id',$ids)->update(['is_pending'=>1, 'is_paused'=>0, 'api_token'=>'']);
             } else {
                 if ($request->status == 4) {
                     app(Listener::class)->whereIn('id',$ids)->delete();
                 } else {
-                    $updateData = ['verified'=>$request->status, 'is_pending'=>0];
+                    // Any admin status change clears a self-paused state so the
+                    // admin action is authoritative (e.g. reactivating to Active).
+                    $updateData = ['verified'=>$request->status, 'is_pending'=>0, 'is_paused'=>0];
                     if ($request->status != 1) {
                         $updateData['api_token'] = '';
                     }
