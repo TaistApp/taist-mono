@@ -28,7 +28,7 @@ import Container from '../../../layout/Container';
 import { setNotificationOrderId } from '../../../reducers/deviceSlice';
 import { hideLoading, showLoading } from '../../../reducers/loadingSlice';
 import { setUser } from '../../../reducers/userSlice';
-import { GetChefOrdersAPI, GetUserById, GetPaymentMethodAPI, getChefShareUrl } from '../../../services/api';
+import { GetChefOrdersAPI, GetUserById, GetPaymentMethodAPI, ReactivateAccountAPI, getChefShareUrl } from '../../../services/api';
 import { getImageURL } from '../../../utils/functions';
 import { ShowErrorToast, ShowSuccessToast } from '../../../utils/toast';
 import { getDateStartTime } from '../../../utils/validations';
@@ -172,6 +172,17 @@ useFocusEffect(
     }
   };
 
+  const handleReactivate = async () => {
+    dispatch(showLoading());
+    const resp = await ReactivateAccountAPI(self, dispatch);
+    dispatch(hideLoading());
+    if (resp.success !== 1) {
+      ShowErrorToast(resp.error || resp.message || 'Could not reactivate. Please try again.');
+      return;
+    }
+    ShowSuccessToast('Welcome back! Your account is active again.');
+  };
+
   const handleShareProfile = async () => {
     const url = getChefShareUrl(self.id ?? 0);
     try {
@@ -269,6 +280,33 @@ useFocusEffect(
 
   const selectedTab = tabs.find(x => x.id == tabId);
   const filteredOrders = orders.filter(x => x.status == selectedTab?.status);
+
+  // Paused chefs see a dedicated reactivation screen instead of the dashboard
+  // or onboarding checklist. They remain logged in and hidden from customers.
+  if (self.is_paused == 1) {
+    return (
+      <SafeAreaView style={styles.main}>
+        <Container>
+          <View style={styles.pausedContainer}>
+            <StyledProfileImage url={getImageURL(self.photo)} size={80} />
+            <Text style={styles.pausedTitle}>Your account is paused</Text>
+            <Text style={styles.pausedSubtitle}>
+              You're hidden from customers and won't get availability reminders.
+              Your profile, menus, and reviews are safe. Reactivate whenever
+              you're ready to cook again.
+            </Text>
+            <TouchableOpacity
+              testID="chefHome.reactivateButton"
+              onPress={handleReactivate}
+              style={styles.reactivateButton}
+              activeOpacity={0.7}>
+              <Text style={styles.reactivateButtonText}>Reactivate My Account</Text>
+            </TouchableOpacity>
+          </View>
+        </Container>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.main}>

@@ -106,6 +106,7 @@ export interface ChefRow {
 const statusColors: Record<string, string> = {
   Active: "bg-emerald-500/15 text-emerald-700 border-emerald-500/20",
   Pending: "bg-amber-500/15 text-amber-700 border-amber-500/20",
+  Paused: "bg-blue-500/15 text-blue-700 border-blue-500/20",
   Rejected: "bg-red-500/15 text-red-700 border-red-500/20",
   Banned: "bg-gray-500/15 text-gray-700 border-gray-500/20",
 };
@@ -420,7 +421,7 @@ export default function ChefsPage() {
       case "pending":
         return pendingRows;
       case "active":
-        return chefRows.filter((c) => c.verified === 1);
+        return chefRows.filter((c) => c.verified === 1 && c.status !== "Paused");
       case "all":
       default:
         return chefRows;
@@ -440,6 +441,7 @@ export default function ChefsPage() {
       options: [
         { label: "Active", value: "Active" },
         { label: "Pending", value: "Pending" },
+        { label: "Paused", value: "Paused" },
         { label: "Rejected", value: "Rejected" },
         { label: "Banned", value: "Banned" },
       ],
@@ -450,7 +452,7 @@ export default function ChefsPage() {
   ];
 
   const pendingCount = pendings.length;
-  const activeCount = chefs.filter((c) => c.verified === 1).length;
+  const activeCount = chefs.filter((c) => c.verified === 1 && c.status !== "Paused").length;
 
   // ---------- Actions ----------
 

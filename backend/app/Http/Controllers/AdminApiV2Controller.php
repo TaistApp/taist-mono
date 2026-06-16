@@ -260,7 +260,9 @@ class AdminApiV2Controller extends Controller
             });
 
             // Determine status string
-            if ($chef->is_pending == 1 || $chef->verified == 0) {
+            if ($chef->is_paused == 1) {
+                $status = 'Paused';
+            } elseif ($chef->is_pending == 1 || $chef->verified == 0) {
                 $status = 'Pending';
             } elseif ($chef->verified == 1) {
                 $status = 'Active';
@@ -280,6 +282,7 @@ class AdminApiV2Controller extends Controller
                 'status' => $status,
                 'verified' => $chef->verified,
                 'is_pending' => $chef->is_pending,
+                'is_paused' => $chef->is_paused,
                 'phone' => $chef->phone,
                 'birthday' => $chef->birthday,
                 'address' => $chef->address,

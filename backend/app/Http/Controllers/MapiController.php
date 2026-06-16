@@ -3499,6 +3499,7 @@ Write only the review text:";
         
         if (isset($request->user_type)) $ary['user_type'] = $request->user_type;
         if (isset($request->is_pending)) $ary['is_pending'] = $request->is_pending;
+        if (isset($request->is_paused)) $ary['is_paused'] = $request->is_paused;
         if (isset($request->verified)) $ary['verified'] = $request->verified;
         if (isset($photo) && $photo != '') $ary['photo'] = $photo;
         if (isset($request->api_token)) $ary['api_token'] = $request->api_token;
@@ -3744,6 +3745,7 @@ Write only the review text:";
             ->where([
                 'u.user_type' => 2,          // Chef
                 'u.is_pending' => 0,
+                'u.is_paused' => 0,          // Hide self-paused chefs from search
                 'u.verified' => 1
             ])
             // PERFORMANCE: Bounding box filter (uses index, eliminates distant chefs quickly)
