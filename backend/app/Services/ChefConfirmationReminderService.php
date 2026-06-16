@@ -236,8 +236,8 @@ class ChefConfirmationReminderService
                 continue;
             }
 
-            // Only send to active chefs (approved and verified)
-            if ($chef->is_pending == 1 || $chef->verified != 1) {
+            // Only send to active chefs (approved, verified, and not self-paused)
+            if ($chef->is_pending == 1 || $chef->verified != 1 || $chef->is_paused == 1) {
                 continue;
             }
 

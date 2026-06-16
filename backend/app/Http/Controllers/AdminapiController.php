@@ -81,12 +81,14 @@ class AdminapiController extends Controller
         $auser = app(Listener::class)->whereIn('id',$ids)->get();
         if (isset($auser)) {
             if ($request->status == 0) {
-                app(Listener::class)->whereIn('id',$ids)->update(['is_pending'=>1, 'api_token'=>'']);
+                app(Listener::class)->whereIn('id',$ids)->update(['is_pending'=>1, 'is_paused'=>0, 'api_token'=>'']);
             } else {
                 if ($request->status == 4) {
                     app(Listener::class)->whereIn('id',$ids)->delete();
                 } else {
-                    $updateData = ['verified'=>$request->status, 'is_pending'=>0];
+                    // Any admin status change clears a self-paused state so the
+                    // admin action is authoritative (e.g. reactivating to Active).
+                    $updateData = ['verified'=>$request->status, 'is_pending'=>0, 'is_paused'=>0];
                     if ($request->status != 1) {
                         $updateData['api_token'] = '';
                     }
@@ -95,6 +97,7 @@ class AdminapiController extends Controller
                         foreach($ids as $uid) {
                             $approved_user = app(Listener::class)->where('id',$uid)->first();
                             $approved_user->notify(new ChefApprovedNotification());
+                            $this->_sendChefWelcomeEmail($approved_user);
                         }
                     }
                 }
@@ -102,6 +105,40 @@ class AdminapiController extends Controller
             return response()->json(['success' => 1]);
         } else {
             return response()->json(['success' => 0, 'error'=>"No chef user with the provided ID."]);
+        }
+    }
+
+    /**
+     * Welcome email sent the moment a chef is approved (push/in-app alone is
+     * missed by chefs without notification permissions). Skipped by Silent
+     * Activate, same as the push notification. Failures are logged, never
+     * allowed to break the approval itself.
+     */
+    private function _sendChefWelcomeEmail($user)
+    {
+        try {
+            if (!$user || empty($user->email)) {
+                return;
+            }
+            $firstName = trim((string) $user->first_name) ?: 'there';
+            $body = view('emails.chef-welcome', ['firstName' => $firstName])->render();
+            $subject = "You're approved, Chef {$firstName}. Let's get cooking.";
+
+            $client = new \GuzzleHttp\Client();
+            $client->post('https://api.resend.com/emails', [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . env('RESEND_API_KEY'),
+                    'Content-Type' => 'application/json',
+                ],
+                'json' => [
+                    'from' => 'Taist <contact@taist.app>',
+                    'to' => [$user->email],
+                    'subject' => $subject,
+                    'html' => $body,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Chef welcome email failed for user ' . ($user->id ?? '?') . ': ' . $e->getMessage());
         }
     }
 
