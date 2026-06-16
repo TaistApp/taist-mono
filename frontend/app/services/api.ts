@@ -981,7 +981,7 @@ export const DeletePaymentMethodAPI = async (params: any, dispatch?: any) => {
 };
 
 export const AddStripAccountAPI = async (
-  params: { email?: string },
+  params: { email?: string; ssn?: string },
   dispatch?: any
 ) => {
   var response = await POSTAPICALL("add_stripe_account", params);

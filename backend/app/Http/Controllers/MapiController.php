@@ -4439,9 +4439,13 @@ Write only the review text:";
 
         $phoneNumber = "(" . substr($phoneNumber,  0,  3) . ") " . substr($phoneNumber,  3,  3) . "-" . substr($phoneNumber,  6,  4);
 
-        $ssn = preg_replace('/[^0-9]/', '', $request->ssn);
-
-        $ssn = substr($ssn,  0,  3) . "-" . substr($ssn,  3,  2) . "-" . substr($ssn,  5,  4);
+        // Prefer a SSN already saved during the Stripe step. The request value
+        // is the override path (chef edits during background check).
+        $ssnDigits = preg_replace('/[^0-9]/', '', (string) $request->ssn);
+        if (strlen($ssnDigits) !== 9 && !empty($user->ssn)) {
+            $ssnDigits = preg_replace('/[^0-9]/', '', (string) $user->ssn);
+        }
+        $ssn = substr($ssnDigits, 0, 3) . "-" . substr($ssnDigits, 3, 2) . "-" . substr($ssnDigits, 5, 4);
 
 
         $api_key = env('SAFESCREENER_GUID');
@@ -4755,6 +4759,21 @@ Write only the review text:";
         $accountId = '';
         $email = $data['email'] ?? $user->email;
 
+        // Accept SSN from the chef so Stripe's Personal Details pre-fills as
+        // Complete (no extra "Enter your SSN" page on Stripe). Format to
+        // XXX-XX-XXXX so the same value can be reused by background check.
+        $ssn = null;
+        if (!empty($data['ssn'])) {
+            $digits = preg_replace('/[^0-9]/', '', (string) $data['ssn']);
+            if (strlen($digits) === 9) {
+                $ssn = substr($digits, 0, 3) . '-' . substr($digits, 3, 2) . '-' . substr($digits, 5, 4);
+            }
+        }
+        // Fall back to a previously-saved SSN (e.g. retry after Stripe error).
+        if ($ssn === null && !empty($user->ssn)) {
+            $ssn = $user->ssn;
+        }
+
         $errorMsg = "";
         // $emailResponse;
         try {
@@ -4797,7 +4816,7 @@ Write only the review text:";
                         'transfers' => ['requested' => true],
                     ],
                     // Pre-fill user data so Stripe doesn't ask for it again
-                    'individual' => [
+                    'individual' => array_filter([
                         'first_name' => $user->first_name,
                         'last_name' => $user->last_name,
                         'email' => $email,
@@ -4814,7 +4833,10 @@ Write only the review text:";
                             'postal_code' => $user->zip,
                             'country' => 'US',
                         ],
-                    ],
+                        // Full SSN → marks Stripe Personal Details as Complete
+                        // so the chef only sees Agree & Submit.
+                        'id_number' => $ssn ? preg_replace('/[^0-9]/', '', $ssn) : null,
+                    ]),
                     // Pre-fill business profile to skip "Business name" and "website URL" questions
                     'business_profile' => [
                         'name' => trim($user->first_name . ' ' . $user->last_name),
@@ -4866,6 +4888,17 @@ Write only the review text:";
                             'created_at' => now(),
                             'updated_at' => now()
                         ]);
+                    }
+                }
+
+                // Persist SSN encrypted on the user so the background check
+                // step (and any future re-onboarding) can reuse it. Go through
+                // the model so the `encrypted` cast on Listener applies.
+                if ($ssn && empty($user->ssn)) {
+                    $userModel = app(Listener::class)->find($user->id);
+                    if ($userModel) {
+                        $userModel->ssn = $ssn;
+                        $userModel->save();
                     }
                 }
 

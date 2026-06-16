@@ -214,7 +214,6 @@ export const navigate = {
       params: menuItem ? { info: JSON.stringify(menuItem) } : {}
     } as any),
     profileDetails: () => router.push('/screens/chef/profile' as any),
-    setupStrip: () => router.push('/screens/chef/setupStrip' as any),
     addOnCustomization: (onAddCustomization?: (item: { name: string; upcharge_price: number }) => void) => {
       // Store the callback globally or use a different approach
       if (onAddCustomization) {
