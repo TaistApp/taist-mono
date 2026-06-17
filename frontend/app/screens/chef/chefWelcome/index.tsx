@@ -111,21 +111,21 @@ const ChefWelcome = () => {
           <View style={styles.checklistItem}>
             <Text style={styles.arrow}>➜</Text>
             <Text style={styles.checklistText}>
-              Your mobile equipment (cooler with ice, pots, pans, utensils)
+              Your mobile equipment (🧊 cooler with ice, 🍲 pots, 🍳 pans, 🍴 cooking utensils)
             </Text>
           </View>
 
           <View style={styles.checklistItem}>
             <Text style={styles.arrow}>➜</Text>
             <Text style={styles.checklistText}>
-              All ingredients (bring extras just in case!)
+              All ingredients 🥕 (bring extras just in case!)
             </Text>
           </View>
 
           <View style={styles.checklistItem}>
             <Text style={styles.arrow}>➜</Text>
             <Text style={styles.checklistText}>
-              Cleaning supplies (soap, sponge, spray, paper towels)
+              Cleaning supplies (🧼 dish soap, 🧽 sponge, 🧴 surface-cleaning spray, 🧻 paper towels)
             </Text>
           </View>
         </View>

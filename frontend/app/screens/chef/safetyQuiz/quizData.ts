@@ -45,7 +45,7 @@ export const CHEF_SAFETY_QUIZ: QuizQuestion[] = [
     answers: [
       {
         id: 'A',
-        text: 'Set your mobile equipment (pots, pans, etc.) on the kitchen floor, then wash your hands',
+        text: 'Set your cooler on the floor and the rest of your mobile equipment (pots, pans, cooking utensils) on the counter, then wash your hands',
         isCorrect: true
       },
       {
@@ -55,12 +55,12 @@ export const CHEF_SAFETY_QUIZ: QuizQuestion[] = [
       },
       {
         id: 'C',
-        text: 'Set your mobile equipment (pots, pans, etc.) on the customer\'s counter or table, then wash your hands',
+        text: 'Set your cooler and everything else on the customer\'s counter or table, then wash your hands',
         isCorrect: false
       }
     ],
     correctAnswerId: 'A',
-    explanation: 'Setting your equipment on the floor assures the customer\'s surfaces are kept clean throughout the order. Washing hands (before and after) is a must!'
+    explanation: 'Your cooler has been on the ground and in transit, so it goes on the floor — never on the customer\'s surfaces. The rest of your mobile equipment (pots, pans, cooking utensils) is fine on the counter. Wash your hands before and after cooking.'
   },
   {
     id: 3,
@@ -113,7 +113,7 @@ export const CHEF_SAFETY_QUIZ: QuizQuestion[] = [
   {
     id: 5,
     category: 'Cleaning & Equipment Reset Before Leaving',
-    question: 'After completing the dish, what should you do with the pots, pans, and other supplies you brought from home?',
+    question: 'After completing the dish, what should you do with the mobile equipment you brought from home?',
     answers: [
       {
         id: 'A',
@@ -132,6 +132,6 @@ export const CHEF_SAFETY_QUIZ: QuizQuestion[] = [
       }
     ],
     correctAnswerId: 'C',
-    explanation: 'Taist requires chefs to reset the kitchen, including cleaning any personal equipment used.'
+    explanation: 'Taist requires chefs to reset the kitchen, including washing the mobile equipment you used before you leave.'
   }
 ];
