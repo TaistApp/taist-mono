@@ -820,7 +820,12 @@ const Account = () => {
           )
         )}
       </Container>
-      <Modal transparent visible={visibleVerifyCode}>
+      {/*
+        Phone verification overlay — NOT an RN <Modal> (separate iOS window
+        blocks one-time-code AutoFill). In-window overlay keeps the OTP field
+        in the key window so the SMS code suggestion appears above the keyboard.
+      */}
+      {visibleVerifyCode && (
         <Pressable
           onPress={() => onChangeVisibleVerifyCode(false)}
           style={styles.modalBG}
@@ -836,7 +841,7 @@ const Account = () => {
             <StyledButton title="Verify" onPress={handleVerify} />
           </View>
         </Pressable>
-      </Modal>
+      )}
     </SafeAreaView>
   );
 };

@@ -3,7 +3,6 @@ import {
   View,
   Text,
   Pressable,
-  Modal,
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
@@ -91,6 +90,7 @@ export const StepBasicProfile: React.FC<StepBasicProfileProps> = ({
   };
 
   return (
+    <View style={styles.root}>
     <SignupStepContainer
       title="What's your phone number?"
       subtitle="We'll use this to keep you updated on your orders"
@@ -121,9 +121,14 @@ export const StepBasicProfile: React.FC<StepBasicProfileProps> = ({
           <Text style={styles.backButtonText}>Back</Text>
         </Pressable>
       </View>
+    </SignupStepContainer>
 
-      {/* Phone Verification Modal */}
-      <Modal transparent visible={visibleVerifyCode}>
+      {/*
+        Phone verification overlay — NOT an RN <Modal> (which renders in a
+        separate iOS window and blocks one-time-code AutoFill). In-window
+        overlay keeps the OTP field in the key window so AutoFill works.
+      */}
+      {visibleVerifyCode && (
         <Pressable
           onPress={() => !isVerifying && setVisibleVerifyCode(false)}
           style={styles.modalBG}
@@ -162,8 +167,8 @@ export const StepBasicProfile: React.FC<StepBasicProfileProps> = ({
             </View>
           </Pressable>
         </Pressable>
-      </Modal>
-    </SignupStepContainer>
+      )}
+    </View>
   );
 };
 
@@ -181,8 +186,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  modalBG: {
+  root: {
     flex: 1,
+  },
+  modalBG: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
