@@ -169,7 +169,10 @@ class MapiController extends Controller
         try {
             $AccountSid = env('TWILIO_SID');
             $AuthToken = env('TWILIO_TOKEN');
-            $msg = "Taist verification code is " . $code . "\n\n@taist.app #" . $code;
+            // Plain (non-domain-bound) code — see TwilioService note: the
+            // "@taist.app #code" suffix suppresses iOS in-app autofill because
+            // the app has no Associated Domains (webcredentials) entitlement.
+            $msg = "Your Taist verification code is: " . $code;
             $client = new Client($AccountSid, $AuthToken);
             $sms = $client->account->messages->create(
                 $phone,
@@ -200,7 +203,10 @@ class MapiController extends Controller
         try {
             $AccountSid = env('TWILIO_SID');
             $AuthToken = env('TWILIO_TOKEN');
-            $msg = "Taist verification code is " . $code . "\n\n@taist.app #" . $code;
+            // Plain (non-domain-bound) code — see TwilioService note: the
+            // "@taist.app #code" suffix suppresses iOS in-app autofill because
+            // the app has no Associated Domains (webcredentials) entitlement.
+            $msg = "Your Taist verification code is: " . $code;
             $client = new Client($AccountSid, $AuthToken);
             $sms = $client->account->messages->create(
                 $phone,
