@@ -45,7 +45,7 @@ export const CHEF_SAFETY_QUIZ: QuizQuestion[] = [
     answers: [
       {
         id: 'A',
-        text: 'Set your cooler and supplies (pots, pans, etc.) on the kitchen floor, then wash your hands',
+        text: 'Set your mobile equipment (pots, pans, etc.) on the kitchen floor, then wash your hands',
         isCorrect: true
       },
       {
@@ -55,7 +55,7 @@ export const CHEF_SAFETY_QUIZ: QuizQuestion[] = [
       },
       {
         id: 'C',
-        text: 'Set your cooler and supplies (pots, pans, etc.) on the customer\'s counter or table, then wash your hands',
+        text: 'Set your mobile equipment (pots, pans, etc.) on the customer\'s counter or table, then wash your hands',
         isCorrect: false
       }
     ],
