@@ -59,7 +59,12 @@ class TwilioService
         }
 
         try {
-            $message = "Your Taist verification code is: " . $code . "\n\n@taist.app #" . $code;
+            // Plain (non-domain-bound) code so iOS Security Code AutoFill offers
+            // it in-app. A "@taist.app #code" suffix makes the code domain-bound,
+            // which iOS only autofills inside an app associated with taist.app via
+            // an Associated Domains (webcredentials) entitlement — which this app
+            // does not have, so the suffix suppressed the autofill suggestion.
+            $message = "Your Taist verification code is: " . $code;
 
             $this->client->messages->create(
                 $phone,
