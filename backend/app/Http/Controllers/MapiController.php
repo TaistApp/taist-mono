@@ -4882,21 +4882,11 @@ Write only the review text:";
         $accountId = '';
         $email = $data['email'] ?? $user->email;
 
-        // Accept SSN from the chef so Stripe's Personal Details pre-fills as
-        // Complete (no extra "Enter your SSN" page on Stripe). Format to
-        // XXX-XX-XXXX so the same value can be reused by background check.
-        $ssn = null;
-        if (!empty($data['ssn'])) {
-            $digits = preg_replace('/[^0-9]/', '', (string) $data['ssn']);
-            if (strlen($digits) === 9) {
-                $ssn = substr($digits, 0, 3) . '-' . substr($digits, 3, 2) . '-' . substr($digits, 5, 4);
-            }
-        }
-        // Fall back to a previously-saved SSN (e.g. retry after Stripe error).
-        if ($ssn === null && !empty($user->ssn)) {
-            $ssn = $user->ssn;
-        }
-
+        // SSN is intentionally NOT collected or pre-filled here. Stripe gathers
+        // sensitive identity details (incl. SSN) directly in its hosted
+        // onboarding flow, so Taist never sees or stores them. Leaving
+        // individual.id_number unset makes Stripe list it as currently_due and
+        // prompt the chef on their own secure UI.
         $errorMsg = "";
         // $emailResponse;
         try {
@@ -4956,9 +4946,8 @@ Write only the review text:";
                             'postal_code' => $user->zip,
                             'country' => 'US',
                         ],
-                        // Full SSN → marks Stripe Personal Details as Complete
-                        // so the chef only sees Agree & Submit.
-                        'id_number' => $ssn ? preg_replace('/[^0-9]/', '', $ssn) : null,
+                        // id_number (SSN) intentionally omitted — Stripe collects
+                        // it directly in their hosted onboarding flow.
                     ]),
                     // Pre-fill business profile to skip "Business name" and "website URL" questions
                     'business_profile' => [
@@ -5011,17 +5000,6 @@ Write only the review text:";
                             'created_at' => now(),
                             'updated_at' => now()
                         ]);
-                    }
-                }
-
-                // Persist SSN encrypted on the user so the background check
-                // step (and any future re-onboarding) can reuse it. Go through
-                // the model so the `encrypted` cast on Listener applies.
-                if ($ssn && empty($user->ssn)) {
-                    $userModel = app(Listener::class)->find($user->id);
-                    if ($userModel) {
-                        $userModel->ssn = $ssn;
-                        $userModel->save();
                     }
                 }
 
