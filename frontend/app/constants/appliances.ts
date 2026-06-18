@@ -5,26 +5,26 @@
  * for chefs to prepare menu items. IDs must match what's stored
  * in menu item `appliances` field in the database.
  *
- * Images are served from /assets/images/appliances/ (NOT /assets/uploads/)
- * to avoid being hidden by the Railway volume mount.
+ * Images are bundled LOCALLY (require) so the tiles render instantly — the
+ * previous remote URLs (served from the API host) loaded slowly on cellular.
  */
 
-import { Static_URL } from '../services/api';
+import { ImageSourcePropType } from 'react-native';
 
 export interface IAppliance {
   id: number;
   name: string;
-  image: string;
+  image: ImageSourcePropType;
   emoji: string; // Fallback if image fails to load
 }
 
 export const APPLIANCES: IAppliance[] = [
-  { id: 1, name: 'Sink', image: `${Static_URL}appliances/sink.png`, emoji: '💧' },
-  { id: 2, name: 'Stove', image: `${Static_URL}appliances/stove.png`, emoji: '🍳' },
-  { id: 3, name: 'Oven', image: `${Static_URL}appliances/oven.png`, emoji: '🔥' },
-  { id: 4, name: 'Microwave', image: `${Static_URL}appliances/microwave.png`, emoji: '📻' },
-  { id: 5, name: 'Charcoal Grill', image: `${Static_URL}appliances/charcoal_grill.png`, emoji: '🍖' },
-  { id: 6, name: 'Gas Grill', image: `${Static_URL}appliances/gas_grill.png`, emoji: '🔥' },
+  { id: 1, name: 'Sink', image: require('../assets/images/appliances/sink.png'), emoji: '💧' },
+  { id: 2, name: 'Stove', image: require('../assets/images/appliances/stove.png'), emoji: '🍳' },
+  { id: 3, name: 'Oven', image: require('../assets/images/appliances/oven.png'), emoji: '🔥' },
+  { id: 4, name: 'Microwave', image: require('../assets/images/appliances/microwave.png'), emoji: '📻' },
+  { id: 5, name: 'Charcoal Grill', image: require('../assets/images/appliances/charcoal_grill.png'), emoji: '🍖' },
+  { id: 6, name: 'Gas Grill', image: require('../assets/images/appliances/gas_grill.png'), emoji: '🔥' },
 ];
 
 /** Get a single appliance by ID */

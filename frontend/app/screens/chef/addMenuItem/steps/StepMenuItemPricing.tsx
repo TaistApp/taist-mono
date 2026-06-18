@@ -22,10 +22,17 @@ export const StepMenuItemPricing: React.FC<StepMenuItemPricingProps> = ({
   onNext,
   onBack,
 }) => {
-  // Initialize serving_size to 1 if not set
+  const isMealPrep = menuItemData.item_type === 'meal_prep';
+  const mealsPerPackage = menuItemData.meals_per_package ?? 0;
+  // Meal-prep items can serve more than 10; let the slider reach the meal count.
+  const maxServing = isMealPrep ? Math.max(10, mealsPerPackage) : 10;
+
+  // Initialize serving size. For meal-prep items, default it to the number of
+  // meals entered earlier ("meals provided"); otherwise default to 1.
   useEffect(() => {
     if (!menuItemData.serving_size || menuItemData.serving_size <= 0) {
-      onUpdateMenuItemData({ serving_size: 1 });
+      const initial = isMealPrep && mealsPerPackage > 0 ? mealsPerPackage : 1;
+      onUpdateMenuItemData({ serving_size: initial });
     }
   }, []);
 
@@ -83,7 +90,9 @@ export const StepMenuItemPricing: React.FC<StepMenuItemPricingProps> = ({
       <View>
         <Text style={styles.sectionTitle}>Serving Size: {servingSize}</Text>
         <Text style={styles.sectionSubtitle}>
-          How many people does this menu item serve?
+          {isMealPrep
+            ? 'Defaults to the number of meals in this order — adjust if needed.'
+            : 'How many people does this menu item serve?'}
         </Text>
         <View style={styles.sliderContainer}>
           <Text style={styles.sliderLabel}>1</Text>
@@ -91,7 +100,7 @@ export const StepMenuItemPricing: React.FC<StepMenuItemPricingProps> = ({
             testID="menuWizard.servingSlider"
             style={styles.slider}
             minimumValue={1}
-            maximumValue={10}
+            maximumValue={maxServing}
             minimumTrackTintColor={AppColors.primary}
             maximumTrackTintColor={AppColors.border}
             thumbTintColor={AppColors.primary}
@@ -99,10 +108,12 @@ export const StepMenuItemPricing: React.FC<StepMenuItemPricingProps> = ({
             value={servingSize}
             onValueChange={handleServingSizeChange}
           />
-          <Text style={styles.sliderLabel}>10</Text>
+          <Text style={styles.sliderLabel}>{maxServing}</Text>
         </View>
         <Text style={styles.servingSizeDisplay}>
-          Serves {servingSize} {servingSize === 1 ? 'person' : 'people'}
+          {isMealPrep
+            ? `${servingSize} ${servingSize === 1 ? 'meal' : 'meals'}`
+            : `Serves ${servingSize} ${servingSize === 1 ? 'person' : 'people'}`}
         </Text>
       </View>
 
