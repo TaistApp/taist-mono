@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, TextInput, StyleSheet, Platform } from "react-native";
+import { View, TextInput, StyleSheet, Platform, Keyboard } from "react-native";
 import { AppColors } from "../../../constants/theme";
 
 interface OTPInputProps {
@@ -34,9 +34,13 @@ const OTPInput: React.FC<OTPInputProps> = ({
       <TextInput
         testID={testID}
         value={value}
-        onChangeText={(text) =>
-          onChangeText(text.replace(/[^0-9]/g, "").slice(0, length))
-        }
+        onChangeText={(text) => {
+          const digits = text.replace(/[^0-9]/g, "").slice(0, length);
+          onChangeText(digits);
+          // Once the full code is in (typed or autofilled), drop the keyboard so
+          // the UI settles instead of flickering/shifting after autofill.
+          if (digits.length === length) Keyboard.dismiss();
+        }}
         keyboardType="number-pad"
         textContentType="oneTimeCode"
         autoComplete={Platform.OS === "android" ? "sms-otp" : "one-time-code"}

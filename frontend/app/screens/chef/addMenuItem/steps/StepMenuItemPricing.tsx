@@ -87,35 +87,35 @@ export const StepMenuItemPricing: React.FC<StepMenuItemPricingProps> = ({
       currentStep={6}
       totalSteps={8}
     >
-      <View>
-        <Text style={styles.sectionTitle}>Serving Size: {servingSize}</Text>
-        <Text style={styles.sectionSubtitle}>
-          {isMealPrep
-            ? 'Defaults to the number of meals in this order — adjust if needed.'
-            : 'How many people does this menu item serve?'}
-        </Text>
-        <View style={styles.sliderContainer}>
-          <Text style={styles.sliderLabel}>1</Text>
-          <Slider
-            testID="menuWizard.servingSlider"
-            style={styles.slider}
-            minimumValue={1}
-            maximumValue={maxServing}
-            minimumTrackTintColor={AppColors.primary}
-            maximumTrackTintColor={AppColors.border}
-            thumbTintColor={AppColors.primary}
-            step={1}
-            value={servingSize}
-            onValueChange={handleServingSizeChange}
-          />
-          <Text style={styles.sliderLabel}>{maxServing}</Text>
+      {/* Serving size doesn't apply to meal-prep items (they're sold by meal
+          count, captured on the Meal Prep step) — show pricing only. */}
+      {!isMealPrep && (
+        <View>
+          <Text style={styles.sectionTitle}>Serving Size: {servingSize}</Text>
+          <Text style={styles.sectionSubtitle}>
+            How many people does this menu item serve?
+          </Text>
+          <View style={styles.sliderContainer}>
+            <Text style={styles.sliderLabel}>1</Text>
+            <Slider
+              testID="menuWizard.servingSlider"
+              style={styles.slider}
+              minimumValue={1}
+              maximumValue={maxServing}
+              minimumTrackTintColor={AppColors.primary}
+              maximumTrackTintColor={AppColors.border}
+              thumbTintColor={AppColors.primary}
+              step={1}
+              value={servingSize}
+              onValueChange={handleServingSizeChange}
+            />
+            <Text style={styles.sliderLabel}>{maxServing}</Text>
+          </View>
+          <Text style={styles.servingSizeDisplay}>
+            Serves {servingSize} {servingSize === 1 ? 'person' : 'people'}
+          </Text>
         </View>
-        <Text style={styles.servingSizeDisplay}>
-          {isMealPrep
-            ? `${servingSize} ${servingSize === 1 ? 'meal' : 'meals'}`
-            : `Serves ${servingSize} ${servingSize === 1 ? 'person' : 'people'}`}
-        </Text>
-      </View>
+      )}
 
       <View>
         <Text style={styles.sectionTitle}>Price</Text>
@@ -132,7 +132,7 @@ export const StepMenuItemPricing: React.FC<StepMenuItemPricingProps> = ({
           keyboardType="decimal-pad"
           prefix="$"
         />
-        {price && convertStringToNumber(price) > 0 && (
+        {!isMealPrep && price && convertStringToNumber(price) > 0 && (
           <View style={styles.pricePreview}>
             <Text style={styles.pricePreviewText}>
               💡 For {servingSize} {servingSize === 1 ? 'person' : 'people'}: ${convertStringToNumber(price).toFixed(2)}

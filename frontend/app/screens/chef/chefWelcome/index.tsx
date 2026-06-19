@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { navigate } from '../../../utils/navigation';
 import { AppColors } from '../../../../constants/theme';
+import PrepList from '../components/prepList';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const PAGE_COUNT = 2;
@@ -108,26 +109,7 @@ const ChefWelcome = () => {
             You'll cook in the customer's kitchen. Bring these for each order:
           </Text>
 
-          <View style={styles.checklistItem}>
-            <Text style={styles.arrow}>➜</Text>
-            <Text style={styles.checklistText}>
-              Your mobile equipment (🧊 cooler with ice, 🍲 pots, 🍳 pans, 🍴 cooking utensils)
-            </Text>
-          </View>
-
-          <View style={styles.checklistItem}>
-            <Text style={styles.arrow}>➜</Text>
-            <Text style={styles.checklistText}>
-              All ingredients 🥕 (bring extras just in case!)
-            </Text>
-          </View>
-
-          <View style={styles.checklistItem}>
-            <Text style={styles.arrow}>➜</Text>
-            <Text style={styles.checklistText}>
-              Cleaning supplies (🧼 dish soap, 🧽 sponge, 🧴 surface-cleaning spray, 🧻 paper towels)
-            </Text>
-          </View>
+          <PrepList />
         </View>
       </ScrollView>
 

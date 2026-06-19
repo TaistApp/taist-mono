@@ -196,11 +196,12 @@ export const StepMenuItemReview: React.FC<StepMenuItemReviewProps> = ({
           </>
         )}
 
-        {/* Serving & Price */}
+        {/* Price — meal-prep items are sold by meal count (shown above), so
+            no serving size; standard items show "Serves N". */}
         <View style={styles.reviewSection}>
-          <SectionHeader label="Serving Size & Price" step={6} />
+          <SectionHeader label={isMealPrep ? 'Price' : 'Serving Size & Price'} step={6} />
           <Text style={styles.reviewValue}>
-            Serves {menuItemData.serving_size || 0} • $
+            {!isMealPrep && `Serves ${menuItemData.serving_size || 0} • `}$
             {typeof menuItemData.price === 'number'
               ? menuItemData.price.toFixed(2)
               : menuItemData.price_string || '0.00'}

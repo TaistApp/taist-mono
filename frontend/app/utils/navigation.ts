@@ -207,6 +207,8 @@ export const navigate = {
       }
     } as any),
     howToDoIt: () => router.push('/screens/chef/howToDo' as any),
+    beforeOrders: () => router.push('/screens/chef/beforeOrders' as any),
+    yourOrders: () => router.push('/screens/chef/yourOrders' as any),
     menuDetails: () => router.push('/screens/chef/menu' as any),
     // Item-type picker shown before creating a new menu item
     menuItemType: () => router.push('/screens/chef/menuItemType' as any),

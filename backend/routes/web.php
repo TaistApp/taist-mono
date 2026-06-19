@@ -25,13 +25,38 @@ Route::get('/api_doc', function () {
 });
 */
 
-// Stripe Connect redirect endpoints - these redirect back to the app
+// Stripe Connect redirect endpoints - these bounce back into the app.
+// A bare 302 redirect to a custom scheme (taistexpo://) is unreliable in
+// Safari, so we serve a tiny HTML page that JS-redirects immediately and also
+// offers a manual tap link as a fallback — this returns the chef to the app
+// cleanly after Stripe onboarding.
+if (!function_exists('stripeReturnPage')) {
+    function stripeReturnPage(string $deepLink): \Illuminate\Http\Response
+    {
+        $json = json_encode($deepLink);
+        $safe = htmlspecialchars($deepLink, ENT_QUOTES);
+        $html = '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+            . '<meta name="viewport" content="width=device-width, initial-scale=1">'
+            . '<title>Returning to Taist…</title>'
+            . '<script>window.location.replace(' . $json . ');'
+            . 'setTimeout(function(){window.location.href=' . $json . ';},600);</script>'
+            . '</head><body style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;'
+            . 'text-align:center;padding:48px 24px;color:#1a1a1a;">'
+            . '<p style="font-size:18px;font-weight:600;">Returning you to Taist…</p>'
+            . '<p style="margin-top:24px;"><a href="' . $safe . '" '
+            . 'style="display:inline-block;background:#fa4616;color:#fff;text-decoration:none;'
+            . 'font-weight:700;padding:14px 28px;border-radius:24px;">Open the Taist app</a></p>'
+            . '</body></html>';
+        return response($html)->header('Content-Type', 'text/html');
+    }
+}
+
 Route::get('/stripe/complete', function () {
-    return redirect('taistexpo://stripe-complete?status=success');
+    return stripeReturnPage('taistexpo://stripe-complete?status=success');
 });
 
 Route::get('/stripe/refresh', function () {
-    return redirect('taistexpo://stripe-refresh?status=incomplete');
+    return stripeReturnPage('taistexpo://stripe-refresh?status=incomplete');
 });
 
 // SMS link target for chat alerts - opens app inbox

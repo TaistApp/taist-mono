@@ -4,6 +4,7 @@ import {
   Linking,
   Modal,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -20,22 +21,42 @@ interface Props {
   hasPendingAccount: boolean;
 }
 
+const formatSsn = (raw: string) => {
+  const digits = raw.replace(/[^0-9]/g, '').slice(0, 9);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 5) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`;
+};
+
 const StripeOnboardingDialog = ({ visible, onClose, hasPendingAccount }: Props) => {
   const dispatch = useAppDispatch();
+  const [ssn, setSsn] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(false);
 
   useEffect(() => {
     if (!visible) {
+      setSsn('');
+      setSubmitting(false);
       setCheckingStatus(false);
     }
   }, [visible]);
 
   const handleContinue = async () => {
+    const digits = ssn.replace(/[^0-9]/g, '');
+    if (digits.length !== 9) {
+      ShowErrorToast('Please enter a valid 9-digit SSN');
+      return;
+    }
+    // Local button spinner for instant feedback (network can take a moment
+    // before the Stripe browser opens).
+    setSubmitting(true);
     dispatch(showLoading());
-    // Sensitive details (incl. SSN) are collected by Stripe in their hosted
-    // flow — we don't ask for or store them here.
-    const resp = await AddStripAccountAPI({}, dispatch);
+    // Full SSN is passed to Stripe so Personal Details verifies in one step.
+    // Taist does NOT store it (the backend forwards it to Stripe and discards).
+    const resp = await AddStripAccountAPI({ ssn: digits }, dispatch);
     dispatch(hideLoading());
+    setSubmitting(false);
     if (resp.success == 1 && resp.onboarding_url) {
       onClose();
       Linking.openURL(resp.onboarding_url);
@@ -73,15 +94,41 @@ const StripeOnboardingDialog = ({ visible, onClose, hasPendingAccount }: Props) 
           <Text style={title}>Complete Stripe Verification</Text>
 
           <Text style={body}>
-            You'll be redirected to Stripe's secure website to verify your identity and set up payouts.
+            You'll be redirected to Stripe's secure website to verify your account and set up payouts.
           </Text>
+
+          <Text style={[body, { marginBottom: 8 }]}>
+            Enter your full SSN so Stripe can verify your identity in one step.
+          </Text>
+
+          <TextInput
+            value={ssn}
+            onChangeText={t => setSsn(formatSsn(t))}
+            placeholder="123-45-6789"
+            placeholderTextColor={AppColors.textTertiary}
+            keyboardType="number-pad"
+            maxLength={11}
+            autoComplete="off"
+            textContentType="none"
+            secureTextEntry
+            editable={!submitting}
+            style={input}
+          />
 
           <Text style={fineprint}>
-            Stripe collects your sensitive details (like your SSN) directly on their secure platform — Taist never sees or stores them.
+            Passed securely to Stripe and not stored by Taist. You'll re-enter it once for your background check.
           </Text>
 
-          <TouchableOpacity onPress={handleContinue} style={primaryBtn} activeOpacity={0.85}>
-            <Text style={primaryBtnText}>Continue to Stripe</Text>
+          <TouchableOpacity
+            onPress={handleContinue}
+            disabled={submitting}
+            style={[primaryBtn, submitting && { opacity: 0.7 }]}
+            activeOpacity={0.85}>
+            {submitting ? (
+              <ActivityIndicator color={AppColors.textOnPrimary} />
+            ) : (
+              <Text style={primaryBtnText}>Continue to Stripe</Text>
+            )}
           </TouchableOpacity>
 
           {hasPendingAccount && (
@@ -139,6 +186,19 @@ const body = {
   marginBottom: 16,
   textAlign: 'center' as const,
   color: AppColors.text,
+};
+
+const input = {
+  borderWidth: 1,
+  borderColor: AppColors.border,
+  borderRadius: 10,
+  paddingVertical: 14,
+  paddingHorizontal: 16,
+  fontSize: 18,
+  textAlign: 'center' as const,
+  marginBottom: 8,
+  color: AppColors.text,
+  letterSpacing: 1,
 };
 
 const fineprint = {
