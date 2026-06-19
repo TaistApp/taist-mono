@@ -4882,11 +4882,19 @@ Write only the review text:";
         $accountId = '';
         $email = $data['email'] ?? $user->email;
 
-        // SSN is intentionally NOT collected or pre-filled here. Stripe gathers
-        // sensitive identity details (incl. SSN) directly in its hosted
-        // onboarding flow, so Taist never sees or stores them. Leaving
-        // individual.id_number unset makes Stripe list it as currently_due and
-        // prompt the chef on their own secure UI.
+        // Hybrid SSN handling: the chef enters their full SSN once so we can
+        // pre-fill Stripe's individual.id_number (Personal Details verifies in
+        // one step instead of Stripe collecting only the last 4 and leaving the
+        // account Incomplete). Taist forwards it to Stripe and does NOT persist
+        // it — the background check collects its own SSN separately.
+        $ssn = null;
+        if (!empty($data['ssn'])) {
+            $digits = preg_replace('/[^0-9]/', '', (string) $data['ssn']);
+            if (strlen($digits) === 9) {
+                $ssn = $digits;
+            }
+        }
+
         $errorMsg = "";
         // $emailResponse;
         try {
@@ -4946,8 +4954,10 @@ Write only the review text:";
                             'postal_code' => $user->zip,
                             'country' => 'US',
                         ],
-                        // id_number (SSN) intentionally omitted — Stripe collects
-                        // it directly in their hosted onboarding flow.
+                        // Full SSN → marks Stripe Personal Details as Complete
+                        // so the chef only sees Agree & Submit. Forwarded to
+                        // Stripe only; never stored on Taist.
+                        'id_number' => $ssn,
                     ]),
                     // Pre-fill business profile to skip "Business name" and "website URL" questions
                     'business_profile' => [

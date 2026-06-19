@@ -79,11 +79,17 @@ const onRefresh = async () => {
   await loadDatax(0, now_time);
   setRefreshing(false);
 };
+  // Fresh pending chef (quiz not done) is redirected straight to the welcome
+  // screen — skip the orders/user fetches so the redirect isn't blocked behind
+  // a loading spinner.
+  const redirectingToWelcome = self.is_pending === 1 && self.quiz_completed === 0;
+
 useFocusEffect(
     useCallback(() => {
+      if (redirectingToWelcome) return;
       const today_time = getDateStartTime(moment()) / 1000;
       loadData(0, today_time + 24 * 3600);
-    }, [notification_id]),
+    }, [notification_id, redirectingToWelcome]),
   );
   useEffect(() => {
     if (notificationOrderId >= 0) {
@@ -108,6 +114,7 @@ useFocusEffect(
   }, []);
 
   useEffect(() => {
+    if (redirectingToWelcome) return;
     const now_time = moment().toDate().getTime() / 1000;
     loadData(0, now_time);
   }, [])
