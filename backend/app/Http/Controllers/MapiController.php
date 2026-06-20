@@ -1603,8 +1603,19 @@ class MapiController extends Controller
         if ($this->_checktaistApiKey($request->header('apiKey')) === false)
             return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
 
+        // Reject duplicates (case-insensitive, ignoring surrounding whitespace)
+        // so the customer Home screen never shows repeated cuisine chips. If the
+        // category already exists, return it instead of creating a second row.
+        $name = trim((string) $request->name);
+        $existing = app(Categories::class)
+            ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($name)])
+            ->first();
+        if ($existing) {
+            return response()->json(['success' => 1, 'data' => $existing]);
+        }
+
         $ary = [
-            'name' => $request->name,
+            'name' => $name,
             'created_at' => now(),
             'updated_at' => now(),
         ];
@@ -1620,8 +1631,19 @@ class MapiController extends Controller
         if ($this->_checktaistApiKey($request->header('apiKey')) === false)
             return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
 
+        // Don't let a rename collide with an existing category (case-insensitive,
+        // ignoring surrounding whitespace) — that would re-introduce a duplicate.
+        $name = trim((string) $request->name);
+        $clash = app(Categories::class)
+            ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($name)])
+            ->where('id', '!=', $id)
+            ->first();
+        if ($clash) {
+            return response()->json(['success' => 0, 'error' => "A category named \"{$name}\" already exists."]);
+        }
+
         $ary = [
-            'name' => $request->name,
+            'name' => $name,
             'updated_at' => now(),
         ];
 
