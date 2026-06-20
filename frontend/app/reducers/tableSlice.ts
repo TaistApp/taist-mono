@@ -71,7 +71,18 @@ const tablesSlicer = createSlice({
 
     updateCategories: (state, action: PayloadAction<Array<ICategory>>) => {
       const categories_status2 = action.payload.filter(x => x.status == 2);
-      state.categories = [...categories_status2];
+      // Guard against duplicate cuisine chips: collapse same-named categories
+      // (case-insensitive, ignoring surrounding whitespace), keeping the first
+      // occurrence. The API returns categories ordered by id ascending, so this
+      // keeps the lowest id — matching the backend de-dupe.
+      const seen = new Set<string>();
+      const deduped = categories_status2.filter(x => {
+        const key = (x.name ?? '').trim().toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      state.categories = [...deduped];
     },
 
     updateAllergen: (state, action: PayloadAction<Array<IAllergy>>) => {
