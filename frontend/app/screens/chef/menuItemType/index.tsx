@@ -18,12 +18,14 @@ const MenuItemType = () => {
       emoji: '🍽️',
       title: 'Standard Item',
       description: 'A single dish you cook fresh in the customer\'s kitchen.',
+      example: 'e.g. Margherita pizza, chicken alfredo, a dozen tamales',
     },
     {
       type: 'meal_prep' as const,
       emoji: '🥗',
       title: 'Meal Prep',
       description: 'Several meals you cook in the customer\'s kitchen for them to store and reheat later.',
+      example: 'e.g. 5 lunch bowls, a week of dinners, 10 breakfast burritos',
     },
   ];
 
@@ -49,6 +51,7 @@ const MenuItemType = () => {
                 <View style={styles.cardText}>
                   <Text style={styles.cardTitle}>{opt.title}</Text>
                   <Text style={styles.cardDescription}>{opt.description}</Text>
+                  <Text style={styles.cardExample}>{opt.example}</Text>
                 </View>
                 <FontAwesomeIcon icon={faChevronRight} size={18} color={AppColors.primary} />
               </TouchableOpacity>
@@ -112,6 +115,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: AppColors.textSecondary,
     lineHeight: 20,
+  },
+  cardExample: {
+    fontSize: 13,
+    color: AppColors.primary,
+    fontStyle: 'italic',
+    marginTop: 6,
+    lineHeight: 18,
   },
 });
 

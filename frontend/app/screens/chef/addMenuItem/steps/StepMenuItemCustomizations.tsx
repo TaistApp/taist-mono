@@ -5,7 +5,7 @@ import { AppColors, Spacing } from '../../../../../constants/theme';
 import { IMenu, IMenuCustomization } from '../../../../types/index';
 import StyledButton from '../../../../components/styledButton';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faClose, faPlus, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
+import { faClose, faPlus, faWandMagicSparkles, faCircleCheck } from '@fortawesome/free-solid-svg-icons';
 import { navigate } from '../../../../utils/navigation';
 import { SuggestAddOnsAPI } from '../../../../services/api';
 
@@ -118,6 +118,12 @@ export const StepMenuItemCustomizations: React.FC<StepMenuItemCustomizationsProp
                   style={styles.customizationItem}
                   key={`customization_${idx}`}
                 >
+                  <FontAwesomeIcon
+                    icon={faCircleCheck}
+                    size={18}
+                    color={AppColors.primary}
+                    style={styles.customizationCheck}
+                  />
                   <View style={styles.customizationInfo}>
                     <Text style={styles.customizationName}>
                       {customization.name}
@@ -251,10 +257,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: Spacing.md,
-    backgroundColor: AppColors.white,
+    backgroundColor: '#FFF3EF',
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: AppColors.border,
+    borderWidth: 2,
+    borderColor: AppColors.primary,
+  },
+  customizationCheck: {
+    marginRight: Spacing.sm,
   },
   customizationInfo: {
     flex: 1,
