@@ -169,7 +169,10 @@ class MapiController extends Controller
         try {
             $AccountSid = env('TWILIO_SID');
             $AuthToken = env('TWILIO_TOKEN');
-            $msg = "Taist verification code is " . $code . "\n\n@taist.app #" . $code;
+            // Plain (non-domain-bound) code — see TwilioService note: the
+            // "@taist.app #code" suffix suppresses iOS in-app autofill because
+            // the app has no Associated Domains (webcredentials) entitlement.
+            $msg = "Your Taist verification code is: " . $code;
             $client = new Client($AccountSid, $AuthToken);
             $sms = $client->account->messages->create(
                 $phone,
@@ -200,7 +203,10 @@ class MapiController extends Controller
         try {
             $AccountSid = env('TWILIO_SID');
             $AuthToken = env('TWILIO_TOKEN');
-            $msg = "Taist verification code is " . $code . "\n\n@taist.app #" . $code;
+            // Plain (non-domain-bound) code — see TwilioService note: the
+            // "@taist.app #code" suffix suppresses iOS in-app autofill because
+            // the app has no Associated Domains (webcredentials) entitlement.
+            $msg = "Your Taist verification code is: " . $code;
             $client = new Client($AccountSid, $AuthToken);
             $sms = $client->account->messages->create(
                 $phone,
@@ -1597,8 +1603,19 @@ class MapiController extends Controller
         if ($this->_checktaistApiKey($request->header('apiKey')) === false)
             return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
 
+        // Reject duplicates (case-insensitive, ignoring surrounding whitespace)
+        // so the customer Home screen never shows repeated cuisine chips. If the
+        // category already exists, return it instead of creating a second row.
+        $name = trim((string) $request->name);
+        $existing = app(Categories::class)
+            ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($name)])
+            ->first();
+        if ($existing) {
+            return response()->json(['success' => 1, 'data' => $existing]);
+        }
+
         $ary = [
-            'name' => $request->name,
+            'name' => $name,
             'created_at' => now(),
             'updated_at' => now(),
         ];
@@ -1614,8 +1631,19 @@ class MapiController extends Controller
         if ($this->_checktaistApiKey($request->header('apiKey')) === false)
             return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
 
+        // Don't let a rename collide with an existing category (case-insensitive,
+        // ignoring surrounding whitespace) — that would re-introduce a duplicate.
+        $name = trim((string) $request->name);
+        $clash = app(Categories::class)
+            ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($name)])
+            ->where('id', '!=', $id)
+            ->first();
+        if ($clash) {
+            return response()->json(['success' => 0, 'error' => "A category named \"{$name}\" already exists."]);
+        }
+
         $ary = [
-            'name' => $request->name,
+            'name' => $name,
             'updated_at' => now(),
         ];
 
@@ -1829,12 +1857,18 @@ class MapiController extends Controller
             return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
 
         $user = $this->_authUser();
+        $itemType = $request->item_type === 'meal_prep' ? 'meal_prep' : 'standard';
         $ary = [
             'user_id' => $user->id,
+            'item_type' => $itemType,
             'title' => $request->title,
             'description' => $request->description,
             'price' => $request->price,
             'serving_size' => $request->serving_size && $request->serving_size > 0 ? $request->serving_size : 1,
+            // Meal-prep-only fields (left null for standard items)
+            'meals_per_package' => $itemType === 'meal_prep' ? ($request->meals_per_package ?: null) : null,
+            'shelf_life_days' => $itemType === 'meal_prep' ? ($request->shelf_life_days ?: null) : null,
+            'storage_instructions' => $itemType === 'meal_prep' ? ($request->storage_instructions ?: null) : null,
             'meals' => $request->meals,
             'category_ids' => $request->category_ids,
             'allergens' => isset($request->allergens) ? $request->allergens : '',
@@ -1914,6 +1948,10 @@ class MapiController extends Controller
         if (isset($request->serving_size)) {
             $ary['serving_size'] = $request->serving_size && $request->serving_size > 0 ? $request->serving_size : 1;
         }
+        if ($request->item_type) $ary['item_type'] = $request->item_type === 'meal_prep' ? 'meal_prep' : 'standard';
+        if ($request->has('meals_per_package')) $ary['meals_per_package'] = $request->meals_per_package ?: null;
+        if ($request->has('shelf_life_days')) $ary['shelf_life_days'] = $request->shelf_life_days ?: null;
+        if ($request->has('storage_instructions')) $ary['storage_instructions'] = $request->storage_instructions ?: null;
         if ($request->meals) $ary['meals'] = $request->meals;
         if ($request->category_ids) $ary['category_ids'] = $request->category_ids;
         if ($request->allergens) $ary['allergens'] = $request->allergens;
@@ -1923,22 +1961,27 @@ class MapiController extends Controller
 
         app(Menus::class)->where('id', $id)->update($ary);
 
-        app(Customizations::class)->where(['menu_id' => $id])->delete();
+        // Only rewrite add-ons when the client actually sends the field, so a
+        // partial update (e.g. editing just the price) never wipes existing
+        // customizations.
+        if ($request->has('customizations')) {
+            app(Customizations::class)->where(['menu_id' => $id])->delete();
 
-        $customizations = json_decode($request->customizations, true);
+            $customizations = json_decode($request->customizations, true) ?? [];
 
-        $customizations_data = [];
-        foreach ($customizations as $c) {
-            $customizations_data[] = [
-                'menu_id' => $id,
-                'name' => $c['name'],
-                'upcharge_price' => $c['upcharge_price'],
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
+            $customizations_data = [];
+            foreach ($customizations as $c) {
+                $customizations_data[] = [
+                    'menu_id' => $id,
+                    'name' => $c['name'],
+                    'upcharge_price' => $c['upcharge_price'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+
+            if (count($customizations_data) > 0) app(Customizations::class)->insert($customizations_data);
         }
-
-        if (count($customizations_data) > 0) app(Customizations::class)->insert($customizations_data);
 
         $data = app(Menus::class)->where(['id' => $id])->first();
         $data['customizations'] = app(Customizations::class)->where(['menu_id' => $id])->get();
@@ -2216,6 +2259,108 @@ Respond ONLY with valid JSON:
             return response()->json([
                 'success' => 0,
                 'error' => 'An error occurred while analyzing metadata'
+            ]);
+        }
+    }
+
+    /**
+     * Suggest likely add-ons for a menu item using AI.
+     * Given a dish name + description, returns a short list of optional
+     * extras a chef could charge for (extra protein, sauces, sides, etc.).
+     */
+    public function suggestAddOns(Request $request)
+    {
+        if ($this->_checktaistApiKey($request->header('apiKey')) === false)
+            return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
+
+        $user = $this->_authUser();
+
+        try {
+            $openAI = new \App\Services\OpenAIService();
+
+            $dishName = $request->dish_name ?? '';
+            $description = $request->description ?? '';
+
+            if (empty($dishName)) {
+                return response()->json([
+                    'success' => 0,
+                    'error' => 'Dish name is required'
+                ]);
+            }
+
+            $prompt = "You are helping a home chef set up optional paid add-ons for a menu item.
+
+Dish: {$dishName}
+Description: {$description}
+
+Suggest 4 to 6 optional add-ons a customer could pay extra for with this dish. Think extra proteins, extra cheese, sauces, sides, or larger portions that genuinely fit THIS dish. Keep names short (1-3 words). Use realistic US dollar upcharges (typically \$0.50 to \$6.00).
+
+Respond ONLY with valid JSON in this exact shape:
+{
+  \"suggestions\": [
+    { \"name\": \"Extra Cheese\", \"upcharge_price\": 1.50 },
+    { \"name\": \"Side Salad\", \"upcharge_price\": 3.00 }
+  ]
+}";
+
+            $result = $openAI->chat(
+                $prompt,
+                \App\Services\OpenAIService::MODEL_GPT_5_MINI,
+                ['temperature' => 0.5, 'max_tokens' => 250]
+            );
+
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => 0,
+                    'error' => 'Failed to suggest add-ons'
+                ]);
+            }
+
+            // Parse the JSON response (strip any markdown fences)
+            $content = trim($result['content']);
+            $content = preg_replace('/```json\s*/', '', $content);
+            $content = preg_replace('/```\s*/', '', $content);
+            $content = trim($content);
+
+            $parsed = json_decode($content, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                Log::error('JSON Parse Error in suggestAddOns', [
+                    'content' => $content,
+                    'error' => json_last_error_msg()
+                ]);
+                return response()->json([
+                    'success' => 0,
+                    'error' => 'Failed to parse AI response'
+                ]);
+            }
+
+            // Normalize: keep only well-formed {name, upcharge_price} entries
+            $suggestions = [];
+            foreach (($parsed['suggestions'] ?? []) as $s) {
+                $name = isset($s['name']) ? trim((string) $s['name']) : '';
+                if ($name === '') continue;
+                $price = isset($s['upcharge_price']) ? round((float) $s['upcharge_price'], 2) : 0;
+                if ($price < 0) $price = 0;
+                $suggestions[] = [
+                    'name' => $name,
+                    'upcharge_price' => $price,
+                ];
+            }
+
+            return response()->json([
+                'success' => 1,
+                'suggestions' => $suggestions
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Suggest Add-ons Error', [
+                'message' => $e->getMessage(),
+                'dish_name' => $request->dish_name
+            ]);
+
+            return response()->json([
+                'success' => 0,
+                'error' => 'An error occurred while suggesting add-ons'
             ]);
         }
     }
@@ -4439,9 +4584,13 @@ Write only the review text:";
 
         $phoneNumber = "(" . substr($phoneNumber,  0,  3) . ") " . substr($phoneNumber,  3,  3) . "-" . substr($phoneNumber,  6,  4);
 
-        $ssn = preg_replace('/[^0-9]/', '', $request->ssn);
-
-        $ssn = substr($ssn,  0,  3) . "-" . substr($ssn,  3,  2) . "-" . substr($ssn,  5,  4);
+        // Prefer a SSN already saved during the Stripe step. The request value
+        // is the override path (chef edits during background check).
+        $ssnDigits = preg_replace('/[^0-9]/', '', (string) $request->ssn);
+        if (strlen($ssnDigits) !== 9 && !empty($user->ssn)) {
+            $ssnDigits = preg_replace('/[^0-9]/', '', (string) $user->ssn);
+        }
+        $ssn = substr($ssnDigits, 0, 3) . "-" . substr($ssnDigits, 3, 2) . "-" . substr($ssnDigits, 5, 4);
 
 
         $api_key = env('SAFESCREENER_GUID');
@@ -4755,6 +4904,19 @@ Write only the review text:";
         $accountId = '';
         $email = $data['email'] ?? $user->email;
 
+        // Hybrid SSN handling: the chef enters their full SSN once so we can
+        // pre-fill Stripe's individual.id_number (Personal Details verifies in
+        // one step instead of Stripe collecting only the last 4 and leaving the
+        // account Incomplete). Taist forwards it to Stripe and does NOT persist
+        // it — the background check collects its own SSN separately.
+        $ssn = null;
+        if (!empty($data['ssn'])) {
+            $digits = preg_replace('/[^0-9]/', '', (string) $data['ssn']);
+            if (strlen($digits) === 9) {
+                $ssn = $digits;
+            }
+        }
+
         $errorMsg = "";
         // $emailResponse;
         try {
@@ -4797,7 +4959,7 @@ Write only the review text:";
                         'transfers' => ['requested' => true],
                     ],
                     // Pre-fill user data so Stripe doesn't ask for it again
-                    'individual' => [
+                    'individual' => array_filter([
                         'first_name' => $user->first_name,
                         'last_name' => $user->last_name,
                         'email' => $email,
@@ -4814,7 +4976,11 @@ Write only the review text:";
                             'postal_code' => $user->zip,
                             'country' => 'US',
                         ],
-                    ],
+                        // Full SSN → marks Stripe Personal Details as Complete
+                        // so the chef only sees Agree & Submit. Forwarded to
+                        // Stripe only; never stored on Taist.
+                        'id_number' => $ssn,
+                    ]),
                     // Pre-fill business profile to skip "Business name" and "website URL" questions
                     'business_profile' => [
                         'name' => trim($user->first_name . ' ' . $user->last_name),

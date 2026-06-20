@@ -119,9 +119,9 @@ export const StepMenuItemKitchen: React.FC<StepMenuItemKitchenProps> = ({
                 disabled={isSink}
                 key={`appliance_${idx}`}
               >
-                {appliance.image && appliance.image.trim() !== '' && !hasImageError ? (
+                {appliance.image && !hasImageError ? (
                   <Image
-                    source={{ uri: appliance.image }}
+                    source={appliance.image}
                     style={styles.applianceImg}
                     onError={() => setImageErrors(prev => ({...prev, [appliance.id]: true}))}
                   />

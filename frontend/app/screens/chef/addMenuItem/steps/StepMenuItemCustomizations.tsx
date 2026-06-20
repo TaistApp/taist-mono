@@ -1,12 +1,13 @@
-import React from 'react';
-import { View, Text, Pressable, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Pressable, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { MenuItemStepContainer } from '../components/MenuItemStepContainer';
 import { AppColors, Spacing } from '../../../../../constants/theme';
 import { IMenu, IMenuCustomization } from '../../../../types/index';
 import StyledButton from '../../../../components/styledButton';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faClose } from '@fortawesome/free-solid-svg-icons';
+import { faClose, faPlus, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
 import { navigate } from '../../../../utils/navigation';
+import { SuggestAddOnsAPI } from '../../../../services/api';
 
 interface StepMenuItemCustomizationsProps {
   menuItemData: Partial<IMenu>;
@@ -25,7 +26,46 @@ export const StepMenuItemCustomizations: React.FC<StepMenuItemCustomizationsProp
 }) => {
   const customizations = menuItemData.customizations ?? [];
 
+  // AI add-on suggestions revealed when the chef taps "+ ADD-ON"
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState<IMenuCustomization[] | null>(null);
+
+  // Suggestions the chef hasn't already added (match on name, case-insensitive)
+  const normalizeName = (n?: string) => (n ?? '').trim().toLowerCase();
+  const availableSuggestions = (suggestions ?? []).filter(
+    s => !customizations.some(c => normalizeName(c.name) === normalizeName(s.name))
+  );
+
+  const fetchSuggestions = async () => {
+    if (!menuItemData.title) return;
+    setAiLoading(true);
+    try {
+      const resp = await SuggestAddOnsAPI({
+        dish_name: menuItemData.title,
+        description: menuItemData.description,
+      });
+      setSuggestions(resp?.success === 1 && Array.isArray(resp.suggestions) ? resp.suggestions : []);
+    } catch (_) {
+      setSuggestions([]);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const handleAddCustomization = () => {
+    setPanelOpen(true);
+    // Fetch AI suggestions once, the first time the panel opens
+    if (suggestions === null && !aiLoading) {
+      fetchSuggestions();
+    }
+  };
+
+  const handleAddSuggestion = (item: IMenuCustomization) => {
+    onUpdateMenuItemData({ customizations: [...customizations, { ...item }] });
+  };
+
+  const handleCreateCustom = () => {
     navigate.toChef.addOnCustomization(handleAddCustomizationInner);
   };
 
@@ -67,7 +107,7 @@ export const StepMenuItemCustomizations: React.FC<StepMenuItemCustomizationsProp
               No add-ons included yet.
             </Text>
             <Text style={styles.emptyStateSubtext}>
-              Add optional extras like extra cheese, bacon, or special sauces that customers can add for an additional charge.
+              Add optional extras like extra cheese, bacon, special sauces, or sides that customers can add for an additional charge.
             </Text>
           </View>
         ) : (
@@ -102,13 +142,65 @@ export const StepMenuItemCustomizations: React.FC<StepMenuItemCustomizationsProp
           </View>
         )}
 
-        <StyledButton
-          testID="menuWizard.addCustomizationButton"
-          title="+ ADD-ON"
-          onPress={handleAddCustomization}
-          style={styles.addButton}
-          titleStyle={styles.addButtonText}
-        />
+        {!panelOpen && (
+          <StyledButton
+            testID="menuWizard.addCustomizationButton"
+            title="+ ADD-ON"
+            onPress={handleAddCustomization}
+            style={styles.addButton}
+            titleStyle={styles.addButtonText}
+          />
+        )}
+
+        {panelOpen && (
+          <View style={styles.suggestionPanel}>
+            <View style={styles.suggestionHeader}>
+              <FontAwesomeIcon icon={faWandMagicSparkles} size={14} color={AppColors.primary} />
+              <Text style={styles.suggestionHeaderText}>Suggested for this dish</Text>
+            </View>
+
+            {aiLoading ? (
+              <View style={styles.suggestionLoading}>
+                <ActivityIndicator color={AppColors.primary} />
+                <Text style={styles.suggestionLoadingText}>Finding add-ons…</Text>
+              </View>
+            ) : availableSuggestions.length > 0 ? (
+              <View style={styles.suggestionList}>
+                {availableSuggestions.map((s, idx) => (
+                  <TouchableOpacity
+                    key={`suggestion_${idx}`}
+                    testID={`menuWizard.suggestion.${idx}`}
+                    style={styles.suggestionItem}
+                    onPress={() => handleAddSuggestion(s)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.suggestionInfo}>
+                      <Text style={styles.suggestionName}>{s.name}</Text>
+                      <Text style={styles.suggestionPrice}>
+                        +${(s.upcharge_price ?? 0).toFixed(2)}
+                      </Text>
+                    </View>
+                    <FontAwesomeIcon icon={faPlus} size={16} color={AppColors.primary} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.suggestionEmpty}>
+                {suggestions === null
+                  ? 'Tap below to add your own.'
+                  : 'No more suggestions — add your own below.'}
+              </Text>
+            )}
+
+            <StyledButton
+              testID="menuWizard.createCustomAddOnButton"
+              title="+ Create custom add-on"
+              onPress={handleCreateCustom}
+              style={styles.addButton}
+              titleStyle={styles.addButtonText}
+            />
+          </View>
+        )}
       </View>
 
       <View style={styles.buttonContainer}>
@@ -192,6 +284,67 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     color: AppColors.primary,
+  },
+  suggestionPanel: {
+    gap: Spacing.sm,
+  },
+  suggestionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginBottom: Spacing.xs,
+  },
+  suggestionHeaderText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: AppColors.text,
+  },
+  suggestionLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+  },
+  suggestionLoadingText: {
+    fontSize: 14,
+    color: AppColors.textSecondary,
+  },
+  suggestionList: {
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Spacing.md,
+    backgroundColor: AppColors.surfaceVariant,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: AppColors.border,
+  },
+  suggestionInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginRight: Spacing.md,
+  },
+  suggestionName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: AppColors.text,
+    flex: 1,
+  },
+  suggestionPrice: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: AppColors.primary,
+  },
+  suggestionEmpty: {
+    fontSize: 14,
+    color: AppColors.textSecondary,
+    paddingVertical: Spacing.sm,
   },
   buttonContainer: {
     gap: Spacing.md,

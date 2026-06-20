@@ -13,6 +13,9 @@ interface StepMenuItemReviewProps {
   onUpdateMenuItemData: (data: Partial<IMenu>) => void;
   onComplete: () => void;
   onBack: () => void;
+  // When provided (edit mode), each section shows an "Edit" button that jumps
+  // straight to that step instead of forcing a linear walk through the wizard.
+  onEditSection?: (step: number) => void;
 }
 
 export const StepMenuItemReview: React.FC<StepMenuItemReviewProps> = ({
@@ -20,7 +23,25 @@ export const StepMenuItemReview: React.FC<StepMenuItemReviewProps> = ({
   onUpdateMenuItemData,
   onComplete,
   onBack,
+  onEditSection,
 }) => {
+  const isEdit = !!onEditSection;
+
+  // Section label + (in edit mode) an "Edit" button that opens that step.
+  const SectionHeader = ({ label, step }: { label: string; step?: number }) => (
+    <View style={styles.reviewHeaderRow}>
+      <Text style={styles.reviewLabel}>{label}</Text>
+      {onEditSection && step !== undefined && (
+        <Pressable
+          testID={`menuWizard.editSection.${step}`}
+          onPress={() => onEditSection(step)}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={styles.editLink}>Edit</Text>
+        </Pressable>
+      )}
+    </View>
+  );
   const categories = useAppSelector(x => x.table.categories);
   const allergens = useAppSelector(x => x.table.allergens);
 
@@ -76,24 +97,29 @@ export const StepMenuItemReview: React.FC<StepMenuItemReviewProps> = ({
   )?.value ?? 'Not set';
 
   const customizations = menuItemData.customizations ?? [];
+  const isMealPrep = menuItemData.item_type === 'meal_prep';
 
   return (
     <MenuItemStepContainer
-      title="Review & Publish"
-      subtitle="Review your menu item details before saving."
-      currentStep={8}
-      totalSteps={8}
+      title={isEdit ? 'Edit Menu Item' : 'Review & Publish'}
+      subtitle={
+        isEdit
+          ? 'Tap Edit on any section to change it, then save your changes.'
+          : 'Review your menu item details before saving.'
+      }
+      currentStep={isEdit ? undefined : 8}
+      totalSteps={isEdit ? undefined : 8}
     >
       <View style={styles.reviewContainer}>
         {/* Name */}
         <View style={styles.reviewSection}>
-          <Text style={styles.reviewLabel}>Name</Text>
+          <SectionHeader label="Name" step={1} />
           <Text style={styles.reviewValue}>{menuItemData.title || 'Not set'}</Text>
         </View>
 
         {/* Description */}
         <View style={styles.reviewSection}>
-          <Text style={styles.reviewLabel}>Description</Text>
+          <SectionHeader label="Description" step={2} />
           <Text style={styles.reviewValue}>
             {menuItemData.description || 'Not set'}
           </Text>
@@ -101,7 +127,7 @@ export const StepMenuItemReview: React.FC<StepMenuItemReviewProps> = ({
 
         {/* Categories */}
         <View style={styles.reviewSection}>
-          <Text style={styles.reviewLabel}>Categories</Text>
+          <SectionHeader label="Categories" step={3} />
           <Text style={styles.reviewValue}>
             {selectedCategories.length > 0
               ? selectedCategories.map(c => c.name).join(', ')
@@ -116,7 +142,7 @@ export const StepMenuItemReview: React.FC<StepMenuItemReviewProps> = ({
 
         {/* Allergens */}
         <View style={styles.reviewSection}>
-          <Text style={styles.reviewLabel}>Allergens</Text>
+          <SectionHeader label="Allergens" step={4} />
           <Text style={styles.reviewValue}>
             {selectedAllergens.length > 0
               ? selectedAllergens.map(a => a.name).join(', ')
@@ -126,7 +152,7 @@ export const StepMenuItemReview: React.FC<StepMenuItemReviewProps> = ({
 
         {/* Appliances */}
         <View style={styles.reviewSection}>
-          <Text style={styles.reviewLabel}>Required Appliances</Text>
+          <SectionHeader label="Required Appliances" step={5} />
           <Text style={styles.reviewValue}>
             {selectedAppliances.length > 0
               ? selectedAppliances.map(a => a.name).join(', ')
@@ -136,15 +162,46 @@ export const StepMenuItemReview: React.FC<StepMenuItemReviewProps> = ({
 
         {/* Completion Time */}
         <View style={styles.reviewSection}>
-          <Text style={styles.reviewLabel}>Estimated Completion Time</Text>
+          <SectionHeader label="Estimated Completion Time" step={5} />
           <Text style={styles.reviewValue}>{completionTime}</Text>
         </View>
 
-        {/* Serving & Price */}
+        {/* Meal-prep details (meal-prep items only) — step 9 in the wizard */}
+        {isMealPrep && (
+          <>
+            <View style={styles.reviewSection}>
+              <SectionHeader label="Meals per Order" step={9} />
+              <Text style={styles.reviewValue}>
+                {menuItemData.meals_per_package
+                  ? `${menuItemData.meals_per_package} meals`
+                  : 'Not set'}
+              </Text>
+            </View>
+
+            <View style={styles.reviewSection}>
+              <SectionHeader label="Shelf Life" step={9} />
+              <Text style={styles.reviewValue}>
+                {menuItemData.shelf_life_days
+                  ? `${menuItemData.shelf_life_days} days`
+                  : 'Not set'}
+              </Text>
+            </View>
+
+            <View style={styles.reviewSection}>
+              <SectionHeader label="Storage & Reheating" step={9} />
+              <Text style={styles.reviewValue}>
+                {menuItemData.storage_instructions || 'Not set'}
+              </Text>
+            </View>
+          </>
+        )}
+
+        {/* Price — meal-prep items are sold by meal count (shown above), so
+            no serving size; standard items show "Serves N". */}
         <View style={styles.reviewSection}>
-          <Text style={styles.reviewLabel}>Serving Size & Price</Text>
+          <SectionHeader label={isMealPrep ? 'Price' : 'Serving Size & Price'} step={6} />
           <Text style={styles.reviewValue}>
-            Serves {menuItemData.serving_size || 0} • $
+            {!isMealPrep && `Serves ${menuItemData.serving_size || 0} • `}$
             {typeof menuItemData.price === 'number'
               ? menuItemData.price.toFixed(2)
               : menuItemData.price_string || '0.00'}
@@ -152,9 +209,12 @@ export const StepMenuItemReview: React.FC<StepMenuItemReviewProps> = ({
         </View>
 
         {/* Add-ons */}
-        {customizations.length > 0 && (
+        {(customizations.length > 0 || isEdit) && (
           <View style={styles.reviewSection}>
-            <Text style={styles.reviewLabel}>Add-ons</Text>
+            <SectionHeader label="Add-ons" step={7} />
+            {customizations.length === 0 && (
+              <Text style={styles.reviewValue}>None</Text>
+            )}
             {customizations.map((custom, idx) => (
               <Text key={idx} style={styles.reviewValue}>
                 • {custom.name} (+${(custom.upcharge_price ?? 0).toFixed(2)})
@@ -179,11 +239,11 @@ export const StepMenuItemReview: React.FC<StepMenuItemReviewProps> = ({
       <View style={styles.buttonContainer}>
         <StyledButton
           testID="menuWizard.saveButton"
-          title="SAVE MENU ITEM"
+          title={isEdit ? 'SAVE CHANGES' : 'SAVE MENU ITEM'}
           onPress={onComplete}
         />
         <Pressable testID="menuWizard.backButton" onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backButtonText}>Back to Edit</Text>
+          <Text style={styles.backButtonText}>{isEdit ? 'Cancel' : 'Back to Edit'}</Text>
         </Pressable>
       </View>
     </MenuItemStepContainer>
@@ -199,13 +259,23 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: AppColors.border,
   },
+  reviewHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+  },
   reviewLabel: {
     fontSize: 14,
     fontWeight: '600',
     color: AppColors.textSecondary,
-    marginBottom: Spacing.xs,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  editLink: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: AppColors.primary,
   },
   reviewValue: {
     fontSize: 16,

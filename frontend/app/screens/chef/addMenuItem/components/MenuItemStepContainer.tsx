@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { AppColors, Spacing } from '../../../../../constants/theme';
 
@@ -10,6 +10,15 @@ interface MenuItemStepContainerProps {
   totalSteps?: number;
 }
 
+// Lets the wizard override each step's progress numbers, so the same step
+// components show the right count whether the flow is 8 steps (standard) or
+// 9 steps (meal prep). A provided value of `undefined` hides the dots
+// entirely (used in edit mode). When there's no provider, the step's own
+// props are used.
+export const MenuWizardStepContext = React.createContext<
+  { currentStep?: number; totalSteps?: number } | null
+>(null);
+
 export const MenuItemStepContainer: React.FC<MenuItemStepContainerProps> = ({
   title,
   subtitle,
@@ -17,16 +26,20 @@ export const MenuItemStepContainer: React.FC<MenuItemStepContainerProps> = ({
   currentStep,
   totalSteps = 7,
 }) => {
+  const ctx = useContext(MenuWizardStepContext);
+  const effectiveStep = ctx ? ctx.currentStep : currentStep;
+  const effectiveTotal = ctx ? (ctx.totalSteps ?? 8) : totalSteps;
+
   // Generate progress dots
   const renderProgressDots = () => {
-    if (!currentStep) return null;
-    
+    if (!effectiveStep) return null;
+
     return (
       <View style={styles.progressContainer}>
         <Text style={styles.progressText}>
-          {Array.from({ length: totalSteps }, (_, i) => i < currentStep ? '●' : '○').join('')}
+          {Array.from({ length: effectiveTotal }, (_, i) => i < effectiveStep ? '●' : '○').join('')}
           {' '}
-          {currentStep}/{totalSteps}
+          {effectiveStep}/{effectiveTotal}
         </Text>
       </View>
     );

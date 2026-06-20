@@ -1,5 +1,5 @@
-import React, { useRef, useState } from "react";
-import { View, TextInput, Text, StyleSheet, Platform } from "react-native";
+import React, { useState } from "react";
+import { View, TextInput, StyleSheet, Platform, Keyboard } from "react-native";
 import { AppColors } from "../../../constants/theme";
 
 interface OTPInputProps {
@@ -10,6 +10,16 @@ interface OTPInputProps {
   testID?: string;
 }
 
+/**
+ * Single, genuinely-visible numeric field for the SMS one-time code.
+ *
+ * iOS Security Code AutoFill (the "From Messages: 123456" suggestion above the
+ * keyboard) is finicky about the field it offers to fill: it must be a real,
+ * on-screen, *visible* TextInput. Earlier versions used a transparent /
+ * caret-hidden overlay behind custom boxes — that suppressed the suggestion.
+ * Keeping a plain visible input (no transparent text, no overlay, no Modal
+ * wrapper) is the configuration Apple's autofill reliably targets.
+ */
 const OTPInput: React.FC<OTPInputProps> = ({
   value,
   onChangeText,
@@ -17,55 +27,32 @@ const OTPInput: React.FC<OTPInputProps> = ({
   autoFocus = false,
   testID,
 }) => {
-  const inputRef = useRef<TextInput>(null);
   const [isFocused, setIsFocused] = useState(false);
-
-  const handlePress = () => {
-    inputRef.current?.focus();
-  };
-
-  const digits = value.split("").slice(0, length);
 
   return (
     <View style={styles.wrapper}>
-      {/* Hidden TextInput that receives keyboard/autofill input */}
       <TextInput
-        ref={inputRef}
         testID={testID}
         value={value}
-        onChangeText={(text) =>
-          onChangeText(text.replace(/[^0-9]/g, "").slice(0, length))
-        }
+        onChangeText={(text) => {
+          const digits = text.replace(/[^0-9]/g, "").slice(0, length);
+          onChangeText(digits);
+          // Once the full code is in (typed or autofilled), drop the keyboard so
+          // the UI settles instead of flickering/shifting after autofill.
+          if (digits.length === length) Keyboard.dismiss();
+        }}
         keyboardType="number-pad"
         textContentType="oneTimeCode"
         autoComplete={Platform.OS === "android" ? "sms-otp" : "one-time-code"}
+        importantForAutofill="yes"
         maxLength={length}
         autoFocus={autoFocus}
+        placeholder={"–".repeat(length)}
+        placeholderTextColor={AppColors.textTertiary}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
-        style={styles.hiddenInput}
-        caretHidden
+        style={[styles.input, isFocused && styles.inputFocused]}
       />
-
-      {/* Visible digit boxes */}
-      <View style={styles.boxRow} onTouchEnd={handlePress}>
-        {Array.from({ length }, (_, i) => {
-          const isActive =
-            isFocused && i === Math.min(digits.length, length - 1);
-          return (
-            <View
-              key={i}
-              style={[
-                styles.box,
-                isActive && styles.boxActive,
-                digits[i] != null && styles.boxFilled,
-              ]}
-            >
-              <Text style={styles.digit}>{digits[i] ?? ""}</Text>
-            </View>
-          );
-        })}
-      </View>
     </View>
   );
 };
@@ -73,41 +60,24 @@ const OTPInput: React.FC<OTPInputProps> = ({
 const styles = StyleSheet.create({
   wrapper: {
     width: "100%",
-    position: "relative",
   },
-  hiddenInput: {
-    position: "absolute",
-    opacity: 0,
-    height: 1,
-    width: 1,
-  },
-  boxRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 8,
-  },
-  box: {
-    flex: 1,
-    aspectRatio: 1,
-    maxHeight: 52,
+  input: {
+    width: "100%",
+    height: 56,
     borderWidth: 1.5,
     borderColor: AppColors.border,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
+    borderRadius: 12,
     backgroundColor: AppColors.background,
+    textAlign: "center",
+    fontSize: 28,
+    fontWeight: "700",
+    letterSpacing: 10,
+    color: AppColors.text,
+    paddingHorizontal: 12,
   },
-  boxActive: {
+  inputFocused: {
     borderColor: AppColors.primary,
     borderWidth: 2,
-  },
-  boxFilled: {
-    borderColor: AppColors.text,
-  },
-  digit: {
-    fontSize: 24,
-    fontWeight: "600",
-    color: AppColors.text,
   },
 });
 

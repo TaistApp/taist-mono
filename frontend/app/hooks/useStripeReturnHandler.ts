@@ -100,9 +100,10 @@ export const useStripeReturnHandler = () => {
           return;
         }
 
-        // Check if we're on a screen related to Stripe setup
+        // Check if we're on a screen related to Stripe setup. The dialog
+        // launches from the chef Home tab, so any chef-home/tabs route counts.
         const isOnStripeFlow = segments.some(seg =>
-          seg === 'setupStrip' || seg === 'home' || seg === '(tabs)'
+          seg === 'home' || seg === '(tabs)'
         );
 
         if (isOnStripeFlow && payment?.stripe_account_id) {

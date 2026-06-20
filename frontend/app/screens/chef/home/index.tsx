@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
   RefreshControl,
   SafeAreaView,
   ScrollView,
@@ -34,6 +33,7 @@ import { ShowErrorToast, ShowSuccessToast } from '../../../utils/toast';
 import { getDateStartTime } from '../../../utils/validations';
 import ChefOrderCard from './components/chefOrderCard';
 import SettingItem from './components/settingItem';
+import StripeOnboardingDialog from './components/stripeOnboardingDialog';
 import { styles } from './styles';
 
 
@@ -53,6 +53,7 @@ const Home = () => {
   const [passed, setPassed] = useState(false);
   const [tabId, onChangeTabId] = useState('1');
   const [orders, setOrders] = useState<Array<IOrder>>([]);
+  const [stripeDialogVisible, setStripeDialogVisible] = useState(false);
 
   const tabs = useMemo(
     () => [
@@ -78,11 +79,17 @@ const onRefresh = async () => {
   await loadDatax(0, now_time);
   setRefreshing(false);
 };
+  // Fresh pending chef (quiz not done) is redirected straight to the welcome
+  // screen — skip the orders/user fetches so the redirect isn't blocked behind
+  // a loading spinner.
+  const redirectingToWelcome = self.is_pending === 1 && self.quiz_completed === 0;
+
 useFocusEffect(
     useCallback(() => {
+      if (redirectingToWelcome) return;
       const today_time = getDateStartTime(moment()) / 1000;
       loadData(0, today_time + 24 * 3600);
-    }, [notification_id]),
+    }, [notification_id, redirectingToWelcome]),
   );
   useEffect(() => {
     if (notificationOrderId >= 0) {
@@ -107,6 +114,7 @@ useFocusEffect(
   }, []);
 
   useEffect(() => {
+    if (redirectingToWelcome) return;
     const now_time = moment().toDate().getTime() / 1000;
     loadData(0, now_time);
   }, [])
@@ -323,6 +331,22 @@ useFocusEffect(
             <Text style={styles.userName}>{`${self.first_name
               } ${self.last_name?.substring(0, 1)}. `}</Text>
           </View>
+          {self.is_pending != 1 && checkEmptyFieldInProfile() !== '' && (
+            <View style={styles.itemContainer}>
+              <View style={styles.onboardingHeader}>
+                <Text style={styles.onboardingTitle}>Finish Your Setup</Text>
+                <Text style={styles.onboardingSubtitle}>
+                  Complete your profile so customers can find and book you
+                </Text>
+              </View>
+              <SettingItem
+                title={'Complete Your Profile'}
+                completed={false}
+                isNext={true}
+                onPress={() => navigate.toChef.profile()}
+              />
+            </View>
+          )}
           {self.is_pending != 1 && (
             <TouchableOpacity
               testID="chefHome.shareButton"
@@ -362,62 +386,24 @@ useFocusEffect(
                   }}
                 />
                 <SettingItem
-                  title={'3. Complete Your Profile'}
-                  completed={checkEmptyFieldInProfile() == ''}
-                  isNext={checkEmptyFieldInUserInfo() == '' && menus.length > 0 && checkEmptyFieldInProfile() !== ''}
-                  onPress={() => {
-                    if (menus.length == 0) {
-                      ShowErrorToast('Create Your Menu!');
-                      return;
-                    }
-                    navigate.toChef.profile();
-                  }}
-                />
-                <SettingItem
-                  title={'4. Submit Payment Info'}
+                  title={'3. Submit Payment Info'}
                   completed={payment?.verification_complete === true}
-                  isNext={checkEmptyFieldInProfile() == '' && !payment?.stripe_account_id}
+                  isNext={menus.length > 0 && !payment?.stripe_account_id}
                   subtitle={
                     payment?.stripe_account_id && !payment?.verification_complete
                       ? 'Verification pending...'
                       : undefined
                   }
                   onPress={() => {
-                    if (checkEmptyFieldInProfile() !== '') {
-                      ShowErrorToast('Complete Your Profile');
+                    if (menus.length == 0) {
+                      ShowErrorToast('Create Your Menu!');
                       return;
                     }
-
-                    // If account exists but not verified, offer to refresh or continue
-                    if (payment?.stripe_account_id && !payment?.verification_complete) {
-                      Alert.alert(
-                        'Stripe Verification',
-                        'Your Stripe account is pending verification. What would you like to do?',
-                        [
-                          {
-                            text: 'Refresh Status',
-                            onPress: async () => {
-                              await GetPaymentMethodAPI();
-                              ShowSuccessToast('Status updated');
-                            },
-                          },
-                          {
-                            text: 'Continue Setup',
-                            onPress: () => navigate.toChef.setupStrip(),
-                          },
-                          {
-                            text: 'Cancel',
-                            style: 'cancel',
-                          },
-                        ]
-                      );
-                    } else {
-                      navigate.toChef.setupStrip();
-                    }
+                    setStripeDialogVisible(true);
                    }}
                 />
                 <SettingItem
-                  title={'5. Background Check'}
+                  title={'4. Background Check'}
                   completed={self.applicant_guid ? true : false}
                   isNext={payment?.verification_complete === true && !self.applicant_guid}
                   onPress={() => {
@@ -474,6 +460,13 @@ useFocusEffect(
           )}
         </ScrollView>
       </Container>
+      <StripeOnboardingDialog
+        visible={stripeDialogVisible}
+        onClose={() => setStripeDialogVisible(false)}
+        hasPendingAccount={
+          !!payment?.stripe_account_id && !payment?.verification_complete
+        }
+      />
     </SafeAreaView>
   );
 };

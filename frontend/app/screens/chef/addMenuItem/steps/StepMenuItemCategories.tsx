@@ -38,6 +38,24 @@ export const StepMenuItemCategories: React.FC<StepMenuItemCategoriesProps> = ({
   const isNewCategory = menuItemData.is_new_category ?? false;
   const newCategoryName = menuItemData.new_category_name ?? '';
 
+  // For meal-prep items, auto-select the "Meal Prep" category once (when the
+  // categories list is available). Guarded so a chef who deselects it isn't
+  // forced back on, and so it doesn't double-add in edit mode.
+  const didAutoSelectMealPrep = React.useRef(false);
+  React.useEffect(() => {
+    if (didAutoSelectMealPrep.current) return;
+    if (menuItemData.item_type !== 'meal_prep') return;
+    if (!categories.length) return;
+    const mealPrep = categories.find(
+      c => (c.name ?? '').trim().toLowerCase() === 'meal prep'
+    );
+    if (!mealPrep || mealPrep.id == null) return;
+    didAutoSelectMealPrep.current = true;
+    if (!categoryIds.includes(mealPrep.id)) {
+      onUpdateMenuItemData({ category_ids: [...categoryIds, mealPrep.id] as any });
+    }
+  }, [categories, menuItemData.item_type]);
+
   const handleCategoryPress = (id: number) => {
     const tempIds = [...categoryIds];
     const index = tempIds.findIndex(x => x === id);

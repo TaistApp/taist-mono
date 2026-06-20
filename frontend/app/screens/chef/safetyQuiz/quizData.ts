@@ -17,7 +17,7 @@ export const CHEF_SAFETY_QUIZ: QuizQuestion[] = [
   {
     id: 1,
     category: 'Food Storage & Transportation Safety',
-    question: 'You bought ingredients the day before a Taist order. What\'s the correct way to store them?',
+    question: 'You bought cold ingredients the day before a Taist order. What\'s the correct way to store them?',
     answers: [
       {
         id: 'A',
@@ -26,7 +26,7 @@ export const CHEF_SAFETY_QUIZ: QuizQuestion[] = [
       },
       {
         id: 'B',
-        text: 'Refrigerate them until you leave for the order',
+        text: 'Refrigerate them until you leave and while in transit to the order',
         isCorrect: true
       },
       {
@@ -36,7 +36,7 @@ export const CHEF_SAFETY_QUIZ: QuizQuestion[] = [
       }
     ],
     correctAnswerId: 'B',
-    explanation: 'Ingredients bought ahead of time must stay refrigerated until you head out to keep them safe.'
+    explanation: 'Cold ingredients must stay refrigerated until you leave, and kept cold (cooler with ice) while in transit to keep them safe.'
   },
   {
     id: 2,
@@ -45,7 +45,7 @@ export const CHEF_SAFETY_QUIZ: QuizQuestion[] = [
     answers: [
       {
         id: 'A',
-        text: 'Set your cooler and supplies (pots, pans, etc.) on the kitchen floor, then wash your hands',
+        text: 'Set your cooler on the floor and the rest of your mobile equipment (pots, pans, cooking utensils) on the counter, then wash your hands',
         isCorrect: true
       },
       {
@@ -55,12 +55,12 @@ export const CHEF_SAFETY_QUIZ: QuizQuestion[] = [
       },
       {
         id: 'C',
-        text: 'Set your cooler and supplies (pots, pans, etc.) on the customer\'s counter or table, then wash your hands',
+        text: 'Set your cooler and everything else on the customer\'s counter or table, then wash your hands',
         isCorrect: false
       }
     ],
     correctAnswerId: 'A',
-    explanation: 'Setting your equipment on the floor assures the customer\'s surfaces are kept clean throughout the order. Washing hands (before and after) is a must!'
+    explanation: 'Your cooler has been on the ground and in transit, so it goes on the floor — never on the customer\'s surfaces. The rest of your mobile equipment (pots, pans, cooking utensils) is fine on the counter. Wash your hands before and after cooking.'
   },
   {
     id: 3,
@@ -113,7 +113,7 @@ export const CHEF_SAFETY_QUIZ: QuizQuestion[] = [
   {
     id: 5,
     category: 'Cleaning & Equipment Reset Before Leaving',
-    question: 'After completing the dish, what should you do with the pots, pans, and other supplies you brought from home?',
+    question: 'After completing the dish, what should you do with the mobile equipment you brought from home?',
     answers: [
       {
         id: 'A',
@@ -132,6 +132,6 @@ export const CHEF_SAFETY_QUIZ: QuizQuestion[] = [
       }
     ],
     correctAnswerId: 'C',
-    explanation: 'Taist requires chefs to reset the kitchen, including cleaning any personal equipment used.'
+    explanation: 'Taist requires chefs to reset the kitchen, including washing the mobile equipment you used before you leave.'
   }
 ];

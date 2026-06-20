@@ -139,10 +139,6 @@ const SafetyQuiz = () => {
 
           {/* Question Card */}
           <View style={styles.questionCard}>
-            <View style={styles.categoryBadge}>
-              <Text style={styles.categoryText}>{currentQuestion.category}</Text>
-            </View>
-
             <Text style={styles.questionText}>{currentQuestion.question}</Text>
 
             {/* Incorrect Feedback - Shown above answers so it's always visible */}
@@ -229,21 +225,21 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   header: {
-    marginBottom: 16,
+    marginBottom: 10,
   },
   headerTitle: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '700',
     color: AppColors.text,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   headerSubtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: AppColors.textSecondary,
-    lineHeight: 22,
+    lineHeight: 20,
   },
   progressContainer: {
-    marginBottom: 32,
+    marginBottom: 16,
   },
   progressBarBackground: {
     height: 10,
@@ -264,8 +260,8 @@ const styles = StyleSheet.create({
   questionCard: {
     backgroundColor: 'white',
     borderRadius: 20,
-    padding: 24,
-    marginBottom: 24,
+    padding: 18,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -290,21 +286,21 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   questionText: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: '600',
     color: AppColors.text,
-    lineHeight: 28,
-    marginBottom: 24,
+    lineHeight: 26,
+    marginBottom: 16,
   },
   answersContainer: {
-    gap: 12,
+    gap: 10,
   },
   answerButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8F9FA',
     borderRadius: 14,
-    padding: 16,
+    padding: 13,
     borderWidth: 2,
     borderColor: '#E5E7EB',
   },

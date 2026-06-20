@@ -3,7 +3,6 @@ import {
   View,
   Text,
   Pressable,
-  Modal,
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
@@ -91,6 +90,7 @@ export const StepChefPhone: React.FC<StepChefPhoneProps> = ({
   };
 
   return (
+    <View style={styles.root}>
     <SignupStepContainer
       title="What's your phone number?"
       subtitle="We'll use this to contact you about orders and important updates."
@@ -121,9 +121,16 @@ export const StepChefPhone: React.FC<StepChefPhoneProps> = ({
           <Text style={styles.backButtonText}>Back</Text>
         </Pressable>
       </View>
+    </SignupStepContainer>
 
-      {/* Phone Verification Modal */}
-      <Modal transparent visible={visibleVerifyCode}>
+      {/*
+        Phone verification overlay. Deliberately NOT a react-native <Modal>:
+        Modal renders in a separate iOS UIWindow, and iOS one-time-code
+        AutoFill ("From Messages: 123456" above the keyboard) only surfaces for
+        a field in the key window. Rendering this as an in-hierarchy absolute
+        overlay keeps the OTP field in the main window so AutoFill works.
+      */}
+      {visibleVerifyCode && (
         <Pressable
           onPress={() => !isVerifying && setVisibleVerifyCode(false)}
           style={styles.modalBG}
@@ -162,8 +169,8 @@ export const StepChefPhone: React.FC<StepChefPhoneProps> = ({
             </View>
           </Pressable>
         </Pressable>
-      </Modal>
-    </SignupStepContainer>
+      )}
+    </View>
   );
 };
 
@@ -181,8 +188,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  modalBG: {
+  root: {
     flex: 1,
+  },
+  modalBG: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",

@@ -100,8 +100,11 @@ const DrawerModal: React.FC<DrawerModalProps> = ({ visible, onClose }) => {
             navigate.toCommon.account(user, userType);
           }
           break;
-        case 'HowToDoIt':
-          navigate.toChef.howToDoIt();
+        case 'BeforeOrders':
+          navigate.toChef.beforeOrders();
+          break;
+        case 'YourOrders':
+          navigate.toChef.yourOrders();
           break;
         case 'CancelApplication':
           navigate.toChef.cancelApplication();
@@ -265,12 +268,19 @@ const DrawerModal: React.FC<DrawerModalProps> = ({ visible, onClose }) => {
             {isInChefContext && (
               <>
                 <TouchableOpacity
-                  testID="drawer.howToDoIt"
-                  onPress={() => handleGotoScreen('HowToDoIt')}
+                  testID="drawer.beforeOrders"
+                  onPress={() => handleGotoScreen('BeforeOrders')}
                   style={styles.drawerItem}>
-                  <Text style={styles.drawerItemText}>HOW TO DO IT</Text>
+                  <Text style={styles.drawerItemText}>BEFORE YOUR ORDERS</Text>
                 </TouchableOpacity>
-                
+
+                <TouchableOpacity
+                  testID="drawer.yourOrders"
+                  onPress={() => handleGotoScreen('YourOrders')}
+                  style={styles.drawerItem}>
+                  <Text style={styles.drawerItemText}>YOUR ORDERS</Text>
+                </TouchableOpacity>
+
                 {user.is_pending == 1 && (
                   <TouchableOpacity
                     testID="drawer.cancelApplication"

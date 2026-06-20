@@ -60,7 +60,7 @@ import {
   VerifyPhoneAPI,
 } from "../../../services/api";
 import { checkLocalPath, getImageURL } from "../../../utils/functions";
-import { ShowErrorToast } from "../../../utils/toast";
+import { ShowErrorToast, ShowSuccessToast } from "../../../utils/toast";
 import { getFormattedDate } from "../../../utils/validations";
 import { AppColors } from "../../../../constants/theme";
 import { styles } from "./styles";
@@ -280,7 +280,7 @@ const Account = () => {
           state: addressData.region || userInfo.state,
           zip: addressData.postalCode || userInfo.zip,
         });
-        ShowErrorToast("Address filled from your location!");
+        ShowSuccessToast("Address filled from your location!");
       } else {
         ShowErrorToast("Could not determine address from location");
       }
@@ -820,7 +820,12 @@ const Account = () => {
           )
         )}
       </Container>
-      <Modal transparent visible={visibleVerifyCode}>
+      {/*
+        Phone verification overlay — NOT an RN <Modal> (separate iOS window
+        blocks one-time-code AutoFill). In-window overlay keeps the OTP field
+        in the key window so the SMS code suggestion appears above the keyboard.
+      */}
+      {visibleVerifyCode && (
         <Pressable
           onPress={() => onChangeVisibleVerifyCode(false)}
           style={styles.modalBG}
@@ -836,7 +841,7 @@ const Account = () => {
             <StyledButton title="Verify" onPress={handleVerify} />
           </View>
         </Pressable>
-      </Modal>
+      )}
     </SafeAreaView>
   );
 };

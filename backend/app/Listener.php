@@ -20,7 +20,7 @@ class Listener extends Authenticatable
      * @var array
      */
     protected $fillable = [
-        'first_name', 'last_name', 'email', 'password', 'phone', 'birthday', 'address', 'city', 'state', 'zip', 'parking_type', 'parking_instructions', 'user_type', 'is_pending', 'is_paused', 'quiz_completed', 'verified', 'photo', 'api_token', 'code', 'token_date', 'applicant_guid', 'order_guid', 'fcm_token', 'first_order_completed_at', 'push_opted_in', 'latitude', 'longitude', 'is_online', 'online_start', 'online_until', 'last_toggled_online_at', 'last_toggled_offline_at', 'last_online_reminder_sent_at', 'social_provider', 'social_id', 'email_verified', 'referral_code', 'referred_by_referral_id'
+        'first_name', 'last_name', 'email', 'password', 'phone', 'birthday', 'address', 'city', 'state', 'zip', 'ssn', 'parking_type', 'parking_instructions', 'user_type', 'is_pending', 'is_paused', 'quiz_completed', 'verified', 'photo', 'api_token', 'code', 'token_date', 'applicant_guid', 'order_guid', 'fcm_token', 'first_order_completed_at', 'push_opted_in', 'latitude', 'longitude', 'is_online', 'online_start', 'online_until', 'last_toggled_online_at', 'last_toggled_offline_at', 'last_online_reminder_sent_at', 'social_provider', 'social_id', 'email_verified', 'referral_code', 'referred_by_referral_id'
     ];
 
     /**
@@ -29,8 +29,28 @@ class Listener extends Authenticatable
      * @var array
      */
     protected $hidden = [
-        'password', 'api_token', 'code'
+        'password', 'api_token', 'code', 'ssn'
     ];
+
+    /**
+     * Native-type casts. `ssn` is encrypted at rest so the chef enters it once
+     * and we can reuse it across Stripe + background check without exposing
+     * the plaintext through API responses (hidden above).
+     */
+    protected $casts = [
+        'ssn' => 'encrypted',
+    ];
+
+    /**
+     * Append a boolean indicator so the chef-side UI can pre-fill / skip the
+     * SSN input on the background check step without exposing the value itself.
+     */
+    protected $appends = ['has_ssn'];
+
+    public function getHasSsnAttribute(): bool
+    {
+        return !empty($this->attributes['ssn']);
+    }
 
     /**
      * Add a mutator to ensure hashed passwords

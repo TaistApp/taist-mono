@@ -10,6 +10,7 @@ import { useAppDispatch, useAppSelector } from '../../../hooks/useRedux';
 import { goBack, navigate } from '@/app/utils/navigation';
 import { useLocalSearchParams } from 'expo-router';
 import Container from '../../../layout/Container';
+import { MenuWizardStepContext } from './components/MenuItemStepContainer';
 import { hideLoading, showLoading } from '../../../reducers/loadingSlice';
 import {
   CreateCategoryAPI,
@@ -26,6 +27,7 @@ import { StepMenuItemDescription } from './steps/StepMenuItemDescription';
 import { StepMenuItemCategories } from './steps/StepMenuItemCategories';
 import { StepMenuItemAllergens } from './steps/StepMenuItemAllergens';
 import { StepMenuItemKitchen } from './steps/StepMenuItemKitchen';
+import { StepMenuItemMealPrep } from './steps/StepMenuItemMealPrep';
 import { StepMenuItemPricing } from './steps/StepMenuItemPricing';
 import { StepMenuItemCustomizations } from './steps/StepMenuItemCustomizations';
 import { StepMenuItemReview } from './steps/StepMenuItemReview';
@@ -43,9 +45,39 @@ const AddMenuItem = () => {
     ? JSON.parse(params.info as string)
     : (params?.info as IMenu | undefined);
 
+  // Edit mode = we have an existing item id. In edit mode the wizard opens on
+  // the Review summary and each section is edited individually (no linear walk).
+  const isEdit = !!(info && info.id !== undefined);
+
+  // Item type ('standard' | 'meal_prep'). On create it comes from the picker
+  // param; on edit it comes from the existing item (populated in the effect).
+  const initialItemType: 'standard' | 'meal_prep' =
+    params?.item_type === 'meal_prep' ? 'meal_prep' : 'standard';
+
   // Multi-step state
-  const [step, setStep] = useState(1);
-  const [menuItemData, setMenuItemData] = useState<Partial<IMenu>>({});
+  const [step, setStep] = useState(isEdit ? 8 : 1);
+  const [menuItemData, setMenuItemData] = useState<Partial<IMenu>>(
+    isEdit ? {} : { item_type: initialItemType }
+  );
+
+  const isMealPrep = menuItemData.item_type === 'meal_prep';
+
+  // Map internal step number -> ordered key. Meal prep inserts an extra
+  // "mealprep" step (internal 9) right after kitchen, so its flow is 9 steps.
+  const STEP_KEY: Record<number, string> = {
+    1: 'name', 2: 'description', 3: 'categories', 4: 'allergens',
+    5: 'kitchen', 9: 'mealprep', 6: 'pricing', 7: 'customizations', 8: 'review',
+  };
+  const stepOrder = isMealPrep
+    ? ['name', 'description', 'categories', 'allergens', 'kitchen', 'mealprep', 'pricing', 'customizations', 'review']
+    : ['name', 'description', 'categories', 'allergens', 'kitchen', 'pricing', 'customizations', 'review'];
+  const orderIndex = stepOrder.indexOf(STEP_KEY[step]); // 0-based position of current step
+  // Dots are hidden in edit mode (single-section editing); otherwise reflect position.
+  const displayStep = isEdit ? undefined : orderIndex + 1;
+  const displayTotal = isEdit ? undefined : stepOrder.length;
+
+  // In edit mode, finishing/leaving any single step returns to the Review hub.
+  const backToReview = () => setStep(8);
 
   // Initialize data from existing menu item (edit mode)
   useEffect(() => {
@@ -86,6 +118,7 @@ const AddMenuItem = () => {
 
       setMenuItemData({
         id: info.id,
+        item_type: info.item_type === 'meal_prep' ? 'meal_prep' : 'standard',
         title: info.title ?? '',
         description: info.description ?? '',
         category_ids: categoryIds as any,
@@ -94,6 +127,9 @@ const AddMenuItem = () => {
         completion_time_id: completionTimeId,
         estimated_time: info.estimated_time,
         serving_size: info.serving_size ?? 1,
+        meals_per_package: info.meals_per_package ?? null,
+        shelf_life_days: info.shelf_life_days ?? null,
+        storage_instructions: info.storage_instructions ?? '',
         price: info.price,
         price_string: info.price ? info.price.toFixed(2) : '',
         is_live: info.is_live ?? 1,
@@ -197,11 +233,18 @@ const AddMenuItem = () => {
         : [];
 
       // Prepare API params
+      const itemType = menuItemData.item_type === 'meal_prep' ? 'meal_prep' : 'standard';
       const params: IMenu & any = {
+        item_type: itemType,
         title: menuItemData.title,
         description: menuItemData.description,
         price: menuItemData.price_string ?? menuItemData.price,
         serving_size: menuItemData.serving_size && menuItemData.serving_size > 0 ? menuItemData.serving_size : 1,
+        // Meal-prep-only fields (sent as null for standard items so an edited
+        // item that changes type is cleaned up server-side)
+        meals_per_package: itemType === 'meal_prep' ? (menuItemData.meals_per_package ?? null) : null,
+        shelf_life_days: itemType === 'meal_prep' ? (menuItemData.shelf_life_days ?? null) : null,
+        storage_instructions: itemType === 'meal_prep' ? (menuItemData.storage_instructions ?? null) : null,
         meals: 'breakfast',
         category_ids: category_id_list.join(','),
         allergens: allergyIds.join(','),
@@ -256,8 +299,8 @@ const AddMenuItem = () => {
           <StepMenuItemName
             menuItemData={menuItemData}
             onUpdateMenuItemData={handleUpdateMenuItemData}
-            onNext={() => setStep(2)}
-            onBack={goBack}
+            onNext={isEdit ? backToReview : () => setStep(2)}
+            onBack={isEdit ? backToReview : goBack}
           />
         );
       case 2:
@@ -267,9 +310,9 @@ const AddMenuItem = () => {
             onUpdateMenuItemData={handleUpdateMenuItemData}
             onNext={async (finalDescription?: string) => {
               await analyzeAndPopulateMetadata(finalDescription);
-              setStep(3);
+              setStep(isEdit ? 8 : 3);
             }}
-            onBack={() => setStep(1)}
+            onBack={isEdit ? backToReview : () => setStep(1)}
           />
         );
       case 3:
@@ -277,8 +320,8 @@ const AddMenuItem = () => {
           <StepMenuItemCategories
             menuItemData={menuItemData}
             onUpdateMenuItemData={handleUpdateMenuItemData}
-            onNext={() => setStep(4)}
-            onBack={() => setStep(2)}
+            onNext={isEdit ? backToReview : () => setStep(4)}
+            onBack={isEdit ? backToReview : () => setStep(2)}
           />
         );
       case 4:
@@ -286,8 +329,8 @@ const AddMenuItem = () => {
           <StepMenuItemAllergens
             menuItemData={menuItemData}
             onUpdateMenuItemData={handleUpdateMenuItemData}
-            onNext={() => setStep(5)}
-            onBack={() => setStep(3)}
+            onNext={isEdit ? backToReview : () => setStep(5)}
+            onBack={isEdit ? backToReview : () => setStep(3)}
           />
         );
       case 5:
@@ -295,8 +338,18 @@ const AddMenuItem = () => {
           <StepMenuItemKitchen
             menuItemData={menuItemData}
             onUpdateMenuItemData={handleUpdateMenuItemData}
-            onNext={() => setStep(6)}
-            onBack={() => setStep(4)}
+            // Meal-prep items get an extra "Meal Prep Details" step (9) after this
+            onNext={isEdit ? backToReview : () => setStep(isMealPrep ? 9 : 6)}
+            onBack={isEdit ? backToReview : () => setStep(4)}
+          />
+        );
+      case 9:
+        return (
+          <StepMenuItemMealPrep
+            menuItemData={menuItemData}
+            onUpdateMenuItemData={handleUpdateMenuItemData}
+            onNext={isEdit ? backToReview : () => setStep(6)}
+            onBack={isEdit ? backToReview : () => setStep(5)}
           />
         );
       case 6:
@@ -304,8 +357,8 @@ const AddMenuItem = () => {
           <StepMenuItemPricing
             menuItemData={menuItemData}
             onUpdateMenuItemData={handleUpdateMenuItemData}
-            onNext={() => setStep(7)}
-            onBack={() => setStep(5)}
+            onNext={isEdit ? backToReview : () => setStep(7)}
+            onBack={isEdit ? backToReview : () => setStep(isMealPrep ? 9 : 5)}
           />
         );
       case 7:
@@ -313,9 +366,9 @@ const AddMenuItem = () => {
           <StepMenuItemCustomizations
             menuItemData={menuItemData}
             onUpdateMenuItemData={handleUpdateMenuItemData}
-            onNext={() => setStep(8)}
-            onBack={() => setStep(6)}
-            onSkip={() => setStep(8)}
+            onNext={isEdit ? backToReview : () => setStep(8)}
+            onBack={isEdit ? backToReview : () => setStep(6)}
+            onSkip={isEdit ? backToReview : () => setStep(8)}
           />
         );
       case 8:
@@ -324,7 +377,8 @@ const AddMenuItem = () => {
             menuItemData={menuItemData}
             onUpdateMenuItemData={handleUpdateMenuItemData}
             onComplete={handleCompleteMenuItem}
-            onBack={() => setStep(7)}
+            onBack={isEdit ? goBack : () => setStep(7)}
+            onEditSection={isEdit ? (n: number) => setStep(n) : undefined}
           />
         );
       default:
@@ -334,12 +388,23 @@ const AddMenuItem = () => {
 
   // Handle back button press from Container header
   const handleHeaderBack = () => {
-    if (step === 1) {
+    if (isEdit) {
+      // Edit mode: from the Review hub exit; from a single section return to it
+      if (step === 8) {
+        goBack();
+      } else {
+        backToReview();
+      }
+    } else if (orderIndex <= 0) {
       // If on first step, exit the flow
       goBack();
     } else {
-      // Otherwise, go back one step
-      setStep(step - 1);
+      // Otherwise, go back one step in the (type-aware) order
+      const prevKey = stepOrder[orderIndex - 1];
+      const prevStep = Number(
+        Object.keys(STEP_KEY).find(k => STEP_KEY[Number(k)] === prevKey)
+      );
+      setStep(prevStep);
     }
   };
 
@@ -347,11 +412,13 @@ const AddMenuItem = () => {
     <SafeAreaView style={styles.main}>
       <Container
         backMode
-        title={info ? 'Edit Menu Item' : 'Add Menu Item'}
+        title={info ? 'Edit Menu Item' : isMealPrep ? 'Add Meal Prep' : 'Add Menu Item'}
         containerStyle={{ marginBottom: 0 }}
         onBack={handleHeaderBack}
       >
-        {renderStep()}
+        <MenuWizardStepContext.Provider value={{ currentStep: displayStep, totalSteps: displayTotal }}>
+          {renderStep()}
+        </MenuWizardStepContext.Provider>
       </Container>
     </SafeAreaView>
   );
