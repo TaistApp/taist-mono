@@ -30,33 +30,20 @@ Route::get('/api_doc', function () {
 // Safari, so we serve a tiny HTML page that JS-redirects immediately and also
 // offers a manual tap link as a fallback — this returns the chef to the app
 // cleanly after Stripe onboarding.
-if (!function_exists('stripeReturnPage')) {
-    function stripeReturnPage(string $deepLink): \Illuminate\Http\Response
-    {
-        $json = json_encode($deepLink);
-        $safe = htmlspecialchars($deepLink, ENT_QUOTES);
-        $html = '<!doctype html><html lang="en"><head><meta charset="utf-8">'
-            . '<meta name="viewport" content="width=device-width, initial-scale=1">'
-            . '<title>Returning to Taist…</title>'
-            . '<script>window.location.replace(' . $json . ');'
-            . 'setTimeout(function(){window.location.href=' . $json . ';},600);</script>'
-            . '</head><body style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;'
-            . 'text-align:center;padding:48px 24px;color:#1a1a1a;">'
-            . '<p style="font-size:18px;font-weight:600;">Returning you to Taist…</p>'
-            . '<p style="margin-top:24px;"><a href="' . $safe . '" '
-            . 'style="display:inline-block;background:#fa4616;color:#fff;text-decoration:none;'
-            . 'font-weight:700;padding:14px 28px;border-radius:24px;">Open the Taist app</a></p>'
-            . '</body></html>';
-        return response($html)->header('Content-Type', 'text/html');
-    }
-}
-
+//
+// IMPORTANT: the HTML is built INLINE in each closure (not via a global helper
+// defined in this file). With `route:cache` on deploy, route closures are
+// serialized and this file is NOT re-loaded at request time, so any helper
+// function defined here would be undefined when the cached route runs
+// ("Call to undefined function ..."). Self-contained closures are cache-safe.
 Route::get('/stripe/complete', function () {
-    return stripeReturnPage('taistexpo://stripe-complete?status=success');
+    $deepLink = 'taistexpo://stripe-complete?status=success';
+    return \App\Helpers\AppHelper::stripeReturnPage($deepLink);
 });
 
 Route::get('/stripe/refresh', function () {
-    return stripeReturnPage('taistexpo://stripe-refresh?status=incomplete');
+    $deepLink = 'taistexpo://stripe-refresh?status=incomplete';
+    return \App\Helpers\AppHelper::stripeReturnPage($deepLink);
 });
 
 // SMS link target for chat alerts - opens app inbox

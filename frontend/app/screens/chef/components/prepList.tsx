@@ -25,8 +25,7 @@ export const PREP_SECTIONS: PrepSection[] = [
     items: [
       { emoji: '🧼', text: 'Dish soap' },
       { emoji: '🧽', text: 'Sponge' },
-      { text: 'Surface-cleaning spray' },
-      { text: 'Paper towels' },
+      { text: 'Surface spray + paper towels' },
     ],
   },
 ];

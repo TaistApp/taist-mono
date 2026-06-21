@@ -179,15 +179,6 @@ export const StepMenuItemReview: React.FC<StepMenuItemReviewProps> = ({
             </View>
 
             <View style={styles.reviewSection}>
-              <SectionHeader label="Shelf Life" step={9} />
-              <Text style={styles.reviewValue}>
-                {menuItemData.shelf_life_days
-                  ? `${menuItemData.shelf_life_days} days`
-                  : 'Not set'}
-              </Text>
-            </View>
-
-            <View style={styles.reviewSection}>
               <SectionHeader label="Storage & Reheating" step={9} />
               <Text style={styles.reviewValue}>
                 {menuItemData.storage_instructions || 'Not set'}

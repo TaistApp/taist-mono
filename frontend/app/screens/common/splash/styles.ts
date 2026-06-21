@@ -10,14 +10,15 @@ export const styles = StyleSheet.create({
 		backgroundColor: AppColors.primary,
 		width: screen_width,
 		height: screen_height,
-		paddingHorizontal: 48,
 		alignItems: 'center',
 		justifyContent: 'center',
 	},
 	splashLogo: {
+		// Full-bleed, same screen-shaped asset as the native splash so there's no
+		// size jump or color seam when the JS splash takes over from the native one.
 		width: '100%',
 		height: '100%',
-		resizeMode: 'contain',
+		resizeMode: 'cover',
 	},
 	outdatedText: {
 		color: AppColors.textOnPrimary,

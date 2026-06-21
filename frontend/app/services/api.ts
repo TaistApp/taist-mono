@@ -232,19 +232,27 @@ export const LoginAPI = async (params: IUser, dispatch?: any) => {
   }
   dispatch(setUser(response.data.user));
 
-  await GetCategoriesAPI({}, dispatch);
-  await GetAllergensAPI({}, dispatch);
-  await GetUsersAPI({}, dispatch);
-  await GetZipCodes({}, dispatch);
+  // These bootstrap fetches are independent — run them concurrently instead of
+  // sequentially so login (and the signup → welcome handoff) lands much faster.
+  const bootstrap: Promise<any>[] = [
+    GetCategoriesAPI({}, dispatch),
+    GetAllergensAPI({}, dispatch),
+    GetUsersAPI({}, dispatch),
+    GetZipCodes({}, dispatch),
+  ];
   if (response.data.user.user_type == 2) {
-    await GetChefProfileAPI({ user_id: response.data.user.id }, dispatch);
-    await GetChefMenusAPI({ user_id: response.data.user.id }, dispatch);
-    const resp_paymentMethod = await GetPaymentMethodAPI();
-    if (resp_paymentMethod.success == 1) {
-      const tmp = resp_paymentMethod.data.find((x: IPayment) => x.active == 1);
-      dispatch(updateChefPaymentMthod(tmp));
-    }
+    bootstrap.push(
+      GetChefProfileAPI({ user_id: response.data.user.id }, dispatch),
+      GetChefMenusAPI({ user_id: response.data.user.id }, dispatch),
+      GetPaymentMethodAPI().then((resp_paymentMethod) => {
+        if (resp_paymentMethod.success == 1) {
+          const tmp = resp_paymentMethod.data.find((x: IPayment) => x.active == 1);
+          dispatch(updateChefPaymentMthod(tmp));
+        }
+      }),
+    );
   }
+  await Promise.all(bootstrap);
 
   const token = await GetFCMToken();
 
