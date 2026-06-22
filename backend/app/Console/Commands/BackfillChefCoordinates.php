@@ -86,7 +86,8 @@ class BackfillChefCoordinates extends Command
             }
         }
 
-        // Fallback to Chicago downtown
-        return ['lat' => 41.8781, 'lng' => -87.6298, 'fallback' => true];
+        // Geocoding failed or no API key. Return null rather than a fake fallback
+        // location (a wrong coordinate silently mis-matches the chef's service area).
+        return ['lat' => null, 'lng' => null, 'fallback' => true];
     }
 }
