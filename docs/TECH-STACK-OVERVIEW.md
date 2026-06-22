@@ -141,8 +141,8 @@ These run automatically on a schedule with no manual intervention:
 | Railway           | TaistApp GitHub org                     | Linked via GitHub SSO — same org as the repo                       |
 | Stripe            | Dayne/Daryl (ask them)                  | Account ID prefix: `51KWXqK...`                                    |
 | Twilio            | Dayne/Daryl (ask them)                  | SID: `ACdb49fd...`, Phone: +1 (317) 854-6026                       |
-| Firebase / GCP    | Dayne/Daryl (ask them)                  | Project: `taist-mobile-app` (likely same GCP project for Maps API) |
-| Google Maps       | Dayne/Daryl (ask them)                  | Likely under same GCP project `taist-mobile-app`                   |
+| Firebase / GCP    | Dayne/Daryl (ask them)                  | Project: `taist-mobile-app` (Firebase only — Maps is a SEPARATE project) |
+| Google Maps       | `contact@taist.app`                     | GCP project `project-98b5e874…` ("My First Project"), Geocoding API key; trial billing — convert to paid by ~Sep 1 2026 |
 | Resend            | contact@taist.app                       | Email delivery service                                             |
 | OpenAI            | contact@taist.app                       | AI features                                                        |
 | SafeScreener      | Dayne/Daryl (ask them)                  | Chef background checks — currently sandbox mode                    |

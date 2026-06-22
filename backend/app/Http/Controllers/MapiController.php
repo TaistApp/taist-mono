@@ -439,6 +439,11 @@ class MapiController extends Controller
 
         $user_type = isset($request->user_type) ? $request->user_type : 1;
 
+        // Geocode once (the zip-based lat/lng). Null when no zip or geocoding fails.
+        $coords = (isset($request->zip) && $request->zip)
+            ? $this->_geocodeZipCode($request->zip)
+            : ['lat' => null, 'lng' => null];
+
         $user->update([
             'first_name' => isset($request->first_name) ? $request->first_name : '',
             'last_name' => isset($request->last_name) ? $request->last_name : '',
@@ -448,8 +453,8 @@ class MapiController extends Controller
             'city' => isset($request->city) ? $request->city : '',
             'state' => isset($request->state) ? $request->state : '',
             'zip' => isset($request->zip) ? $request->zip : '',
-            'latitude' => isset($request->zip) && $request->zip ? $this->_geocodeZipCode($request->zip)['lat'] : null,
-            'longitude' => isset($request->zip) && $request->zip ? $this->_geocodeZipCode($request->zip)['lng'] : null,
+            'latitude' => $coords['lat'],
+            'longitude' => $coords['lng'],
             'user_type' => $user_type,
             'is_pending' => isset($request->is_pending) ? $request->is_pending : 0,
             'quiz_completed' => ($user_type == 2) ? 0 : 1, // Chefs start with quiz_completed = 0
@@ -3616,11 +3621,19 @@ Write only the review text:";
 
             $ary['zip'] = $newZip;
 
-            // Geocode zip to get lat/lng (location always based on address, not GPS)
+            // Geocode zip to get lat/lng (location always based on address, not GPS).
+            // On geocode failure store null rather than a fake fallback location.
             if ($newZip && $newZip !== 'null') {
                 $coords = $this->_geocodeZipCode($newZip);
-                $ary['latitude'] = $coords['lat'];
-                $ary['longitude'] = $coords['lng'];
+                if ($coords['lat'] !== null && $coords['lng'] !== null) {
+                    $ary['latitude'] = $coords['lat'];
+                    $ary['longitude'] = $coords['lng'];
+                } elseif ($oldZip !== $newZip) {
+                    // Zip changed but geocoding failed: clear stale coords so the user
+                    // isn't matched at their previous location.
+                    $ary['latitude'] = null;
+                    $ary['longitude'] = null;
+                }
             }
 
             if ($oldZip !== $newZip) {
@@ -3706,8 +3719,10 @@ Write only the review text:";
             }
         }
 
-        // Fallback to Chicago downtown if geocoding fails or no API key
-        return ['lat' => 41.8781, 'lng' => -87.6298];
+        // Geocoding failed or no API key. Return null rather than a fake location:
+        // a wrong coordinate (previously hardcoded to Chicago) silently mis-matches
+        // users to the wrong service area. Callers must treat null as "unknown".
+        return ['lat' => null, 'lng' => null];
     }
 
     public function getSearchChefs(Request $request, $id)
@@ -3725,22 +3740,27 @@ Write only the review text:";
         // If user doesn't have lat/long, try to geocode their ZIP code
         // Also check for string "null" which can be stored when frontend sends null as string
         if (empty($user->latitude) || empty($user->longitude) || $user->latitude === 'null' || $user->longitude === 'null') {
-            if (!empty($user->zip) && $user->zip !== 'null') {
-                $coords = $this->_geocodeZipCode($user->zip);
-                $user->latitude = $coords['lat'];
-                $user->longitude = $coords['lng'];
-                
-                // Update user record with geocoded coordinates
-                Listener::where('id', $id)->update([
-                    'latitude' => $coords['lat'],
-                    'longitude' => $coords['lng']
-                ]);
-            } else {
+            $coords = (!empty($user->zip) && $user->zip !== 'null')
+                ? $this->_geocodeZipCode($user->zip)
+                : ['lat' => null, 'lng' => null];
+
+            // If we still can't resolve a real location, don't run the radius query
+            // with null coords (which would error or, previously, fall back to Chicago).
+            if ($coords['lat'] === null || $coords['lng'] === null) {
                 return response()->json([
-                    'success' => 0, 
+                    'success' => 0,
                     'error' => 'Location not available. Please enable location services or update your ZIP code in settings.'
                 ]);
             }
+
+            $user->latitude = $coords['lat'];
+            $user->longitude = $coords['lng'];
+
+            // Update user record with geocoded coordinates
+            Listener::where('id', $id)->update([
+                'latitude' => $coords['lat'],
+                'longitude' => $coords['lng']
+            ]);
         }
         
         $radius = 50; // 50 miles - production distance

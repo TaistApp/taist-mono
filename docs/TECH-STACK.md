@@ -394,10 +394,10 @@ Mobile API covers: auth, allergens, appliances, availability, categories, conver
 
 ### Google Maps — Geocoding & Maps
 
-- **Backend:** API for geocoding chef/customer addresses
+- **Backend:** API for geocoding chef/customer addresses (`_geocodeZipCode` in `MapiController`)
 - **Frontend:** `expo-maps` with Google Maps provider
-- **Config:** `GOOGLE_MAPS_API_KEY`
-- **Account:** Dayne/Daryl — likely under same GCP project `taist-mobile-app`
+- **Config:** `GOOGLE_MAPS_API_KEY` (set in Railway production + staging)
+- **Account:** `contact@taist.app` — GCP project **"My First Project"** (`project-98b5e874-18d7-4834-948`), key restricted to the Geocoding API. This is a **separate** project from Firebase (`taist-mobile-app`). The previous key lived in an external project (`calm-analogy-375222`) that Taist could not access; when it went invalid, geocoding silently fell back to Chicago coords. ⚠️ Billing is on a free trial — must be converted to a paid account by ~Sep 1 2026 or geocoding lapses.
 - **Console:** https://console.cloud.google.com/apis/credentials
 
 ### SafeScreener — Background Checks
@@ -429,7 +429,7 @@ Mobile API covers: auth, allergens, appliances, availability, categories, conver
 | Stripe            | Dayne/Daryl                             | Account prefix: `51KWXqK...`                 |
 | Twilio            | Dayne/Daryl                             | SID: `ACdb49fd...`, Phone: +1 (317) 854-6026 |
 | Firebase / GCP    | Dayne/Daryl                             | Project: `taist-mobile-app`                  |
-| Google Maps       | Dayne/Daryl                             | Likely same GCP project `taist-mobile-app`   |
+| Google Maps       | `contact@taist.app`                     | GCP project `project-98b5e874…` ("My First Project"), Geocoding API; trial billing — convert by ~Sep 1 2026 |
 | Resend            | contact@taist.app                       | Email delivery                               |
 | OpenAI            | contact@taist.app                       | AI features                                  |
 | SafeScreener      | Dayne/Daryl                             | Background checks — currently sandbox mode   |
