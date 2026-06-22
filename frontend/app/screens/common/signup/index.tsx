@@ -114,8 +114,8 @@ const Signup = () => {
 
       dispatch(hideLoading());
 
-      // Navigate to customer home
-      router.replace("/screens/customer/home");
+      // Navigate to customer home (inside the tab navigator so the bottom tab bar shows)
+      navigate.toAuthorizedStacks.customerAuthorized();
     } catch (error) {
       dispatch(hideLoading());
       ShowErrorToast("An error occurred during signup. Please try again.");
