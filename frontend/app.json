@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "org.taist.taist",
-      "buildNumber": "48",
+      "buildNumber": "49",
       "googleServicesFile": "./GoogleService-Info.plist",
       "usesAppleSignIn": true,
       "infoPlist": {
@@ -42,7 +42,7 @@
       "icon": "./assets/images/icon.png",
       "edgeToEdgeEnabled": true,
       "package": "com.taist.app",
-      "versionCode": 170,
+      "versionCode": 171,
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.INTERNET",
@@ -95,8 +95,8 @@
         {
           "backgroundColor": "#fa4616",
           "ios": {
-            "image": "./app/assets/images/splashLogo.png",
-            "resizeMode": "cover"
+            "image": "./app/assets/images/splashBlank.png",
+            "resizeMode": "contain"
           },
           "android": {
             "image": "./app/assets/images/splashIcon.png",
