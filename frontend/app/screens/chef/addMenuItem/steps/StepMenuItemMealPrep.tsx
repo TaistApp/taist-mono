@@ -33,16 +33,11 @@ export const StepMenuItemMealPrep: React.FC<StepMenuItemMealPrepProps> = ({
   onBack,
 }) => {
   const mealsPerPackage = menuItemData.meals_per_package ?? null;
-  const shelfLifeDays = menuItemData.shelf_life_days ?? null;
   const storageInstructions = menuItemData.storage_instructions ?? '';
 
   const validateAndProceed = () => {
     if (!mealsPerPackage || mealsPerPackage <= 0) {
       ShowErrorToast('How many meals come in the package?');
-      return;
-    }
-    if (!shelfLifeDays || shelfLifeDays <= 0) {
-      ShowErrorToast('How many days do the meals stay good?');
       return;
     }
     onNext();
@@ -66,21 +61,6 @@ export const StepMenuItemMealPrep: React.FC<StepMenuItemMealPrepProps> = ({
           placeholder="e.g. 5"
           value={mealsPerPackage != null ? String(mealsPerPackage) : ''}
           onChangeText={text => onUpdateMenuItemData({ meals_per_package: toInt(text) })}
-          keyboardType="number-pad"
-        />
-      </View>
-
-      <View>
-        <Text style={styles.sectionTitle}>Shelf life</Text>
-        <Text style={styles.sectionSubtitle}>
-          How many days will the meals stay good once they're made?
-        </Text>
-        <StyledTextInput
-          testID="menuWizard.shelfLifeInput"
-          label="Shelf life (days)"
-          placeholder="e.g. 5"
-          value={shelfLifeDays != null ? String(shelfLifeDays) : ''}
-          onChangeText={text => onUpdateMenuItemData({ shelf_life_days: toInt(text) })}
           keyboardType="number-pad"
         />
       </View>
