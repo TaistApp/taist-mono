@@ -84,15 +84,27 @@ export function useProtectedRoute(isSignedIn: boolean, userType?: number) {
 /**
  * Helper function to navigate between screens with proper typing
  */
+// Tracks whether an authorized tab stack is currently mounted. Deep-link
+// capture screens (e.g. app/chef/[id].tsx) read this to decide between opening
+// a target directly (warm: stack already up) and deferring to the splash/
+// auto-login flow (cold start: stack not mounted yet).
+let authorizedStackReady = false;
+export const isAuthorizedStackReady = () => authorizedStackReady;
+
 export const navigate = {
   // Main authorization stacks (equivalent to your CLI project's main stacks)
   toAuthorizedStacks: {
-    noAuthorized: () => router.replace('/screens/common/splash' as any),
+    noAuthorized: () => {
+      authorizedStackReady = false;
+      router.replace('/screens/common/splash' as any);
+    },
     chefAuthorized: () => {
+      authorizedStackReady = true;
       router.dismissAll();
       router.replace('/screens/chef/(tabs)' as any);
     },
     customerAuthorized: () => {
+      authorizedStackReady = true;
       router.dismissAll();
       router.replace('/screens/customer/(tabs)' as any);
     },

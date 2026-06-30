@@ -1,70 +1,62 @@
 import { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import moment from 'moment';
-import { GetChefPublicProfileAPI } from '../services/api';
-import { ShowErrorToast } from '../utils/toast';
+import * as SplashScreen from 'expo-splash-screen';
 import { store } from '../store';
+import { isAuthorizedStackReady } from '../utils/navigation';
+import { setPendingChefId, openChefDeepLink } from '../hooks/useChefDeepLinkHandler';
 import { AppColors } from '../../constants/theme';
 
 /**
- * Deep-link handler for taistexpo://chef/{id}.
+ * Capture screen for taistexpo://chef/{id} (the "Open in Taist" deep link from
+ * the shareable web menu preview). Expo Router routes both cold-start and warm
+ * deep links here.
  *
- * The shareable "Order from my menu on Taist!" link points at the web landing
- * page (/chef/{id}), which bounces into the app via this scheme. Without a route
- * here Expo Router renders its "Unmatched Route" screen, so we resolve the chef
- * by id and forward to the customer chef-detail screen.
+ * Previously this screen tried to push the customer chef-detail tab route
+ * directly. On a cold start the customer stack isn't mounted yet and auto-login
+ * hasn't run, so that push went nowhere and the native (orange) splash never
+ * hid — leaving the user staring at a blank orange screen.
  *
- * Only a signed-in customer can open chef detail (it lives in the customer tab
- * stack). Anyone else — logged out, a chef account, or a cold start before
- * auto-login has populated Redux — is sent to the entry screen instead of a
- * dead end.
+ * Now it:
+ *   1. hides the native splash immediately, so we never sit on orange, and
+ *   2. opens chef detail directly when the customer stack is already up (warm
+ *      link), otherwise stashes the chef id and bounces to the entry screen so
+ *      the normal splash/auto-login flow can mount the stack and then resume
+ *      into chef detail (handled by useChefDeepLinkHandler).
  */
 export default function ChefDeepLinkScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
 
   useEffect(() => {
-    const handleChefLink = async () => {
-      const raw = Array.isArray(id) ? id[0] : id;
-      const chefId = parseInt(raw ?? '', 10);
+    // Kill the native splash so a blocked navigation never strands the user on
+    // a blank orange screen.
+    SplashScreen.hideAsync().catch(() => {});
 
-      if (!chefId || Number.isNaN(chefId)) {
+    const raw = Array.isArray(id) ? id[0] : id;
+    const chefId = parseInt(raw ?? '', 10);
+
+    if (!chefId || Number.isNaN(chefId)) {
+      router.replace('/' as any);
+      return;
+    }
+
+    const user = store.getState().user?.user;
+    const isCustomer = user?.user_type === 1;
+
+    if (isAuthorizedStackReady() && isCustomer) {
+      // Warm link: the customer tab stack is already mounted, open directly.
+      openChefDeepLink(chefId).catch(() => {
+        setPendingChefId(chefId);
         router.replace('/' as any);
-        return;
-      }
+      });
+      return;
+    }
 
-      const user = store.getState().user.user;
-      const isCustomer = user?.user_type === 1;
-
-      if (!isCustomer) {
-        // Not a signed-in customer — land on the entry screen rather than a
-        // customer-only tab route that would mount without context.
-        router.replace('/' as any);
-        return;
-      }
-
-      const resp = await GetChefPublicProfileAPI(chefId);
-      if (resp?.success === 1 && resp.data) {
-        const chef = resp.data;
-        const today = moment();
-        router.replace({
-          pathname: '/screens/customer/(tabs)/(home)/chefDetail',
-          params: {
-            chefInfo: JSON.stringify(chef),
-            reviews: JSON.stringify(chef.reviews ?? []),
-            menus: JSON.stringify(chef.menus ?? []),
-            weekDay: today.weekday().toString(),
-            selectedDate: today.format('YYYY-MM-DD'),
-          },
-        } as any);
-      } else {
-        ShowErrorToast(resp?.error ?? 'Could not open this chef.');
-        router.replace('/screens/customer/(tabs)/(home)' as any);
-      }
-    };
-
-    handleChefLink();
+    // Cold start or logged out: defer to the splash + auto-login flow, which
+    // resumes into chef detail once the authorized stack exists.
+    setPendingChefId(chefId);
+    router.replace('/' as any);
   }, [id]);
 
   return (

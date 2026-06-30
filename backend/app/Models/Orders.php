@@ -194,4 +194,42 @@ class Orders extends Model
         $tz = $this->order_timezone ?? 'America/Chicago';
         return new \DateTime("{$this->order_date_new} {$this->order_time}", new \DateTimeZone($tz));
     }
+
+    /**
+     * The order's calendar day (YYYY-MM-DD) in its own timezone. Prefers the
+     * stored date string; falls back to deriving it from the legacy unix
+     * order_date timestamp.
+     */
+    public function getOrderDayString(?string $fallbackTimezone = null): ?string
+    {
+        $tz = $this->order_timezone ?: ($fallbackTimezone ?: 'America/Chicago');
+
+        if ($this->order_date_new) {
+            return $this->order_date_new;
+        }
+        if ($this->order_date) {
+            return (new \DateTime('@' . (int) $this->order_date))
+                ->setTimezone(new \DateTimeZone($tz))
+                ->format('Y-m-d');
+        }
+        return null;
+    }
+
+    /**
+     * Whether "now" is on or after the order's calendar day in the order's
+     * timezone. The chef may only mark "On My Way" once this is true, so they
+     * can't go en route days early. Compares YYYY-MM-DD strings, which order
+     * correctly lexicographically. Returns true when no date info exists, so a
+     * malformed order is never hard-blocked.
+     */
+    public function isOnOrAfterOrderDay(?string $fallbackTimezone = null): bool
+    {
+        $orderDay = $this->getOrderDayString($fallbackTimezone);
+        if (!$orderDay) {
+            return true;
+        }
+        $tz = $this->order_timezone ?: ($fallbackTimezone ?: 'America/Chicago');
+        $today = \App\Helpers\TimezoneHelper::getTodayInTimezone($tz);
+        return $today >= $orderDay;
+    }
 }
