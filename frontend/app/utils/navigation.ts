@@ -246,6 +246,9 @@ export const navigate = {
   toCommon: {
     splash: () => router.replace('/screens/common/splash' as any),
     login: () => router.push('/screens/common/login' as any),
+    // Required ZIP step after a social signup that arrived with no location.
+    // replace (not push) so it acts as a gate before the customer stack.
+    completeLocation: () => router.replace('/screens/common/completeLocation' as any),
     // Optional `role` (1 = customer, 2 = chef) pre-selects the user type so the
     // in-flow role step is skipped (role-first signup chosen on the splash).
     signup: (params?: { role?: 1 | 2 }) => router.push({

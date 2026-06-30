@@ -149,9 +149,14 @@ const Splash = () => {
       const payload = await fn();
       const response = await SocialLoginAPI(payload, dispatch);
       if (response.success === 1) {
-        const userType = response.data?.user?.user_type;
-        if (userType === 2) {
+        const user = response.data?.user;
+        if (user?.user_type === 2) {
           navigate.toAuthorizedStacks.chefAuthorized();
+        } else if (!user?.zip || String(user.zip).trim().length === 0) {
+          // Apple/Google never return a ZIP, so a brand-new social customer has
+          // no location yet. Require it before the home screen, otherwise they
+          // hit the "not in your area" dead end. (#1)
+          navigate.toCommon.completeLocation();
         } else {
           navigate.toAuthorizedStacks.customerAuthorized();
         }

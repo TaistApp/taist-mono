@@ -74,11 +74,17 @@ async function run(customerCtx, chefCtx) {
   }
 
   // ── 2. Create order ────────────────────────────────────────────
+  // Prefer a SAME-DAY order so the lifecycle can legitimately reach "On My Way"
+  // (gated to the order's calendar day, #8). When it's too late in the day for a
+  // valid same-day slot, fall back to tomorrow and instead assert the gate
+  // correctly blocks On My Way.
+  const sameDayTime = h.getSameDayOrderTime();
+  const isSameDayOrder = sameDayTime !== null;
   try {
-    const orderDate = h.getTomorrow();
-    const orderTime = h.getSafeOrderTime();
+    const orderDate = isSameDayOrder ? h.getToday() : h.getTomorrow();
+    const orderTime = isSameDayOrder ? sameDayTime : h.getSafeOrderTime();
 
-    h.logInfo(`Creating order for ${orderDate} at ${orderTime}...`);
+    h.logInfo(`Creating order for ${orderDate} at ${orderTime} (${isSameDayOrder ? 'same-day' : 'tomorrow'})...`);
 
     // order_date (unix timestamp) is the primary field the backend validates first,
     // then order_date_string / order_time_string are used for timezone-safe logic.
@@ -173,14 +179,30 @@ async function run(customerCtx, chefCtx) {
       status: 7,
     });
 
-    h.assertSuccess(res, 'Chef on my way');
-    h.logPass('Order status: On My Way (7)');
-    results.passed++;
+    if (isSameDayOrder) {
+      h.assertSuccess(res, 'Chef on my way');
+      h.logPass('Order status: On My Way (7)');
+      results.passed++;
+    } else {
+      // Day-of gate (#8): marking On My Way before the order's day must fail.
+      h.assert(
+        res.body.success !== 1,
+        'On My Way should be blocked before the order day, but it succeeded'
+      );
+      h.logPass('On My Way correctly blocked before the order day (day-of gate)');
+      results.passed++;
+    }
   } catch (e) {
     h.logFail(`Chef on my way: ${e.message}`);
     results.failed++;
     results.errors.push(e.message);
   }
+
+  // Steps 6–8 require the order to have reached "On My Way", which is only valid
+  // for a same-day order. On a late-day (tomorrow) run, skip them.
+  if (!isSameDayOrder) {
+    h.logInfo('Skipping complete/review/tip steps — order is for tomorrow (On My Way is gated to the order day).');
+  } else {
 
   // ── 6. Chef marks Completed (7 → 3) ───────────────────────────
   try {
@@ -264,6 +286,7 @@ async function run(customerCtx, chefCtx) {
     h.logWarn(`Final verification: ${e.message} (non-fatal — status transitions were verified)`);
     results.passed++; // We already verified via the status update responses
   }
+  } // end same-day-only lifecycle steps (6–8)
 
   // ── 9. Test order cancellation flow (separate order) ───────────
   try {
