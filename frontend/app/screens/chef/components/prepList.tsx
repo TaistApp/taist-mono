@@ -13,7 +13,7 @@ export const PREP_SECTIONS: PrepSection[] = [
     items: [
       { emoji: '🧊', text: 'Cooler with ice' },
       { emoji: '🍳', text: 'Pots and pans' },
-      { emoji: '🥄', text: 'Cooking utensils' },
+      { text: 'Cooking utensils' },
     ],
   },
   {
@@ -25,7 +25,7 @@ export const PREP_SECTIONS: PrepSection[] = [
     items: [
       { emoji: '🧼', text: 'Dish soap' },
       { emoji: '🧽', text: 'Sponge' },
-      { text: 'Surface spray + paper towels' },
+      { text: 'Surface spray & Paper towel' },
     ],
   },
 ];

@@ -4929,13 +4929,11 @@ Write only the review text:";
         // one step instead of Stripe collecting only the last 4 and leaving the
         // account Incomplete). Taist forwards it to Stripe and does NOT persist
         // it — the background check collects its own SSN separately.
-        $ssn = null;
-        if (!empty($data['ssn'])) {
-            $digits = preg_replace('/[^0-9]/', '', (string) $data['ssn']);
-            if (strlen($digits) === 9) {
-                $ssn = $digits;
-            }
-        }
+        // In Stripe test mode a real-format SSN can never pass verification, so
+        // Personal Details stays "Invalid"; the helper substitutes Stripe's
+        // documented 000000000 test value there and forwards the real SSN in
+        // live mode. See AppHelper::resolveStripeSsn for the full rationale.
+        $ssn = \App\Helpers\AppHelper::resolveStripeSsn(env('STRIPE_SECRET'), $data['ssn'] ?? null);
 
         $errorMsg = "";
         // $emailResponse;
@@ -4953,7 +4951,7 @@ Write only the review text:";
                 // the statement descriptor "TAIST" passes Stripe's validation
                 // (descriptor must match business name or URL)
                 $accountId = $existingPayment->stripe_account_id;
-                $stripe->accounts->update($accountId, [
+                $updateParams = [
                     'business_profile' => [
                         'url' => 'https://taist.app',
                     ],
@@ -4962,7 +4960,27 @@ Write only the review text:";
                             'statement_descriptor' => 'TAIST',
                         ],
                     ],
-                ]);
+                ];
+                // Forward the SSN on the existing account too. Without this, a
+                // chef who already had a Stripe account (e.g. a retry, or an
+                // account created before the SSN pre-fill) would never have
+                // individual.id_number set, so Stripe leaves Personal Details
+                // "Invalid" — in production, not just test mode. Only set it
+                // when Stripe hasn't already captured an id_number, otherwise
+                // updating a verified account throws and breaks the flow.
+                if (!empty($ssn)) {
+                    try {
+                        $existingAccount = $stripe->accounts->retrieve($accountId, []);
+                        $idAlreadyProvided = $existingAccount->individual->id_number_provided ?? false;
+                        if (!$idAlreadyProvided) {
+                            $updateParams['individual'] = ['id_number' => $ssn];
+                        }
+                    } catch (\Exception $e) {
+                        // If the status check fails, skip the id_number update
+                        // rather than risk a hard failure on the account update.
+                    }
+                }
+                $stripe->accounts->update($accountId, $updateParams);
             } else {
                 // Create new Stripe account
                 $account = $stripe->accounts->create([
