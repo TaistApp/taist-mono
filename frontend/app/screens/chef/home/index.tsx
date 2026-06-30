@@ -433,12 +433,17 @@ useFocusEffect(
             <>
               <View style={styles.tabContainer}>
                 {tabs.map((tab, idx) => {
+                  const isActive = tab.id == tabId;
                   return (
                     <StyledTabButton
                       testID={`chefHome.tab.${idx}`}
                       title={tab.label}
-                      style={styles.tab}
-                      titleStyle={styles.tabText}
+                      // Active filter is filled orange; the other is muted so
+                      // it's obvious which of Requested/Accepted is selected.
+                      // (Previously both used styles.tab, so they looked
+                      // identical and the active filter wasn't distinguishable.)
+                      style={isActive ? styles.tab : styles.tab_disabled}
+                      titleStyle={isActive ? styles.tabText : styles.tabText_disabled}
                       disabled={tab.id != tabId}
                       onPress={() => onChangeTabId(tab.id)}
                       key={`tab_${idx}`}
