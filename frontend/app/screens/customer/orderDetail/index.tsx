@@ -66,27 +66,40 @@ const OrderDetail = () => {
 
   const orderId = params.orderId as string;
 
-  const [orderInfo, setOrderInfo] = useState<IOrder>({});
-  const [chefInfo, setChefInfo] = useState<IUser>({});
+  // The Orders list passes the order (and often the chef) it already has, so we
+  // render those immediately and refresh in the background — instead of showing
+  // a full-screen spinner while GetOrderDataAPI round-trips (the reported LL).
+  const parseParam = (v: unknown) =>
+    typeof v === 'string' ? JSON.parse(v) : (v ?? {});
+  const initialOrder: IOrder = parseParam(params.orderInfo);
+  const initialChef: IUser = parseParam(params.chefInfo);
+
+  const [orderInfo, setOrderInfo] = useState<IOrder>(initialOrder);
+  const [chefInfo, setChefInfo] = useState<IUser>(initialChef);
   const [menu, setMenu] = useState<IMenu>({});
   const [reviewText, onChangeReviewText] = useState('');
   const [rating, onChangeRating] = useState(5);
   const [tipAmount, onChangeTipAmount] = useState(0);
+  // Custom tip entry (#12): when set, overrides the preset percentage. Mode
+  // toggles between a flat dollar amount and a percentage of the order total.
+  const [customTip, setCustomTip] = useState('');
+  const [customTipMode, setCustomTipMode] = useState<'dollar' | 'percent'>('dollar');
   const [paymentMethod, onChangePaymentMethod] = useState<IPayment>();
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Only block on a spinner if we arrived without any order data to show.
+  const [isLoading, setIsLoading] = useState(!initialOrder?.id);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [showPushModal, setShowPushModal] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const orderInfo = typeof params.orderInfo === 'string' ? JSON.parse(params.orderInfo) : params.orderInfo;
-    setActiveOrderDetailId(orderInfo.id);
-    loadData(orderInfo.id);
+    const id = initialOrder.id ?? 0;
+    setActiveOrderDetailId(initialOrder.id ?? null);
+    loadData(id);
     getPaymentMethod();
     pollingRef.current = setInterval(() => {
-      const orderInfo = typeof params.orderInfo === 'string' ? JSON.parse(params.orderInfo) : params.orderInfo;
-      loadData(orderInfo.id);
+      loadData(id);
     }, 30000);
 
     return () => {
@@ -205,11 +218,24 @@ const OrderDetail = () => {
   };
 
   const handleTipAmount = (amount: number) => {
+    // Selecting a preset clears any custom entry (they're mutually exclusive).
+    setCustomTip('');
     if (amount == tipAmount) {
       onChangeTipAmount(0);
     } else {
       onChangeTipAmount(amount);
     }
+  };
+
+  // Resolve the tip to a dollar amount. A custom entry (flat $ or % of total)
+  // overrides the preset percentage.
+  const getTipDollars = (): number => {
+    const total = orderInfo?.total_price ?? 0;
+    const customNum = parseFloat(customTip);
+    if (customTip.trim() !== '' && !Number.isNaN(customNum) && customNum > 0) {
+      return customTipMode === 'dollar' ? customNum : (total * customNum) / 100;
+    }
+    return (total * tipAmount) / 100;
   };
 
   const handleCall = () => {
@@ -254,30 +280,44 @@ const OrderDetail = () => {
   };
 
   const handleSubmitReview = async (e: any) => {
-    dispatch(showLoading());
+    const tipDollars = getTipDollars();
+
+    // Save the review first (fast). Use an inline button state instead of the
+    // blocking full-screen loader.
+    setIsSubmittingReview(true);
     const resp = await CreateReviewAPI({
       from_user_id: self.id ?? 0,
       to_user_id: chefInfo?.id ?? 0,
       rating: rating,
       review: reviewText,
       order_id: orderInfo?.id ?? -1,
-      tip_amount: ((orderInfo?.total_price ?? 0) * tipAmount) / 100.0,
+      tip_amount: tipDollars,
     });
+    setIsSubmittingReview(false);
 
-    console.log('order review response: ', resp);
-
-
-    if (resp.success == 1) {
-      if (tipAmount > 0) {
-        const resp_tip = await TipOrderPaymentAPI({
-          order_id: orderInfo?.id ?? -1,
-          tip_amount: ((orderInfo?.total_price ?? 0) * tipAmount) / 100.0,
-        });
-        console.log('tip amount response: ', resp_tip);
-
-      }
+    if (resp.success != 1) {
+      ShowErrorToast(resp.error ?? resp.message ?? 'Could not submit your review.');
+      return;
     }
-    dispatch(hideLoading());
+
+    // Charge the tip in the background. The Stripe round-trip is the slow part
+    // and the review is already saved, so we don't make the user wait on it
+    // (the reported LL). A failure is surfaced via toast.
+    if (tipDollars > 0) {
+      TipOrderPaymentAPI({
+        order_id: orderInfo?.id ?? -1,
+        tip_amount: tipDollars,
+      })
+        .then((resp_tip) => {
+          if (resp_tip?.success != 1) {
+            ShowErrorToast('Your review was saved, but the tip could not be processed.');
+          }
+        })
+        .catch(() => {
+          ShowErrorToast('Your review was saved, but the tip could not be processed.');
+        });
+    }
+
     ShowSuccessToast('Review submitted!');
     navigate.toCustomer.orders();
   };
@@ -540,6 +580,65 @@ const OrderDetail = () => {
                   </TouchableOpacity>
                 </View>
 
+                {/* Custom tip (#12): flat $ or % of the order total. */}
+                <View style={styles.customTipRow}>
+                  <View style={styles.customTipToggle}>
+                    <TouchableOpacity
+                      testID="customerOrderDetail.customTipDollar"
+                      style={[
+                        styles.customTipToggleBtn,
+                        customTipMode === 'dollar' && styles.customTipToggleBtnActive,
+                      ]}
+                      onPress={() => setCustomTipMode('dollar')}
+                    >
+                      <Text
+                        style={[
+                          styles.customTipToggleText,
+                          customTipMode === 'dollar' && styles.customTipToggleTextActive,
+                        ]}
+                      >
+                        $
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      testID="customerOrderDetail.customTipPercent"
+                      style={[
+                        styles.customTipToggleBtn,
+                        customTipMode === 'percent' && styles.customTipToggleBtnActive,
+                      ]}
+                      onPress={() => setCustomTipMode('percent')}
+                    >
+                      <Text
+                        style={[
+                          styles.customTipToggleText,
+                          customTipMode === 'percent' && styles.customTipToggleTextActive,
+                        ]}
+                      >
+                        %
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TextInput
+                    testID="customerOrderDetail.customTipInput"
+                    label={`Custom tip (${customTipMode === 'dollar' ? '$' : '%'})`}
+                    keyboardType="decimal-pad"
+                    variant={'outlined'}
+                    color="#7f7f7f"
+                    style={{ flex: 1 }}
+                    value={customTip}
+                    onChangeText={(text: string) => {
+                      // Typing a custom tip clears any selected preset.
+                      onChangeTipAmount(0);
+                      setCustomTip(text.replace(/[^0-9.]/g, ''));
+                    }}
+                  />
+                </View>
+                {getTipDollars() > 0 && (
+                  <Text style={styles.customTipPreview}>
+                    {`Tip: $${getTipDollars().toFixed(2)}`}
+                  </Text>
+                )}
+
                 <TouchableOpacity accessible={false} style={styles.btnPayment}>
                   <View style={{ rowGap: 5 }}>
                     <Text style={[styles.text, { fontSize: 18, letterSpacing: 0.5 }]}>
@@ -561,11 +660,14 @@ const OrderDetail = () => {
 
                 <TouchableOpacity
                   testID="customerOrderDetail.submitReviewButton"
-                  style={styles.btnSubmitButton}
+                  style={[styles.btnSubmitButton, isSubmittingReview && { opacity: 0.6 }]}
                   onPress={handleSubmitReview}
+                  disabled={isSubmittingReview}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.btnSubmitLabel}>SAVE REVIEW</Text>
+                  <Text style={styles.btnSubmitLabel}>
+                    {isSubmittingReview ? 'SAVING...' : 'SAVE REVIEW'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </>
