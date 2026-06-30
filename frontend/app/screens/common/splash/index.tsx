@@ -275,13 +275,39 @@ const Splash = () => {
       setSplash(false);
     }, 35000); // 35 second max wait
 
-    setTimeout(() => {
-      autoLogin().finally(() => {
-        clearTimeout(fallbackTimer);
-      });
-    }, 2000);
+    let cancelled = false;
+    let delayTimer: ReturnType<typeof setTimeout> | undefined;
 
-    return () => clearTimeout(fallbackTimer);
+    // Peek at stored credentials first. When there are none — e.g. right after
+    // logging out — skip the 2s branded-splash delay and drop straight to the
+    // login screen instead of making the user stare at the splash.
+    (async () => {
+      const loginData = await ReadLoginData();
+      const hasCreds =
+        loginData != null &&
+        (loginData.social || (loginData.email && loginData.password));
+      if (cancelled) return;
+      if (!hasCreds) {
+        clearTimeout(fallbackTimer);
+        setSplash(false);
+        return;
+      }
+      // Returning user — start auto-login almost immediately. The branded
+      // splash is already on screen during the login network call, so the old
+      // 2s pre-delay was pure dead time (felt like a long load when reopening
+      // the app, e.g. after the account was activated server-side).
+      delayTimer = setTimeout(() => {
+        autoLogin().finally(() => {
+          clearTimeout(fallbackTimer);
+        });
+      }, 400);
+    })();
+
+    return () => {
+      cancelled = true;
+      clearTimeout(fallbackTimer);
+      if (delayTimer) clearTimeout(delayTimer);
+    };
   }, []);
 
   const performAutoLogin = async (loginData: any): Promise<boolean> => {
