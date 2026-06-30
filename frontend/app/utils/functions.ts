@@ -58,6 +58,18 @@ export const Delay = (ms: number) => {
   });
 };
 
+// Some records come back from the API with the literal strings "null" or
+// "undefined" (e.g. a null DB column that got stringified upstream). Treat
+// those — and whitespace-only values — as empty so they never render as text.
+export const cleanText = (value?: string | null): string => {
+  if (value == null) return '';
+  const trimmed = String(value).trim();
+  if (trimmed === '' || trimmed.toLowerCase() === 'null' || trimmed.toLowerCase() === 'undefined') {
+    return '';
+  }
+  return trimmed;
+};
+
 export const formatDisplayName = (firstName?: string, lastName?: string, includeLastInitial: boolean = true) => {
   const first = firstName || '';
   if (!includeLastInitial) return first;

@@ -4387,6 +4387,21 @@ Write only the review text:";
             ]);
         }
 
+        // Block "On My Way" (status 7) before the calendar day of the order.
+        // The frontend disables the button, but enforce server-side too so a
+        // chef can't mark themselves en route days early via a stale/old client.
+        if ($request->status == 7) {
+            $chefTz = \App\Helpers\TimezoneHelper::getTimezoneForState(
+                optional(app(Listener::class)->where('id', $order->chef_user_id)->first())->state
+            );
+            if (!$order->isOnOrAfterOrderDay($chefTz)) {
+                return response()->json([
+                    'success' => 0,
+                    'error' => 'You can mark "On My Way" on the day of the order.',
+                ]);
+            }
+        }
+
         $ary = [
             'updated_at' => now(),
         ];

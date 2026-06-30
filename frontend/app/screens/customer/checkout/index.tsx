@@ -44,7 +44,7 @@ import {
   ValidateDiscountCodeAPI,
 } from '../../../services/api';
 import GlobalStyles from '../../../types/styles';
-import { Delay } from '../../../utils/functions';
+import { cleanText, Delay } from '../../../utils/functions';
 import { goBack, navigate } from '../../../utils/navigation';
 import { ShowErrorToast, ShowSuccessToast } from '../../../utils/toast';
 import { getFormattedDateTime } from '../../../utils/validations';
@@ -79,9 +79,11 @@ const Checkout = () => {
   const [isSavingAddress, setIsSavingAddress] = useState(false);
   const [isLoadingTimes, setIsLoadingTimes] = useState(true);
 
-  // Arrival & Parking state — pre-filled from account, overridable per order
-  const [parkingType, setParkingType] = useState<string | undefined>(self.parking_type);
-  const [parkingInstructions, setParkingInstructions] = useState<string>(self.parking_instructions ?? '');
+  // Arrival & Parking state — pre-filled from account, overridable per order.
+  // cleanText guards against the literal "null"/"undefined" strings the API can
+  // return for empty columns (which otherwise render as "· null").
+  const [parkingType, setParkingType] = useState<string | undefined>(cleanText(self.parking_type) || undefined);
+  const [parkingInstructions, setParkingInstructions] = useState<string>(cleanText(self.parking_instructions));
   const [editingParking, setEditingParking] = useState(false);
 
   // Ref to track current timeslot request and prevent race conditions
@@ -194,6 +196,28 @@ const Checkout = () => {
   useEffect(() => {
     addTimes();
   }, [DAY]);
+
+  // True when this slot's date+time is already in the past relative to now.
+  const isPastTime = (item: any) => {
+    if (!item) return true;
+    const d = moment(DAY);
+    d.hour(item?.h);
+    d.minute(item?.m);
+    d.second(0);
+    return d.isBefore(moment());
+  };
+
+  // Keep the time selection valid (#7): if the currently-selected slot is
+  // missing or has slipped into the past, fall back to the first still-valid
+  // slot. This prevents submitting a past time and only catching it at the
+  // backend ("Cannot place orders for times in the past.").
+  useEffect(() => {
+    const selected = times.find(x => x.id === timeId);
+    if (!selected || isPastTime(selected)) {
+      const firstValid = times.find(x => !isPastTime(x));
+      onChangeTimeId(firstValid ? firstValid.id : '');
+    }
+  }, [times, DAY]);
 
   const handleSaveAddress = async (addressInfo: Partial<IUser>) => {
     setIsSavingAddress(true);
@@ -420,11 +444,12 @@ const Checkout = () => {
 
     day.hour(time?.h);
     day.minute(time?.m);
+    day.second(0);
 
-    // if (day < moment()) {
-    //   ShowErrorToast('Select the order date and time correctly');
-    //   return;
-    // }
+    if (day.isBefore(moment())) {
+      ShowErrorToast('That time has already passed. Please select a later time.');
+      return;
+    }
 
     Alert.alert('Confirm Purchase', 'Please tap to confirm', [
       {
@@ -651,10 +676,7 @@ const Checkout = () => {
                 contentContainerStyle={styles.timePillRow}
               >
                 {times.map((item, idx) => {
-                  const day = moment(DAY);
-                  day.hour(item?.h);
-                  day.minute(item?.m);
-                  if (day < moment()) return null;
+                  if (isPastTime(item)) return null;
                   const isSelected = item.id === timeId;
                   return (
                     <TouchableOpacity

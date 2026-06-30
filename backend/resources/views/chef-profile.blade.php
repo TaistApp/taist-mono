@@ -52,10 +52,8 @@
         }
 
         .logo {
-            font-size: 28px;
-            font-weight: 800;
-            color: var(--brand);
-            letter-spacing: -0.5px;
+            height: 34px;
+            width: auto;
             margin-bottom: 24px;
         }
 
@@ -202,7 +200,7 @@
 </head>
 <body>
     <div class="wrap">
-        <div class="logo">Taist</div>
+        <img class="logo" src="{{ url('/assets/images/logo-2.png') }}" alt="Taist">
 
         @if($chef->photo)
             <img class="avatar" src="{{ $photoBaseUrl . $chef->photo }}" alt="{{ $chef->first_name }}">
