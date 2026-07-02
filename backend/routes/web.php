@@ -102,6 +102,15 @@ Route::view('/assets/uploads/html/terms.html', 'legal.terms');
 // Production: Nginx try_files serves index.html for non-asset paths.
 // This Laravel route is a fallback for any server that routes through index.php normally.
 Route::get('/admin-new/{any?}', function () {
+    // index.html must NEVER be cached: it references hash-named JS/CSS chunks
+    // that change every deploy. A browser holding a stale index.html (common on
+    // mobile, which caches aggressively) requests old chunk filenames that 404
+    // after a redeploy, lazy imports fail, and the admin shows its error
+    // boundary ("Something went wrong"). The hashed assets themselves are
+    // immutable and stay cacheable — only this entry document needs no-cache.
     return response(file_get_contents(public_path('admin-new/index.html')), 200)
-        ->header('Content-Type', 'text/html');
+        ->header('Content-Type', 'text/html')
+        ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+        ->header('Pragma', 'no-cache')
+        ->header('Expires', '0');
 })->where('any', '.*');
