@@ -26,6 +26,14 @@ if (preg_match('#^/admin-new(/|$)#', $uri)) {
     $indexPath = __DIR__.'/public/admin-new/index.html';
     if (file_exists($indexPath)) {
         header('Content-Type: text/html');
+        // index.html must never be cached: it references hash-named JS/CSS
+        // chunks that change every deploy. A stale cached copy (common on
+        // mobile) requests old chunk names that 404 after a redeploy, tripping
+        // the admin's error boundary. Hashed assets above are immutable and
+        // still get cached; only this entry document needs no-cache.
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Pragma: no-cache');
+        header('Expires: 0');
         echo file_get_contents($indexPath);
         return;
     }
