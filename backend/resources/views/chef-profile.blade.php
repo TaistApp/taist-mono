@@ -52,18 +52,20 @@
         }
 
         .logo {
+            display: block;
             height: 34px;
             width: auto;
-            margin-bottom: 24px;
+            margin: 0 auto 24px;
         }
 
         .avatar {
+            display: block;
             width: 120px;
             height: 120px;
             border-radius: 60px;
             object-fit: cover;
             border: 3px solid var(--brand);
-            margin-bottom: 16px;
+            margin: 0 auto 16px;
         }
 
         .avatar-placeholder {
@@ -74,10 +76,10 @@
             color: #fff;
             font-size: 48px;
             font-weight: 700;
-            display: inline-flex;
+            display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 16px;
+            margin: 0 auto 16px;
         }
 
         .chef-name {

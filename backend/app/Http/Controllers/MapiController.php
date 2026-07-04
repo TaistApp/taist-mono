@@ -1863,6 +1863,15 @@ class MapiController extends Controller
 
         $user = $this->_authUser();
         $itemType = $request->item_type === 'meal_prep' ? 'meal_prep' : 'standard';
+
+        // A chef must always keep at least one available item, otherwise their
+        // menu preview has nothing customers can order. Force the first/only
+        // item live even if the client sends is_live = 0.
+        $isLive = $request->is_live;
+        if ($isLive == 0 && !Menus::chefHasAvailableItem($user->id)) {
+            $isLive = 1;
+        }
+
         $ary = [
             'user_id' => $user->id,
             'item_type' => $itemType,
@@ -1879,7 +1888,7 @@ class MapiController extends Controller
             'allergens' => isset($request->allergens) ? $request->allergens : '',
             'appliances' => isset($request->appliances) ? $request->appliances : '',
             'estimated_time' => $request->estimated_time,
-            'is_live' => $request->is_live,
+            'is_live' => $isLive,
             'created_at' => now(),
             'updated_at' => now(),
         ];
@@ -1911,7 +1920,7 @@ class MapiController extends Controller
         // fan-out — one FCM call per opted-in customer — doesn't block the
         // chef's "save" and cause a long load. Runs in the same process during
         // kernel terminate, so it needs no queue worker.
-        if ($request->is_live == 1) {
+        if ($isLive == 1) {
             dispatch(function () use ($data, $user, $id) {
                 try {
                     $pastCustomerIds = app(Orders::class)
@@ -1968,7 +1977,15 @@ class MapiController extends Controller
         if ($request->allergens) $ary['allergens'] = $request->allergens;
         if ($request->appliances) $ary['appliances'] = $request->appliances;
         if ($request->estimated_time) $ary['estimated_time'] = $request->estimated_time;
-        if (isset($request->is_live)) $ary['is_live'] = $request->is_live;
+        if (isset($request->is_live)) {
+            // Don't let a chef hide their only available item — that would leave
+            // customers with nothing to order.
+            $isLive = $request->is_live;
+            if ($isLive == 0 && !Menus::chefHasAvailableItem($user->id, (int) $id)) {
+                $isLive = 1;
+            }
+            $ary['is_live'] = $isLive;
+        }
 
         app(Menus::class)->where('id', $id)->update($ary);
 
