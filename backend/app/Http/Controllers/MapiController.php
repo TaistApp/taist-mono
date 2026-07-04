@@ -1906,31 +1906,37 @@ class MapiController extends Controller
         $data = app(Menus::class)->where(['id' => $id])->first();
         $data['customizations'] = app(Customizations::class)->where(['menu_id' => $id])->get();
 
-        // Notify past customers who opted in when a live menu item is added
+        // Notify past customers who opted in when a live menu item is added.
+        // Deferred to after the response is sent (afterResponse) so the push
+        // fan-out — one FCM call per opted-in customer — doesn't block the
+        // chef's "save" and cause a long load. Runs in the same process during
+        // kernel terminate, so it needs no queue worker.
         if ($request->is_live == 1) {
-            try {
-                $pastCustomerIds = app(Orders::class)
-                    ->where('chef_user_id', $user->id)
-                    ->distinct()
-                    ->pluck('customer_user_id');
+            dispatch(function () use ($data, $user, $id) {
+                try {
+                    $pastCustomerIds = app(Orders::class)
+                        ->where('chef_user_id', $user->id)
+                        ->distinct()
+                        ->pluck('customer_user_id');
 
-                $optedInCustomers = app(Listener::class)
-                    ->whereIn('id', $pastCustomerIds)
-                    ->where('push_opted_in', true)
-                    ->whereNotNull('fcm_token')
-                    ->where('fcm_token', '!=', '')
-                    ->get();
+                    $optedInCustomers = app(Listener::class)
+                        ->whereIn('id', $pastCustomerIds)
+                        ->where('push_opted_in', true)
+                        ->whereNotNull('fcm_token')
+                        ->where('fcm_token', '!=', '')
+                        ->get();
 
-                foreach ($optedInCustomers as $customer) {
-                    $customer->notify(new NewMenuItemNotification($data, $user));
+                    foreach ($optedInCustomers as $customer) {
+                        $customer->notify(new NewMenuItemNotification($data, $user));
+                    }
+                } catch (\Throwable $e) {
+                    Log::error('Failed to send new menu item notifications', [
+                        'menu_id' => $id,
+                        'chef_id' => $user->id,
+                        'error' => $e->getMessage(),
+                    ]);
                 }
-            } catch (\Throwable $e) {
-                Log::error('Failed to send new menu item notifications', [
-                    'menu_id' => $id,
-                    'chef_id' => $user->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
+            })->afterResponse();
         }
 
         return response()->json(['success' => 1, 'data' => $data]);

@@ -16,30 +16,25 @@ export default function StripeRefreshScreen() {
   const router = useRouter();
 
   useEffect(() => {
-    const handleStripeRefresh = async () => {
-      console.log('[StripeRefresh] Handling refresh return');
+    console.log('[StripeRefresh] Handling refresh return');
 
-      try {
-        // Refresh payment status from backend
-        const resp = await GetPaymentMethodAPI();
+    // Return the chef to Home immediately rather than blocking on a spinner
+    // while payment status refreshes (the reported long load).
+    router.replace('/screens/chef/(tabs)/home' as any);
+    ShowErrorToast('Please complete your Stripe verification');
 
+    GetPaymentMethodAPI()
+      .then((resp) => {
         if (resp.success === 1 && resp.data) {
           const activePayment = resp.data.find((x: any) => x.active == 1);
           if (activePayment) {
             store.dispatch(updateChefPaymentMthod(activePayment));
           }
         }
-      } catch (error) {
+      })
+      .catch((error) => {
         console.error('[StripeRefresh] Failed to refresh payment status:', error);
-      }
-
-      ShowErrorToast('Please complete your Stripe verification');
-
-      // Navigate to chef home tab (replace to clear this screen from stack)
-      router.replace('/screens/chef/(tabs)/home' as any);
-    };
-
-    handleStripeRefresh();
+      });
   }, [router]);
 
   // Show loading indicator while processing

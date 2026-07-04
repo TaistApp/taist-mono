@@ -17,21 +17,20 @@ export default function StripeCompleteScreen() {
   const params = useLocalSearchParams();
 
   useEffect(() => {
-    const handleStripeReturn = async () => {
-      const isSuccess = params.status === 'success';
-      console.log('[StripeComplete] Handling return, status:', params.status);
+    const isSuccess = params.status === 'success';
+    console.log('[StripeComplete] Handling return, status:', params.status);
 
-      try {
-        // Refresh payment status from backend
-        const resp = await GetPaymentMethodAPI();
+    // Land the chef on Home immediately instead of holding them on a spinner
+    // while we refresh Stripe status (the reported long load). The status
+    // refresh runs in the background and updates Redux + toasts when it lands.
+    router.replace('/screens/chef/(tabs)/home' as any);
 
+    GetPaymentMethodAPI()
+      .then((resp) => {
         if (resp.success === 1 && resp.data) {
           const activePayment = resp.data.find((x: any) => x.active == 1);
-
           if (activePayment) {
             store.dispatch(updateChefPaymentMthod(activePayment));
-
-            // Show appropriate feedback based on verification status
             if (activePayment.verification_complete) {
               ShowSuccessToast('Stripe account verified!');
             } else if (isSuccess) {
@@ -41,16 +40,11 @@ export default function StripeCompleteScreen() {
             }
           }
         }
-      } catch (error) {
+      })
+      .catch((error) => {
         console.error('[StripeComplete] Failed to refresh payment status:', error);
         ShowErrorToast('Failed to update payment status');
-      }
-
-      // Navigate to chef home tab (replace to clear this screen from stack)
-      router.replace('/screens/chef/(tabs)/home' as any);
-    };
-
-    handleStripeReturn();
+      });
   }, [params.status, router]);
 
   // Show loading indicator while processing
