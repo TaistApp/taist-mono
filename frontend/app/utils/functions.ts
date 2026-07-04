@@ -70,6 +70,15 @@ export const cleanText = (value?: string | null): string => {
   return trimmed;
 };
 
+// Capitalizes the first letter of each space-separated word, leaving the rest
+// of each word untouched (so "pumpkin seeds" -> "Pumpkin Seeds" but "BBQ sauce"
+// -> "BBQ Sauce"). Used for chef-entered names like custom add-ons.
+export const capitalizeWords = (value?: string | null): string =>
+  cleanText(value)
+    .split(' ')
+    .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : w))
+    .join(' ');
+
 export const formatDisplayName = (firstName?: string, lastName?: string, includeLastInitial: boolean = true) => {
   const first = firstName || '';
   if (!includeLastInitial) return first;
