@@ -231,10 +231,12 @@ class ReferralService
             return null;
         }
 
-        $code = 'REFER-' . strtoupper(Str::random(6));
+        // Bare 6-char code (no "REFER-" prefix) so the SMS reads cleaner:
+        // "Use code IPDCNB for 50% off".
+        $code = strtoupper(Str::random(6));
         $attempts = 0;
         while (DiscountCodes::where('code', $code)->exists() && $attempts < 10) {
-            $code = 'REFER-' . strtoupper(Str::random(6));
+            $code = strtoupper(Str::random(6));
             $attempts++;
         }
 
