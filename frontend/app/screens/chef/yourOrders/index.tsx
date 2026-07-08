@@ -20,15 +20,15 @@ const ORDER_SECTIONS: Section[] = [
     steps: [
       { emoji: '🧊', text: 'Set your cooler on the floor; the rest of your equipment on the counter' },
       { emoji: '🧼', text: 'Wash your hands and clean surfaces before you start' },
-      { emoji: '⏲️', text: 'Cook using the customer\'s appliances' },
+      { emoji: '🍳', text: 'Cook using the customer\'s appliances' },
       { emoji: '🧽', text: 'Clean as you go, not just at the end' },
-      { emoji: '🍽️', text: 'Plate the finished order, if necessary' },
+      { emoji: '🍽️', text: 'Plate the finished order' },
     ],
   },
   {
     title: 'Before you leave',
     steps: [
-      { emoji: '🚰', text: 'Wash your equipment and wipe down surfaces' },
+      { emoji: '🧴', text: 'Wash your equipment and wipe down surfaces' },
       { emoji: '✅', text: 'Leave the kitchen exactly as you found it' },
     ],
   },

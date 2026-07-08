@@ -115,32 +115,6 @@ function getSafeOrderTime() {
 }
 
 /**
- * Today's date in YYYY-MM-DD, in a given IANA timezone.
- */
-function getToday(timezone = config.timezone) {
-  const options = { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' };
-  return new Intl.DateTimeFormat('en-CA', options).format(new Date());
-}
-
-/**
- * A valid same-day order time (HH:MM, top of hour) at least 3h out and within
- * the test chef's 10am–8pm window — or null if it's too late in the day for a
- * same-day slot. Used so the order lifecycle can legitimately reach "On My Way"
- * (which is gated to the order's calendar day).
- */
-function getSameDayOrderTime(timezone = config.timezone) {
-  const hourStr = new Intl.DateTimeFormat('en-US', {
-    timeZone: timezone,
-    hour: '2-digit',
-    hour12: false,
-  }).format(new Date());
-  // %24 guards the "24" some environments emit for midnight.
-  const hour = (parseInt(hourStr, 10) % 24) + 3;
-  if (hour < 10 || hour > 19) return null;
-  return `${String(hour).padStart(2, '0')}:00`;
-}
-
-/**
  * Get the day-of-week number (0=Sunday ... 6=Saturday) for a date string.
  */
 function getDayOfWeek(dateStr) {
@@ -171,8 +145,6 @@ module.exports = {
   assertSuccess,
   assertHasFields,
   getTomorrow,
-  getToday,
-  getSameDayOrderTime,
   getSafeOrderTime,
   getDayOfWeek,
   getDayName,

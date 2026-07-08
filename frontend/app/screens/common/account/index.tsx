@@ -451,7 +451,7 @@ const Account = () => {
     // Replace navigator.reset with router.replace for Expo Router
     const homeRoute =
       resp_login.data?.user?.user_type == 1
-        ? "/screens/customer/(tabs)"
+        ? "/screens/customer/home"
         : "/screens/chef/(tabs)/home";
 
     router.replace(homeRoute);

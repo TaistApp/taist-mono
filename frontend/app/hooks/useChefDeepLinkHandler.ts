@@ -1,28 +1,16 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { Linking } from 'react-native';
 import moment from 'moment';
 import { GetChefPublicProfileAPI } from '../services/api';
 import { navigate } from '../utils/navigation';
 import { ShowErrorToast } from '../utils/toast';
 import { store } from '../store';
 
-// Chef ID captured from a taistexpo://chef/{id} deep link before the customer
-// stack exists (cold start, or while logged out). Held until auto-login/login
-// populates the user, then consumed by the resume subscription below.
+// Chef ID from a deep link that arrived while the user was logged out.
+// Held until authentication completes (login or signup), then consumed.
 let pendingChefId: number | null = null;
 
-/**
- * Record a chef id to open once the customer is authenticated and the
- * authorized navigation stack is mounted. Called by the app/chef/[id].tsx route
- * (the single capture point for the deep link), which then bounces to the
- * splash/auth flow. Resolving the chef here — rather than from the route — means
- * we always navigate from inside the mounted customer stack, avoiding the blank
- * native-splash dead end that came from pushing a tab route too early.
- */
-export const setPendingChefId = (chefId: number) => {
-  pendingChefId = chefId;
-};
-
-export const openChefDeepLink = async (chefId: number) => {
+const openChefDetail = async (chefId: number) => {
   const resp = await GetChefPublicProfileAPI(chefId);
   if (resp.success !== 1 || !resp.data) {
     ShowErrorToast('Chef not found');
@@ -39,36 +27,72 @@ export const openChefDeepLink = async (chefId: number) => {
   });
 };
 
-const resumePendingChef = () => {
-  if (pendingChefId === null) return;
-
-  const user = store.getState().user?.user;
-  if (!user?.id || user.user_type !== 1) return;
-
-  const chefId = pendingChefId;
-  pendingChefId = null;
-
-  // The auth flow replaces the navigation stack right after setting the user —
-  // wait for that to settle before pushing the chef screen on top.
-  setTimeout(() => {
-    openChefDeepLink(chefId).catch((error) => {
-      console.error('[ChefDeepLink] Error:', error);
-      ShowErrorToast('Could not open chef profile');
-    });
-  }, 500);
-};
-
 export const useChefDeepLinkHandler = () => {
-  useEffect(() => {
-    // Cover the case where auth is already settled by the time this mounts
-    // (e.g. a persisted customer auto-logging in before subscribe attaches).
-    resumePendingChef();
+  const isHandling = useRef(false);
 
-    // Resume a pending chef deep link once login/auto-login sets the user in
-    // the store (which also means the customer authorized stack is mounting).
-    const unsubscribe = store.subscribe(resumePendingChef);
+  useEffect(() => {
+    const handleDeepLink = async (event: { url: string }) => {
+      const url = event.url;
+      const match = url.match(/taistexpo:\/\/chef\/(\d+)/);
+      if (!match) return;
+
+      if (isHandling.current) return;
+      isHandling.current = true;
+
+      const chefId = parseInt(match[1], 10);
+
+      try {
+        const state = store.getState();
+        const isAuthenticated = !!state.user?.user?.id;
+
+        if (!isAuthenticated) {
+          // Remember the target so we can finish the navigation after auth.
+          pendingChefId = chefId;
+          navigate.toCommon.login();
+          return;
+        }
+
+        await openChefDetail(chefId);
+      } catch (error) {
+        console.error('[ChefDeepLink] Error:', error);
+        ShowErrorToast('Could not open chef profile');
+      } finally {
+        setTimeout(() => {
+          isHandling.current = false;
+        }, 2000);
+      }
+    };
+
+    // Resume a pending deep link once login/signup sets the user in the store.
+    const unsubscribe = store.subscribe(() => {
+      if (pendingChefId === null) return;
+
+      const isAuthenticated = !!store.getState().user?.user?.id;
+      if (!isAuthenticated) return;
+
+      const chefId = pendingChefId;
+      pendingChefId = null;
+
+      // The auth screen replaces the navigation stack right after setting the
+      // user — wait for that to settle before pushing the chef screen on top.
+      setTimeout(() => {
+        openChefDetail(chefId).catch((error) => {
+          console.error('[ChefDeepLink] Error:', error);
+          ShowErrorToast('Could not open chef profile');
+        });
+      }, 500);
+    });
+
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        handleDeepLink({ url });
+      }
+    });
 
     return () => {
+      subscription.remove();
       unsubscribe();
     };
   }, []);

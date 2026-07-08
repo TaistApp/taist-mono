@@ -84,27 +84,15 @@ export function useProtectedRoute(isSignedIn: boolean, userType?: number) {
 /**
  * Helper function to navigate between screens with proper typing
  */
-// Tracks whether an authorized tab stack is currently mounted. Deep-link
-// capture screens (e.g. app/chef/[id].tsx) read this to decide between opening
-// a target directly (warm: stack already up) and deferring to the splash/
-// auto-login flow (cold start: stack not mounted yet).
-let authorizedStackReady = false;
-export const isAuthorizedStackReady = () => authorizedStackReady;
-
 export const navigate = {
   // Main authorization stacks (equivalent to your CLI project's main stacks)
   toAuthorizedStacks: {
-    noAuthorized: () => {
-      authorizedStackReady = false;
-      router.replace('/screens/common/splash' as any);
-    },
+    noAuthorized: () => router.replace('/screens/common/splash' as any),
     chefAuthorized: () => {
-      authorizedStackReady = true;
       router.dismissAll();
       router.replace('/screens/chef/(tabs)' as any);
     },
     customerAuthorized: () => {
-      authorizedStackReady = true;
       router.dismissAll();
       router.replace('/screens/customer/(tabs)' as any);
     },
@@ -246,9 +234,6 @@ export const navigate = {
   toCommon: {
     splash: () => router.replace('/screens/common/splash' as any),
     login: () => router.push('/screens/common/login' as any),
-    // Required ZIP step after a social signup that arrived with no location.
-    // replace (not push) so it acts as a gate before the customer stack.
-    completeLocation: () => router.replace('/screens/common/completeLocation' as any),
     // Optional `role` (1 = customer, 2 = chef) pre-selects the user type so the
     // in-flow role step is skipped (role-first signup chosen on the splash).
     signup: (params?: { role?: 1 | 2 }) => router.push({

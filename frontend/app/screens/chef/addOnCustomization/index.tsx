@@ -18,7 +18,7 @@ import { useAppDispatch } from '../../../hooks/useRedux';
 import StyledButton from '../../../components/styledButton';
 import StyledTextInput from '../../../components/styledTextInput';
 import Container from '../../../layout/Container';
-import { capitalizeWords, convertStringToNumber } from '../../../utils/functions';
+import { convertStringToNumber } from '../../../utils/functions';
 import { goBack } from '../../../utils/navigation';
 import { styles } from './styles';
 
@@ -37,9 +37,7 @@ const AddOnCustomization = () => {
     const callback = (global as any).onAddCustomizationCallback;
     if (callback) {
       callback({
-        // Normalize casing so add-ons read consistently ("pumpkin seeds" ->
-        // "Pumpkin Seeds"), matching the suggested add-ons.
-        name: capitalizeWords(name),
+        name,
         description,
         upcharge_price: convertStringToNumber(upcharge),
       });
@@ -61,7 +59,6 @@ const AddOnCustomization = () => {
             placeholder="* Name "
             onChangeText={setName}
             value={name}
-            autoCapitalize="words"
           />
           {/* <StyledTextInput
             label="* Description "

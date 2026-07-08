@@ -1,3 +1,3 @@
-import Home from '../../home/HomeScreen';
+import Home from '../../home/index';
 
 export default Home;

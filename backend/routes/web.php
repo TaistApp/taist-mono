@@ -83,26 +83,6 @@ Route::get('/chef/{id}', function ($id) {
     ));
 })->where('id', '[0-9]+');
 
-// Referral invite landing page — the target of the SMS invite link
-// (https://taist.app/r/{code}). Previously this 404'd because no route existed.
-// Referral credit is matched by the recipient's PHONE at signup, so the code in
-// the URL is only used here to personalize the offer; we never 404 on an unknown
-// code because these links live in people's texts indefinitely.
-Route::get('/r/{code}', function ($code) {
-    $referrer = \App\Listener::where('referral_code', $code)->first();
-    $referrerName = $referrer ? ($referrer->first_name ?: 'A friend') : null;
-
-    $settings = \App\Models\ReferralSettings::getSettings();
-    $discountText = ($settings && $settings->is_active) ? $settings->getFormattedDiscount() : null;
-
-    $chefId = request()->query('chef');
-    $chef = $chefId
-        ? \App\Listener::where('id', $chefId)->where('user_type', 2)->where('is_pending', 0)->first()
-        : null;
-
-    return view('referral-landing', compact('referrerName', 'discountText', 'code', 'chef'));
-})->where('code', '[A-Za-z0-9\-]+');
-
 // Public account deletion info page required for Google Play Data Safety policy.
 Route::view('/account-deletion', 'account-deletion')->name('account-deletion');
 

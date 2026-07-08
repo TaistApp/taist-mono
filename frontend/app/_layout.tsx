@@ -88,7 +88,6 @@ export default function RootLayout() {
                         <Stack.Screen name="screens" options={{ headerShown: false }} />
                         <Stack.Screen name="stripe-complete" options={{ headerShown: false }} />
                         <Stack.Screen name="stripe-refresh" options={{ headerShown: false }} />
-                        <Stack.Screen name="chef/[id]" options={{ headerShown: false }} />
                         <Stack.Screen name="(not-found)" options={{ title: 'Not Found' }} />
                       </Stack>
                       <StatusBar style="auto" />

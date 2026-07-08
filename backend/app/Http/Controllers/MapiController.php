@@ -1863,15 +1863,6 @@ class MapiController extends Controller
 
         $user = $this->_authUser();
         $itemType = $request->item_type === 'meal_prep' ? 'meal_prep' : 'standard';
-
-        // A chef must always keep at least one available item, otherwise their
-        // menu preview has nothing customers can order. Force the first/only
-        // item live even if the client sends is_live = 0.
-        $isLive = $request->is_live;
-        if ($isLive == 0 && !Menus::chefHasAvailableItem($user->id)) {
-            $isLive = 1;
-        }
-
         $ary = [
             'user_id' => $user->id,
             'item_type' => $itemType,
@@ -1888,7 +1879,7 @@ class MapiController extends Controller
             'allergens' => isset($request->allergens) ? $request->allergens : '',
             'appliances' => isset($request->appliances) ? $request->appliances : '',
             'estimated_time' => $request->estimated_time,
-            'is_live' => $isLive,
+            'is_live' => $request->is_live,
             'created_at' => now(),
             'updated_at' => now(),
         ];
@@ -1915,37 +1906,31 @@ class MapiController extends Controller
         $data = app(Menus::class)->where(['id' => $id])->first();
         $data['customizations'] = app(Customizations::class)->where(['menu_id' => $id])->get();
 
-        // Notify past customers who opted in when a live menu item is added.
-        // Deferred to after the response is sent (afterResponse) so the push
-        // fan-out — one FCM call per opted-in customer — doesn't block the
-        // chef's "save" and cause a long load. Runs in the same process during
-        // kernel terminate, so it needs no queue worker.
-        if ($isLive == 1) {
-            dispatch(function () use ($data, $user, $id) {
-                try {
-                    $pastCustomerIds = app(Orders::class)
-                        ->where('chef_user_id', $user->id)
-                        ->distinct()
-                        ->pluck('customer_user_id');
+        // Notify past customers who opted in when a live menu item is added
+        if ($request->is_live == 1) {
+            try {
+                $pastCustomerIds = app(Orders::class)
+                    ->where('chef_user_id', $user->id)
+                    ->distinct()
+                    ->pluck('customer_user_id');
 
-                    $optedInCustomers = app(Listener::class)
-                        ->whereIn('id', $pastCustomerIds)
-                        ->where('push_opted_in', true)
-                        ->whereNotNull('fcm_token')
-                        ->where('fcm_token', '!=', '')
-                        ->get();
+                $optedInCustomers = app(Listener::class)
+                    ->whereIn('id', $pastCustomerIds)
+                    ->where('push_opted_in', true)
+                    ->whereNotNull('fcm_token')
+                    ->where('fcm_token', '!=', '')
+                    ->get();
 
-                    foreach ($optedInCustomers as $customer) {
-                        $customer->notify(new NewMenuItemNotification($data, $user));
-                    }
-                } catch (\Throwable $e) {
-                    Log::error('Failed to send new menu item notifications', [
-                        'menu_id' => $id,
-                        'chef_id' => $user->id,
-                        'error' => $e->getMessage(),
-                    ]);
+                foreach ($optedInCustomers as $customer) {
+                    $customer->notify(new NewMenuItemNotification($data, $user));
                 }
-            })->afterResponse();
+            } catch (\Throwable $e) {
+                Log::error('Failed to send new menu item notifications', [
+                    'menu_id' => $id,
+                    'chef_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         return response()->json(['success' => 1, 'data' => $data]);
@@ -1977,15 +1962,7 @@ class MapiController extends Controller
         if ($request->allergens) $ary['allergens'] = $request->allergens;
         if ($request->appliances) $ary['appliances'] = $request->appliances;
         if ($request->estimated_time) $ary['estimated_time'] = $request->estimated_time;
-        if (isset($request->is_live)) {
-            // Don't let a chef hide their only available item — that would leave
-            // customers with nothing to order.
-            $isLive = $request->is_live;
-            if ($isLive == 0 && !Menus::chefHasAvailableItem($user->id, (int) $id)) {
-                $isLive = 1;
-            }
-            $ary['is_live'] = $isLive;
-        }
+        if (isset($request->is_live)) $ary['is_live'] = $request->is_live;
 
         app(Menus::class)->where('id', $id)->update($ary);
 
@@ -4410,21 +4387,6 @@ Write only the review text:";
             ]);
         }
 
-        // Block "On My Way" (status 7) before the calendar day of the order.
-        // The frontend disables the button, but enforce server-side too so a
-        // chef can't mark themselves en route days early via a stale/old client.
-        if ($request->status == 7) {
-            $chefTz = \App\Helpers\TimezoneHelper::getTimezoneForState(
-                optional(app(Listener::class)->where('id', $order->chef_user_id)->first())->state
-            );
-            if (!$order->isOnOrAfterOrderDay($chefTz)) {
-                return response()->json([
-                    'success' => 0,
-                    'error' => 'You can mark "On My Way" on the day of the order.',
-                ]);
-            }
-        }
-
         $ary = [
             'updated_at' => now(),
         ];
@@ -4967,11 +4929,13 @@ Write only the review text:";
         // one step instead of Stripe collecting only the last 4 and leaving the
         // account Incomplete). Taist forwards it to Stripe and does NOT persist
         // it — the background check collects its own SSN separately.
-        // In Stripe test mode a real-format SSN can never pass verification, so
-        // Personal Details stays "Invalid"; the helper substitutes Stripe's
-        // documented 000000000 test value there and forwards the real SSN in
-        // live mode. See AppHelper::resolveStripeSsn for the full rationale.
-        $ssn = \App\Helpers\AppHelper::resolveStripeSsn(env('STRIPE_SECRET'), $data['ssn'] ?? null);
+        $ssn = null;
+        if (!empty($data['ssn'])) {
+            $digits = preg_replace('/[^0-9]/', '', (string) $data['ssn']);
+            if (strlen($digits) === 9) {
+                $ssn = $digits;
+            }
+        }
 
         $errorMsg = "";
         // $emailResponse;
@@ -4989,7 +4953,7 @@ Write only the review text:";
                 // the statement descriptor "TAIST" passes Stripe's validation
                 // (descriptor must match business name or URL)
                 $accountId = $existingPayment->stripe_account_id;
-                $updateParams = [
+                $stripe->accounts->update($accountId, [
                     'business_profile' => [
                         'url' => 'https://taist.app',
                     ],
@@ -4998,27 +4962,7 @@ Write only the review text:";
                             'statement_descriptor' => 'TAIST',
                         ],
                     ],
-                ];
-                // Forward the SSN on the existing account too. Without this, a
-                // chef who already had a Stripe account (e.g. a retry, or an
-                // account created before the SSN pre-fill) would never have
-                // individual.id_number set, so Stripe leaves Personal Details
-                // "Invalid" — in production, not just test mode. Only set it
-                // when Stripe hasn't already captured an id_number, otherwise
-                // updating a verified account throws and breaks the flow.
-                if (!empty($ssn)) {
-                    try {
-                        $existingAccount = $stripe->accounts->retrieve($accountId, []);
-                        $idAlreadyProvided = $existingAccount->individual->id_number_provided ?? false;
-                        if (!$idAlreadyProvided) {
-                            $updateParams['individual'] = ['id_number' => $ssn];
-                        }
-                    } catch (\Exception $e) {
-                        // If the status check fails, skip the id_number update
-                        // rather than risk a hard failure on the account update.
-                    }
-                }
-                $stripe->accounts->update($accountId, $updateParams);
+                ]);
             } else {
                 // Create new Stripe account
                 $account = $stripe->accounts->create([

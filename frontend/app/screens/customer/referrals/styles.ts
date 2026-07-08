@@ -32,24 +32,6 @@ export const styles = StyleSheet.create({
     color: AppColors.textTertiary,
     textAlign: 'center',
   },
-  shareLinkButton: {
-    marginTop: Spacing.sm,
-    alignSelf: 'stretch',
-    backgroundColor: AppColors.primary,
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  shareLinkButtonText: {
-    color: AppColors.textOnPrimary,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  shareLinkUrl: {
-    fontSize: 12,
-    color: AppColors.textSecondary,
-    marginTop: 4,
-  },
   statsRow: {
     flexDirection: 'row',
     gap: Spacing.sm,

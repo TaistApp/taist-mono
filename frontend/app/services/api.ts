@@ -17,7 +17,6 @@ import {
   updateZipcodes
 } from "../reducers/tableSlice";
 import { setUser } from "../reducers/userSlice";
-import { store } from "../store";
 import {
   IChefProfile,
   IMenu,
@@ -848,25 +847,12 @@ export const UpdateUserAPI = async (params: IUser, dispatch?: any) => {
     headers
   );
   if (response.success == 1 && dispatch) {
-    // Guard against a stale update clobbering a newer session. LoginAPI fires a
-    // fire-and-forget geolocation → UpdateUserAPI after login; if the user logs
-    // out and back into a DIFFERENT account before that resolves, the stale
-    // response would overwrite the current Redux user (e.g. bouncing a chef to
-    // their customer account). Only apply the update when it's for the account
-    // currently signed in.
-    const currentUserId = store.getState().user?.user?.id;
-    const responseUserId = response.data?.id;
-    const staleForDifferentUser =
-      currentUserId != null && responseUserId != null && currentUserId !== responseUserId;
-
-    if (!staleForDifferentUser) {
-      dispatch(setUser(response.data));
-
-      // Check if zip code changed and user entered service area
-      if (response.zip_change_info?.entered_service_area) {
-        // Refresh zip codes to get latest list
-        await GetZipCodes({}, dispatch);
-      }
+    dispatch(setUser(response.data));
+    
+    // Check if zip code changed and user entered service area
+    if (response.zip_change_info?.entered_service_area) {
+      // Refresh zip codes to get latest list
+      await GetZipCodes({}, dispatch);
     }
   }
   return response;

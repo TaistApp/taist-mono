@@ -17,14 +17,8 @@ const OrderCard = (props: Props) => {
       <View style={styles.orderCardMain}>
         <View>
             <Image
-            // Fall back to the Taist logo when the chef has no profile photo,
-            // so the left slot is never a blank/broken image.
-            source={
-              getImageURL(props.chefInfo.photo)
-                ? { uri: getImageURL(props.chefInfo.photo) }
-                : require('../../../../assets/images/logo.png')
-            }
-            style={styles.orderCardImg}
+            source={{uri: getImageURL(props.chefInfo.photo)}}
+            style={styles.orderCardImg}                         
              />
         </View>
         <View style={styles.orderCardInfo}>

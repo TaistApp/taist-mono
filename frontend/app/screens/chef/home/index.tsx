@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   RefreshControl,
   SafeAreaView,
@@ -28,7 +28,7 @@ import { setNotificationOrderId } from '../../../reducers/deviceSlice';
 import { hideLoading, showLoading } from '../../../reducers/loadingSlice';
 import { setUser } from '../../../reducers/userSlice';
 import { GetChefOrdersAPI, GetUserById, GetPaymentMethodAPI, ReactivateAccountAPI, getChefShareUrl } from '../../../services/api';
-import { getImageURL, formatDisplayName } from '../../../utils/functions';
+import { getImageURL } from '../../../utils/functions';
 import { ShowErrorToast, ShowSuccessToast } from '../../../utils/toast';
 import { getDateStartTime } from '../../../utils/validations';
 import ChefOrderCard from './components/chefOrderCard';
@@ -84,22 +84,11 @@ const onRefresh = async () => {
   // a loading spinner.
   const redirectingToWelcome = self.is_pending === 1 && self.quiz_completed === 0;
 
-  // Only the very first load blocks behind the full-screen spinner. Every later
-  // refocus (e.g. returning from the Stripe flow, or reopening the app after the
-  // account was activated) refreshes silently in the background so the chef
-  // isn't stuck staring at a loading overlay each time.
-  const hasLoadedOnce = useRef(false);
-
 useFocusEffect(
     useCallback(() => {
       if (redirectingToWelcome) return;
       const today_time = getDateStartTime(moment()) / 1000;
-      if (hasLoadedOnce.current) {
-        loadDatax(0, today_time + 24 * 3600);
-      } else {
-        hasLoadedOnce.current = true;
-        loadData(0, today_time + 24 * 3600);
-      }
+      loadData(0, today_time + 24 * 3600);
     }, [notification_id, redirectingToWelcome]),
   );
   useEffect(() => {
@@ -124,8 +113,11 @@ useFocusEffect(
     // If is_pending === 1 and quiz_completed === 1, show onboarding checklist (existing behavior below)
   }, []);
 
-  // (Initial load is handled by the focus effect above — no separate mount
-  // fetch, which previously double-loaded and double-showed the spinner.)
+  useEffect(() => {
+    if (redirectingToWelcome) return;
+    const now_time = moment().toDate().getTime() / 1000;
+    loadData(0, now_time);
+  }, [])
 
   // useFocusEffect(
   // );
@@ -336,11 +328,8 @@ useFocusEffect(
         >
           <View style={styles.userContainer}>
             <StyledProfileImage url={getImageURL(self.photo)} size={80} />
-            <Text style={styles.userName}>{`${
-              self.first_name || self.last_name
-                ? formatDisplayName(self.first_name, self.last_name)
-                : 'Taist Chef'
-            } `}</Text>
+            <Text style={styles.userName}>{`${self.first_name
+              } ${self.last_name?.substring(0, 1)}. `}</Text>
           </View>
           {self.is_pending != 1 && checkEmptyFieldInProfile() !== '' && (
             <View style={styles.itemContainer}>
@@ -416,7 +405,6 @@ useFocusEffect(
                 <SettingItem
                   title={'4. Background Check'}
                   completed={self.applicant_guid ? true : false}
-                  subtitle={'Powered by SafeScreener'}
                   isNext={payment?.verification_complete === true && !self.applicant_guid}
                   onPress={() => {
                     if (!payment?.verification_complete) {
@@ -433,17 +421,12 @@ useFocusEffect(
             <>
               <View style={styles.tabContainer}>
                 {tabs.map((tab, idx) => {
-                  const isActive = tab.id == tabId;
                   return (
                     <StyledTabButton
                       testID={`chefHome.tab.${idx}`}
                       title={tab.label}
-                      // Active filter is filled orange; the other is muted so
-                      // it's obvious which of Requested/Accepted is selected.
-                      // (Previously both used styles.tab, so they looked
-                      // identical and the active filter wasn't distinguishable.)
-                      style={isActive ? styles.tab : styles.tab_disabled}
-                      titleStyle={isActive ? styles.tabText : styles.tabText_disabled}
+                      style={styles.tab}
+                      titleStyle={styles.tabText}
                       disabled={tab.id != tabId}
                       onPress={() => onChangeTabId(tab.id)}
                       key={`tab_${idx}`}

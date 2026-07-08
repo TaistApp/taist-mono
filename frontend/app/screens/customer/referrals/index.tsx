@@ -4,7 +4,6 @@ import {
   FlatList,
   Modal,
   ScrollView,
-  Share,
   Text,
   TextInput,
   TouchableOpacity,
@@ -74,29 +73,21 @@ export default function ReferralsScreen() {
   const prefillChefId = params.chefId ? Number(params.chefId) : undefined;
   const prefillChefName = params.chefName as string | undefined;
 
-  // The referral code drives the primary UI (code card + share link), so resolve
-  // it first and stop the full-screen spinner as soon as it lands. Stats and
-  // history fill in behind it without blocking — previously the whole screen
-  // waited on all three calls (Promise.all), which is the "long load" reported.
   const fetchData = async () => {
-    GetReferralCodeAPI()
-      .then((r) => {
-        if (r.success === 1) setInfo(r.data);
-      })
-      .catch((e) => console.error("Failed to fetch referral code", e))
-      .finally(() => setLoading(false));
-
-    GetReferralStatsAPI()
-      .then((r) => {
-        if (r.success === 1) setStats(r.data);
-      })
-      .catch(() => {});
-
-    GetReferralHistoryAPI()
-      .then((r) => {
-        if (r.success === 1) setHistory(r.data || []);
-      })
-      .catch(() => {});
+    try {
+      const [codeRes, statsRes, historyRes] = await Promise.all([
+        GetReferralCodeAPI(),
+        GetReferralStatsAPI(),
+        GetReferralHistoryAPI(),
+      ]);
+      if (codeRes.success === 1) setInfo(codeRes.data);
+      if (statsRes.success === 1) setStats(statsRes.data);
+      if (historyRes.success === 1) setHistory(historyRes.data || []);
+    } catch (e) {
+      console.error("Failed to fetch referral data", e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useFocusEffect(
@@ -104,26 +95,6 @@ export default function ReferralsScreen() {
       fetchData();
     }, [])
   );
-
-  // Builds the shareable invite URL — the same /r/{code} link the SMS uses, so
-  // the friend lands on the referral page and can download the app.
-  const referralLink = info
-    ? `https://taist.app/r/${info.referral_code}` +
-      (prefillType === "chef" && prefillChefId ? `?chef=${prefillChefId}` : "")
-    : "";
-
-  const handleShareLink = async () => {
-    if (!referralLink) return;
-    try {
-      const message =
-        prefillType === "chef" && prefillChefName
-          ? `Come try ${prefillChefName}'s food on Taist! Get ${info?.discount_description || "a discount"} your first order: ${referralLink}`
-          : `Join me on Taist for homemade food from local chefs! Get ${info?.discount_description || "a discount"} your first order: ${referralLink}`;
-      await Share.share({ message });
-    } catch (e) {
-      ShowErrorToast("Could not open the share sheet. Please try again.");
-    }
-  };
 
   const handleSend = async () => {
     if (!phone.trim()) {
@@ -182,20 +153,6 @@ export default function ReferralsScreen() {
               {remainingReferrals > 0
                 ? `${remainingReferrals} of ${info.max_referrals} referrals remaining`
                 : "You've reached the maximum number of referrals"}
-            </Text>
-
-            {/* Share link — lets users send the invite without needing to know
-                their friend's phone number. The native share sheet includes
-                Copy, Messages, WhatsApp, etc. */}
-            <TouchableOpacity
-              testID="referrals.shareLinkButton"
-              style={styles.shareLinkButton}
-              onPress={handleShareLink}
-            >
-              <Text style={styles.shareLinkButtonText}>Share Invite Link</Text>
-            </TouchableOpacity>
-            <Text style={styles.shareLinkUrl} numberOfLines={1}>
-              {referralLink}
             </Text>
           </View>
         )}

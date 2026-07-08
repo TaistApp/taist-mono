@@ -422,7 +422,7 @@ class DiscountCodesTest extends TestCase
 
     /**
      * Test percentage discount formatting
-     * Whole-number percentages drop the trailing decimals (50.00 -> "50").
+     * Note: discount_value is cast to decimal:2 so whole numbers become X.00
      */
     public function test_formatted_percentage_discount()
     {
@@ -433,12 +433,12 @@ class DiscountCodesTest extends TestCase
 
         $formatted = $code->getFormattedDiscount();
 
-        $this->assertEquals('20% off', $formatted);
+        $this->assertEquals('20.00% off', $formatted);
     }
 
     /**
      * Test percentage discount formatting with decimals
-     * Meaningful decimals are kept (12.50 -> "12.5"), trailing zero trimmed.
+     * Note: discount_value is cast to decimal:2
      */
     public function test_formatted_percentage_discount_with_decimals()
     {
@@ -449,20 +449,7 @@ class DiscountCodesTest extends TestCase
 
         $formatted = $code->getFormattedDiscount();
 
-        $this->assertEquals('12.5% off', $formatted);
-    }
-
-    /**
-     * CONTROL: fixed-amount discounts keep their two decimals ($5.00 off).
-     */
-    public function test_formatted_fixed_discount_keeps_decimals()
-    {
-        $code = new DiscountCodes([
-            'discount_type' => 'fixed',
-            'discount_value' => 5,
-        ]);
-
-        $this->assertEquals('$5.00 off', $code->getFormattedDiscount());
+        $this->assertEquals('12.50% off', $formatted);
     }
 
     // ==========================================

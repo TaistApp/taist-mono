@@ -26,7 +26,6 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useLocalSearchParams } from 'expo-router';
-import moment from 'moment-timezone';
 import ImagePicker from 'react-native-image-crop-picker';
 import { StarRatingDisplay } from 'react-native-star-rating-widget';
 
@@ -218,6 +217,14 @@ const OrderDetail = () => {
       .catch(() => {});
   };
 
+  const handleChooseFromLibrary = () => {
+    ImagePicker.openPicker({ width: 1000, height: 1000, cropping: true, compressImageQuality: 0.8 })
+      .then(image => {
+        setPhotoUri(image.path);
+      })
+      .catch(() => {});
+  };
+
   const handleUploadDishPhoto = async () => {
     if (!photoUri || !completedOrderId) return;
     setIsUploading(true);
@@ -258,19 +265,6 @@ const OrderDetail = () => {
     });
     Linking.openURL(url ?? '');
   };
-
-  // The chef can only start "On My Way" once it's the calendar day of the
-  // order (in the chef's timezone). Before that the button is disabled so they
-  // can't mark themselves en route days early.
-  const orderTimezone = orderInfo?.timezone || moment.tz.guess();
-  const orderDayStr =
-    orderInfo?.order_date_string ||
-    (orderInfo?.order_date
-      ? moment(orderInfo.order_date * 1000).tz(orderTimezone).format('YYYY-MM-DD')
-      : '');
-  const todayStr = moment().tz(orderTimezone).format('YYYY-MM-DD');
-  // YYYY-MM-DD strings compare correctly lexicographically.
-  const isOrderDay = !!orderDayStr && todayStr >= orderDayStr;
 
   var items: Array<any> = [];
   items.push({
@@ -559,14 +553,7 @@ const OrderDetail = () => {
                       <StyledButton
                         testID="chefOrderDetail.onMyWayButton"
                         title={'ON MY WAY'}
-                        disabled={!isOrderDay}
                         onPress={() => {
-                          if (!isOrderDay) {
-                            ShowErrorToast(
-                              'You can mark "On My Way" on the day of the order.',
-                            );
-                            return;
-                          }
                           handleStatus(7);
                         }}
                         style={{ flex: 1 }}
@@ -612,9 +599,7 @@ const OrderDetail = () => {
                     {orderInfo.status == 1
                       ? 'This order is pending your acceptance. '
                       : orderInfo.status == 2
-                        ? isOrderDay
-                          ? 'Let the customer know you are on the way. '
-                          : `You can mark "On My Way" on the day of the order${orderDayStr ? ` (${moment(orderDayStr).format('MMM D')})` : ''}. `
+                        ? 'Let the customer know you are on the way. '
                         : orderInfo.status == 7
                           ? 'Press this button when you have finished the order. '
                           : ''}
@@ -682,7 +667,10 @@ const OrderDetail = () => {
               <View style={photoStyles.buttonRow}>
                 <TouchableOpacity onPress={handleTakePhoto} style={photoStyles.captureBtn}>
                   <FontAwesomeIcon icon={faCamera} color="#fff" size={20} />
-                  <Text style={photoStyles.captureBtnText}>Take Photo</Text>
+                  <Text style={photoStyles.captureBtnText}>Camera</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleChooseFromLibrary} style={[photoStyles.captureBtn, { backgroundColor: AppColors.textSecondary }]}>
+                  <Text style={photoStyles.captureBtnText}>Library</Text>
                 </TouchableOpacity>
               </View>
             )}

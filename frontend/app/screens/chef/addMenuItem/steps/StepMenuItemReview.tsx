@@ -44,22 +44,6 @@ export const StepMenuItemReview: React.FC<StepMenuItemReviewProps> = ({
   );
   const categories = useAppSelector(x => x.table.categories);
   const allergens = useAppSelector(x => x.table.allergens);
-  const menus = useAppSelector(x => x.table.menus);
-
-  // A chef must always have at least one available item, otherwise their menu
-  // preview has nothing customers can order (breaks checkout). So the "hide
-  // from menu" toggle is only offered when there's ANOTHER available item
-  // besides this one; on the first/only available item it's locked on.
-  const hasOtherLiveItem = menus.some(
-    (m) => (m.is_live ?? 1) == 1 && m.id !== menuItemData.id,
-  );
-
-  React.useEffect(() => {
-    if (!hasOtherLiveItem && menuItemData.is_live !== 1) {
-      onUpdateMenuItemData({ is_live: 1 });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasOtherLiveItem]);
 
   const displayItem = menuItemData.is_live ?? true;
 
@@ -230,24 +214,16 @@ export const StepMenuItemReview: React.FC<StepMenuItemReviewProps> = ({
           </View>
         )}
 
-        {/* Display Toggle — only when the chef has another available item, so
-            they can never hide their only orderable item. */}
+        {/* Display Toggle */}
         <View style={styles.reviewSection}>
-          {hasOtherLiveItem ? (
-            <StyledSwitch
-              testID="menuWizard.displaySwitch"
-              label="Display this item on menu?"
-              value={!!displayItem}
-              onPress={() => {
-                onUpdateMenuItemData({ is_live: displayItem ? 0 : 1 });
-              }}
-            />
-          ) : (
-            <Text style={styles.reviewValue}>
-              This item will be shown on your menu so customers can order it. Once
-              you have another available item, you'll be able to hide items.
-            </Text>
-          )}
+          <StyledSwitch
+            testID="menuWizard.displaySwitch"
+            label="Display this item on menu?"
+            value={!!displayItem}
+            onPress={() => {
+              onUpdateMenuItemData({ is_live: displayItem ? 0 : 1 });
+            }}
+          />
         </View>
       </View>
 

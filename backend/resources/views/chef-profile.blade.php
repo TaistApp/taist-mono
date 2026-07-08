@@ -52,20 +52,20 @@
         }
 
         .logo {
-            display: block;
-            height: 34px;
-            width: auto;
-            margin: 0 auto 24px;
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--brand);
+            letter-spacing: -0.5px;
+            margin-bottom: 24px;
         }
 
         .avatar {
-            display: block;
             width: 120px;
             height: 120px;
             border-radius: 60px;
             object-fit: cover;
             border: 3px solid var(--brand);
-            margin: 0 auto 16px;
+            margin-bottom: 16px;
         }
 
         .avatar-placeholder {
@@ -76,10 +76,10 @@
             color: #fff;
             font-size: 48px;
             font-weight: 700;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 16px;
+            margin-bottom: 16px;
         }
 
         .chef-name {
@@ -202,7 +202,7 @@
 </head>
 <body>
     <div class="wrap">
-        <img class="logo" src="{{ url('/assets/images/logo-2.png') }}" alt="Taist">
+        <div class="logo">Taist</div>
 
         @if($chef->photo)
             <img class="avatar" src="{{ $photoBaseUrl . $chef->photo }}" alt="{{ $chef->first_name }}">

@@ -191,8 +191,7 @@ class DiscountCodes extends Model
         if ($this->discount_type === 'fixed') {
             return '$' . number_format($this->discount_value, 2) . ' off';
         } else {
-            // Drop trailing decimals for percentages: 50.00 -> "50", 12.50 -> "12.5".
-            return rtrim(rtrim(number_format($this->discount_value, 2, '.', ''), '0'), '.') . '% off';
+            return $this->discount_value . '% off';
         }
     }
 

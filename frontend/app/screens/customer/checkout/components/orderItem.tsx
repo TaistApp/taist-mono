@@ -33,12 +33,12 @@ const OrderItem = (props: Props) => {
         )}
       </View>
       <View style={styles.checkoutSummaryItemPriceWrapper}>
-        <Text style={styles.checkoutSummaryItemQty} numberOfLines={1}>
-          {`×${props.order.amount}`}
+        <Text style={styles.checkoutSummaryItemTitle} numberOfLines={1}>
+          {`${props.order.amount} `}
         </Text>
         <Text
           style={styles.checkoutSummaryItemTitle}
-          numberOfLines={1}>{`$${props.order.total_price?.toFixed(2)}`}</Text>
+          numberOfLines={1}>{`$${props.order.total_price?.toFixed(2)} `}</Text>
       </View>
     </View>
   );

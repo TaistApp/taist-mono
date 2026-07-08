@@ -23,23 +23,21 @@ export const styles = StyleSheet.create({
   tab: {
     // backgroundColor:AppColors.surface,
     borderRadius: 20,
-    paddingVertical: 9,
-    paddingHorizontal: 14,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
   },
   tab_disabled: {
     backgroundColor: AppColors.disabled,
     borderRadius: 20,
-    paddingVertical: 9,
-    paddingHorizontal: 14,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
   },
   tabText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 10,
     // color: AppColors.primary,
   },
   tabText_disabled: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 10,
     color: AppColors.text,
   },
   orderCardContainer: {
@@ -62,7 +60,6 @@ export const styles = StyleSheet.create({
   orderCardImg: {
     width: 90,
     height: 80,
-    borderRadius: 8,
   },
   orderCardInfo: {
     rowGap: 5,

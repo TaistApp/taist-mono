@@ -14,7 +14,7 @@ export { default as Terms } from './common/terms';
 
 export { default as UserInformation } from './common/userInformation';
 
-export { default as Customer_Home } from './customer/home/HomeScreen';
+export { default as Customer_Home } from './customer/home';
 // export {default as Customer_ChefDetail} from './Customer/ChefDetail';
 // export {default as Customer_AddToOrder} from './Customer/AddToOrder';
 // export {default as Customer_Checkout} from './Customer/Checkout';
