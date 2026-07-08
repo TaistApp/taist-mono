@@ -1,5 +1,5 @@
 import {StyleSheet} from 'react-native';
-import { AppColors, Shadows, Spacing } from '../../../../constants/theme';
+import { AppColors, Spacing } from '../../../../constants/theme';
 
 
 export const styles = StyleSheet.create({
@@ -8,52 +8,43 @@ export const styles = StyleSheet.create({
     backgroundColor: AppColors.background, // White background
   },
   pageView: {
-    padding: Spacing.xl,
-    alignItems: 'center',
-    gap: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    gap: Spacing.md,
     width: '100%',
-    paddingBottom: Spacing.xxl,
+    // Extra bottom padding so content clears the sticky bottom bar
+    paddingBottom: 120,
   },
   heading: {
     width: '100%',
     marginTop: Spacing.sm,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   backIcon: {
     width: 24,
     height: 24,
   },
   pageTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700',
     color: AppColors.text,
-    textAlign: 'center',
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.sm,
   },
-  
-  // Card-like sections
-  checkoutBlock: {
-    width: '100%',
-    backgroundColor: AppColors.surface, // Light gray card background
-    borderRadius: 16,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
-    ...Shadows.sm,
-  },
+
+  // Card section titles
   checkoutSubheading: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
     color: AppColors.text,
-    marginBottom: Spacing.md,
-    letterSpacing: 0.3,
+    marginBottom: Spacing.sm,
   },
   checkoutText: {
-    fontSize: 15,
+    fontSize: 13,
     color: AppColors.textSecondary,
     marginBottom: Spacing.xs,
-    lineHeight: 22,
+    lineHeight: 19,
   },
-  
+
   // Date pills
   datePillRow: {
     flexDirection: 'row',
@@ -98,9 +89,9 @@ export const styles = StyleSheet.create({
 
   // Time pills
   timeLabel: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
-    color: AppColors.text,
+    color: AppColors.textSecondary,
     marginTop: Spacing.md,
     marginBottom: Spacing.sm,
   },
@@ -112,12 +103,14 @@ export const styles = StyleSheet.create({
   timePill: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 999,
     backgroundColor: AppColors.background,
-    ...Shadows.xs,
+    borderWidth: 1,
+    borderColor: AppColors.border,
   },
   timePillSelected: {
     backgroundColor: AppColors.primary,
+    borderColor: AppColors.primary,
   },
   timePillText: {
     fontSize: 14,
@@ -145,13 +138,59 @@ export const styles = StyleSheet.create({
   },
   estimated: {
     fontSize: 13,
-    fontWeight: '600',
     color: AppColors.textSecondary,
     marginTop: Spacing.md,
     fontStyle: 'italic',
   },
-  
-  // Order summary items
+
+  // Receipt / order summary rows
+  receiptRow: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: Spacing.md,
+    paddingVertical: 7,
+    borderTopWidth: 1,
+    borderTopColor: AppColors.border,
+  },
+  receiptRowFirst: {
+    borderTopWidth: 0,
+  },
+  receiptLabel: {
+    fontSize: 14,
+    color: AppColors.textSecondary,
+  },
+  receiptValue: {
+    fontSize: 14,
+    color: AppColors.textSecondary,
+  },
+  receiptDiscount: {
+    color: AppColors.success,
+  },
+  receiptTotalRow: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: Spacing.md,
+    paddingTop: 10,
+    marginTop: 2,
+    borderTopWidth: 1,
+    borderTopColor: AppColors.border,
+  },
+  receiptTotalLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: AppColors.text,
+  },
+  receiptTotalValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: AppColors.primary,
+  },
+
+  // Order line items (used by orderItem.tsx)
   checkoutSummaryItemWrapper: {
     width: '100%',
     flexDirection: 'row',
@@ -161,12 +200,12 @@ export const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
   },
   checkoutSummaryItemTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: AppColors.text,
   },
   checkoutSummaryItemAddon: {
-    fontSize: 14,
+    fontSize: 13,
     color: AppColors.textSecondary,
     marginTop: Spacing.xs,
   },
@@ -175,15 +214,54 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  
+  checkoutSummaryItemQty: {
+    fontSize: 14,
+    color: AppColors.textSecondary,
+  },
+
+  // Minimum-order notice
+  minimumNotice: {
+    backgroundColor: '#FEF3C7',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 12,
+  },
+  minimumNoticeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#92400E',
+  },
+
   // Address section
   checkoutAddressItemTitle: {
-    fontSize: 15,
+    fontSize: 14,
     color: AppColors.text,
     marginBottom: Spacing.xs,
-    lineHeight: 22,
+    lineHeight: 20,
   },
-  
+  addressDivider: {
+    borderTopWidth: 1,
+    borderTopColor: AppColors.border,
+    paddingTop: 12,
+    marginTop: 4,
+  },
+  addressEditRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  addressEditTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: AppColors.text,
+  },
+  addressEditAction: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: AppColors.primary,
+  },
+
   // Payment section
   checkoutPaymentItemWrapper: {
     width: '100%',
@@ -191,62 +269,70 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderBottomColor: AppColors.border,
-    borderBottomWidth: 1,
+    paddingVertical: Spacing.xs,
   },
   checkoutApplianceItemTitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: AppColors.text,
   },
-  
+
   // Switch/Toggle section
   switchWrapper: {
     flexDirection: 'row',
     gap: Spacing.md,
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: Spacing.sm,
   },
   switchText: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     color: AppColors.text,
-    lineHeight: 22,
+    lineHeight: 20,
   },
-  
-  // Button section
-  vcenter: {
+
+  // Sticky bottom bar
+  bottomBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.md,
+    backgroundColor: AppColors.background,
+    borderTopWidth: 1,
+    borderTopColor: AppColors.border,
+  },
+  bottomBarTotalWrapper: {
     justifyContent: 'center',
-    marginTop: Spacing.xl,
-    marginBottom: Spacing.lg,
-    width: '100%',
   },
-  button: {
-    borderRadius: 12,
-    backgroundColor: AppColors.primary, // Orange button
-    width: '100%',
+  bottomBarTotalLabel: {
+    fontSize: 11,
+    color: AppColors.textSecondary,
+    marginBottom: 2,
+  },
+  bottomBarTotalValue: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: AppColors.text,
+  },
+  bottomBarButton: {
+    flex: 1,
+    minHeight: 52,
     paddingVertical: 16,
-    marginBottom: Spacing.sm,
-    ...Shadows.md,
-  },
-  buttonText: {
-    color: AppColors.textOnPrimary, // White text on orange
-    fontSize: 16,
-    fontWeight: '700',
-    textAlign: 'center',
-    letterSpacing: 0.5,
-  },
-  buttonDisabled: {
     borderRadius: 12,
+    backgroundColor: AppColors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bottomBarButtonDisabled: {
     backgroundColor: AppColors.disabled,
-    width: '100%',
-    paddingVertical: 16,
-    marginBottom: Spacing.sm,
   },
-  cardStyle: {
-    width: '100%',
-    height: 100,
-    borderRadius: 12,
+  bottomBarButtonText: {
+    color: AppColors.textOnPrimary,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  bottomBarButtonTextDisabled: {
+    color: AppColors.disabledText,
   },
 });

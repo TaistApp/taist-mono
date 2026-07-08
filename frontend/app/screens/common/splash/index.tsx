@@ -149,9 +149,14 @@ const Splash = () => {
       const payload = await fn();
       const response = await SocialLoginAPI(payload, dispatch);
       if (response.success === 1) {
-        const userType = response.data?.user?.user_type;
-        if (userType === 2) {
+        const user = response.data?.user;
+        if (user?.user_type === 2) {
           navigate.toAuthorizedStacks.chefAuthorized();
+        } else if (!user?.zip || String(user.zip).trim().length === 0) {
+          // Apple/Google never return a ZIP, so a brand-new social customer has
+          // no location yet. Require it before the home screen, otherwise they
+          // hit the "not in your area" dead end. (#1)
+          navigate.toCommon.completeLocation();
         } else {
           navigate.toAuthorizedStacks.customerAuthorized();
         }
@@ -275,13 +280,39 @@ const Splash = () => {
       setSplash(false);
     }, 35000); // 35 second max wait
 
-    setTimeout(() => {
-      autoLogin().finally(() => {
-        clearTimeout(fallbackTimer);
-      });
-    }, 2000);
+    let cancelled = false;
+    let delayTimer: ReturnType<typeof setTimeout> | undefined;
 
-    return () => clearTimeout(fallbackTimer);
+    // Peek at stored credentials first. When there are none — e.g. right after
+    // logging out — skip the 2s branded-splash delay and drop straight to the
+    // login screen instead of making the user stare at the splash.
+    (async () => {
+      const loginData = await ReadLoginData();
+      const hasCreds =
+        loginData != null &&
+        (loginData.social || (loginData.email && loginData.password));
+      if (cancelled) return;
+      if (!hasCreds) {
+        clearTimeout(fallbackTimer);
+        setSplash(false);
+        return;
+      }
+      // Returning user — start auto-login almost immediately. The branded
+      // splash is already on screen during the login network call, so the old
+      // 2s pre-delay was pure dead time (felt like a long load when reopening
+      // the app, e.g. after the account was activated server-side).
+      delayTimer = setTimeout(() => {
+        autoLogin().finally(() => {
+          clearTimeout(fallbackTimer);
+        });
+      }, 400);
+    })();
+
+    return () => {
+      cancelled = true;
+      clearTimeout(fallbackTimer);
+      if (delayTimer) clearTimeout(delayTimer);
+    };
   }, []);
 
   const performAutoLogin = async (loginData: any): Promise<boolean> => {

@@ -18,7 +18,7 @@ const MenuItemType = () => {
       emoji: '🍽️',
       title: 'Standard Item',
       description: 'A single dish you cook fresh in the customer\'s kitchen.',
-      example: 'e.g. Margherita pizza, chicken alfredo, a dozen tamales',
+      example: 'e.g. Margherita pizza, chicken alfredo, chicken tikka masala',
     },
     {
       type: 'meal_prep' as const,

@@ -13,6 +13,7 @@
  *   node tests/e2e/run.js --flow=customer   # Run only customer signup
  *   node tests/e2e/run.js --flow=chef       # Run only chef signup
  *   node tests/e2e/run.js --flow=order      # Run only order flow (needs prior setup)
+ *   node tests/e2e/run.js --flow=nav        # Run only navigation guards (static, no API)
  */
 
 const config = require('./config');
@@ -20,6 +21,7 @@ const h = require('./helpers');
 const customerFlow = require('./flow-customer-signup');
 const chefFlow = require('./flow-chef-signup');
 const orderFlow = require('./flow-order');
+const navigationGuards = require('./flow-navigation-guards');
 
 async function main() {
   const args = process.argv.slice(2);
@@ -93,6 +95,21 @@ async function main() {
       totals.failed++;
     } else {
       h.logWarn('Skipping order flow — customer or chef signup failed');
+    }
+  }
+
+  // ── Flow 4: Navigation Guards (static, no API) ─────────────────
+  if (!flowArg || flowArg === 'nav' || flowArg === 'all') {
+    try {
+      const result = navigationGuards.run();
+      totals.passed += result.passed;
+      totals.failed += result.failed;
+      totals.errors.push(...(result.errors || []));
+    } catch (e) {
+      h.logFail(`Flow 4 crashed: ${e.message}`);
+      console.error(e.stack);
+      totals.failed++;
+      totals.errors.push(`Flow 4 crash: ${e.message}`);
     }
   }
 

@@ -43,8 +43,7 @@ import {
   UpdateUserAPI,
   ValidateDiscountCodeAPI,
 } from '../../../services/api';
-import GlobalStyles from '../../../types/styles';
-import { Delay } from '../../../utils/functions';
+import { cleanText, Delay } from '../../../utils/functions';
 import { goBack, navigate } from '../../../utils/navigation';
 import { ShowErrorToast, ShowSuccessToast } from '../../../utils/toast';
 import { getFormattedDateTime } from '../../../utils/validations';
@@ -55,6 +54,7 @@ import { getApplianceById } from '../../../constants/appliances';
 import { getParkingLabel } from '../../../constants/parkingTypes';
 import FadingScrollView from '../../../components/FadingScrollView';
 import ParkingPicker from '../../../components/ParkingPicker';
+import Card from '../../../components/Card';
 
 const Checkout = () => {
   const self = useAppSelector(x => x.user.user);
@@ -79,9 +79,11 @@ const Checkout = () => {
   const [isSavingAddress, setIsSavingAddress] = useState(false);
   const [isLoadingTimes, setIsLoadingTimes] = useState(true);
 
-  // Arrival & Parking state — pre-filled from account, overridable per order
-  const [parkingType, setParkingType] = useState<string | undefined>(self.parking_type);
-  const [parkingInstructions, setParkingInstructions] = useState<string>(self.parking_instructions ?? '');
+  // Arrival & Parking state — pre-filled from account, overridable per order.
+  // cleanText guards against the literal "null"/"undefined" strings the API can
+  // return for empty columns (which otherwise render as "· null").
+  const [parkingType, setParkingType] = useState<string | undefined>(cleanText(self.parking_type) || undefined);
+  const [parkingInstructions, setParkingInstructions] = useState<string>(cleanText(self.parking_instructions));
   const [editingParking, setEditingParking] = useState(false);
 
   // Ref to track current timeslot request and prevent race conditions
@@ -194,6 +196,28 @@ const Checkout = () => {
   useEffect(() => {
     addTimes();
   }, [DAY]);
+
+  // True when this slot's date+time is already in the past relative to now.
+  const isPastTime = (item: any) => {
+    if (!item) return true;
+    const d = moment(DAY);
+    d.hour(item?.h);
+    d.minute(item?.m);
+    d.second(0);
+    return d.isBefore(moment());
+  };
+
+  // Keep the time selection valid (#7): if the currently-selected slot is
+  // missing or has slipped into the past, fall back to the first still-valid
+  // slot. This prevents submitting a past time and only catching it at the
+  // backend ("Cannot place orders for times in the past.").
+  useEffect(() => {
+    const selected = times.find(x => x.id === timeId);
+    if (!selected || isPastTime(selected)) {
+      const firstValid = times.find(x => !isPastTime(x));
+      onChangeTimeId(firstValid ? firstValid.id : '');
+    }
+  }, [times, DAY]);
 
   const handleSaveAddress = async (addressInfo: Partial<IUser>) => {
     setIsSavingAddress(true);
@@ -420,11 +444,12 @@ const Checkout = () => {
 
     day.hour(time?.h);
     day.minute(time?.m);
+    day.second(0);
 
-    // if (day < moment()) {
-    //   ShowErrorToast('Select the order date and time correctly');
-    //   return;
-    // }
+    if (day.isBefore(moment())) {
+      ShowErrorToast('That time has already passed. Please select a later time.');
+      return;
+    }
 
     Alert.alert('Confirm Purchase', 'Please tap to confirm', [
       {
@@ -583,7 +608,7 @@ const Checkout = () => {
             </Pressable>
           </View>
           <Text style={styles.pageTitle}>Checkout</Text>
-          <View style={styles.checkoutBlock}>
+          <Card>
             <Text style={styles.checkoutSubheading}>Order Date & Time</Text>
             <Text style={styles.checkoutText}>
               Confirm the time for your chef to arrive.
@@ -651,10 +676,7 @@ const Checkout = () => {
                 contentContainerStyle={styles.timePillRow}
               >
                 {times.map((item, idx) => {
-                  const day = moment(DAY);
-                  day.hour(item?.h);
-                  day.minute(item?.m);
-                  if (day < moment()) return null;
+                  if (isPastTime(item)) return null;
                   const isSelected = item.id === timeId;
                   return (
                     <TouchableOpacity
@@ -681,8 +703,8 @@ const Checkout = () => {
             <Text style={styles.estimated}>
               {`* Estimated completion time is ${getEstimatedTime()}`}
             </Text>
-          </View>
-          <View style={styles.checkoutBlock}>
+          </Card>
+          <Card>
             <Text style={styles.checkoutSubheading}>Order Summary</Text>
             {orders.map((o, idx) => {
               return (
@@ -693,68 +715,47 @@ const Checkout = () => {
                 />
               );
             })}
-            <View style={styles.checkoutSummaryItemWrapper}>
-              <View>
-                <Text style={styles.checkoutSummaryItemTitle}>
-                  Subtotal:
-                </Text>
-              </View>
-              <View style={styles.checkoutSummaryItemPriceWrapper}>
-                <Text
-                  style={
-                    styles.checkoutSummaryItemTitle
-                  }>{`$${price_total.toFixed(2)}`}</Text>
-              </View>
+            <View style={styles.receiptRow}>
+              <Text style={styles.receiptLabel}>Subtotal</Text>
+              <Text style={styles.receiptValue}>{`$${price_total.toFixed(2)}`}</Text>
             </View>
             {appliedDiscount && (
-              <View style={styles.checkoutSummaryItemWrapper}>
-                <View>
-                  <Text style={[styles.checkoutSummaryItemTitle, {color: '#10B981'}]}>
-                    Discount ({appliedDiscount.code}):
-                  </Text>
-                </View>
-                <View style={styles.checkoutSummaryItemPriceWrapper}>
-                  <Text
-                    style={[styles.checkoutSummaryItemTitle, {color: '#10B981'}]}>
-                    {`-$${appliedDiscount.discount_amount.toFixed(2)}`}
-                  </Text>
-                </View>
+              <View style={styles.receiptRow}>
+                <Text style={[styles.receiptLabel, styles.receiptDiscount]}>
+                  {`Discount (${appliedDiscount.code})`}
+                </Text>
+                <Text style={[styles.receiptValue, styles.receiptDiscount]}>
+                  {`−$${appliedDiscount.discount_amount.toFixed(2)}`}
+                </Text>
               </View>
             )}
-            <View style={[styles.checkoutSummaryItemWrapper, {borderTopWidth: 1, borderTopColor: '#E5E7EB', paddingTop: 12, marginTop: 8}]}>
-              <View>
-                <Text style={[styles.checkoutSummaryItemTitle, {fontWeight: '700', fontSize: 18}]}>
-                  Total:
-                </Text>
-              </View>
-              <View style={styles.checkoutSummaryItemPriceWrapper}>
-                <Text
-                  style={[styles.checkoutSummaryItemTitle, {fontWeight: '700', fontSize: 18}]}>
-                  {`$${calculateFinalTotal().toFixed(2)}`}
-                </Text>
-              </View>
+            <View style={styles.receiptTotalRow}>
+              <Text style={styles.receiptTotalLabel}>Total</Text>
+              <Text style={styles.receiptTotalValue}>
+                {`$${calculateFinalTotal().toFixed(2)}`}
+              </Text>
             </View>
             {isBelowMinimum && (
-              <View style={{backgroundColor: '#FEF3C7', borderRadius: 10, padding: 12, marginTop: 12}}>
-                <Text style={{fontSize: 14, fontWeight: '600', color: '#92400E'}}>
+              <View style={styles.minimumNotice}>
+                <Text style={styles.minimumNoticeText}>
                   {`This chef has a $${minimumOrderAmount.toFixed(2)} minimum order. Add $${amountNeeded.toFixed(2)} more to place your order.`}
                 </Text>
               </View>
             )}
-          </View>
-          
-          {/* Discount Code Section */}
-          <DiscountCodeInput
-            code={discountCode}
-            onCodeChange={setDiscountCode}
-            onApply={handleApplyDiscount}
-            onRemove={handleRemoveDiscount}
-            appliedDiscount={appliedDiscount}
-            error={discountError}
-            isLoading={isValidatingCode}
-          />
-          
-          <View style={styles.checkoutBlock}>
+
+            {/* Discount Code Section */}
+            <DiscountCodeInput
+              code={discountCode}
+              onCodeChange={setDiscountCode}
+              onApply={handleApplyDiscount}
+              onRemove={handleRemoveDiscount}
+              appliedDiscount={appliedDiscount}
+              error={discountError}
+              isLoading={isValidatingCode}
+            />
+          </Card>
+
+          <Card>
             <Text style={styles.checkoutSubheading}>Order Address</Text>
             <View style={styles.checkoutSummaryItemWrapper}>
               <View style={{width: '100%'}}>
@@ -772,13 +773,13 @@ const Checkout = () => {
                 </Text>
               </View>
             </View>
-            <View style={{borderTopWidth: 1, borderTopColor: '#E5E7EB', paddingTop: 12, marginTop: 4}}>
-              <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8}}>
-                <Text style={{fontSize: 15, fontWeight: '600', color: AppColors.text}}>
+            <View style={styles.addressDivider}>
+              <View style={styles.addressEditRow}>
+                <Text style={styles.addressEditTitle}>
                   Arrival & Parking
                 </Text>
                 <TouchableOpacity onPress={() => setEditingParking(!editingParking)}>
-                  <Text style={{fontSize: 14, fontWeight: '600', color: AppColors.primary}}>
+                  <Text style={styles.addressEditAction}>
                     {editingParking ? 'Done' : 'Edit'}
                   </Text>
                 </TouchableOpacity>
@@ -799,8 +800,8 @@ const Checkout = () => {
                 </Text>
               )}
             </View>
-          </View>
-          <View style={styles.checkoutBlock}>
+          </Card>
+          <Card>
             <Text style={styles.checkoutSubheading}>Payment Information</Text>
             <TouchableOpacity
               testID="checkout.paymentMethodSelector"
@@ -853,8 +854,8 @@ const Checkout = () => {
               }
               onAddCard={handleAddPaymentCard}
             /> */}
-          </View>
-          <View style={styles.checkoutBlock}>
+          </Card>
+          <Card>
             <View style={styles.switchWrapper}>
               <StyledSwitch
                 testID="checkout.applianceSwitch"
@@ -866,22 +867,34 @@ const Checkout = () => {
                 onPress={() => onChangeAppliance(!appliance)}
               />
             </View>
-          </View>
-          <View style={styles.vcenter}>
-            <TouchableOpacity
-              testID="checkout.placeOrderButton"
-              style={appliance && !isBelowMinimum ? GlobalStyles.btn : GlobalStyles.btnDisabled}
-              onPress={() => handleCheckout()}
-              disabled={!appliance || isBelowMinimum}>
-              <Text
-                style={
-                  appliance && !isBelowMinimum ? GlobalStyles.btnTxt : GlobalStyles.btnDisabledTxt
-                }>
-                PLACE ORDER
-              </Text>
-            </TouchableOpacity>
-          </View>
+          </Card>
         </ScrollView>
+
+        {/* Sticky bottom bar */}
+        <View style={styles.bottomBar}>
+          <View style={styles.bottomBarTotalWrapper}>
+            <Text style={styles.bottomBarTotalLabel}>Total</Text>
+            <Text style={styles.bottomBarTotalValue}>
+              {`$${calculateFinalTotal().toFixed(2)}`}
+            </Text>
+          </View>
+          <TouchableOpacity
+            testID="checkout.placeOrderButton"
+            style={[
+              styles.bottomBarButton,
+              (!appliance || isBelowMinimum) && styles.bottomBarButtonDisabled,
+            ]}
+            onPress={() => handleCheckout()}
+            disabled={!appliance || isBelowMinimum}>
+            <Text
+              style={[
+                styles.bottomBarButtonText,
+                (!appliance || isBelowMinimum) && styles.bottomBarButtonTextDisabled,
+              ]}>
+              Place order
+            </Text>
+          </TouchableOpacity>
+        </View>
       </Container>
 
       {/* Address Collection Modal */}

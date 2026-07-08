@@ -94,6 +94,28 @@ class AppHelper
     }
 
     /**
+     * Decide which SSN to forward to Stripe's individual.id_number.
+     *
+     * In Stripe TEST mode a real-format SSN can never pass identity
+     * verification, so Personal Details is stuck on "Invalid" no matter what
+     * the chef types. Stripe's documented test value 000000000 simulates a
+     * successful identity check — exactly what staging needs. In LIVE mode we
+     * forward the chef's real 9-digit SSN (digits only), or null if it isn't a
+     * valid 9-digit number so Stripe simply asks for it later.
+     *
+     * Stripe secret keys for test mode contain "_test_" (sk_test_…, rk_test_…).
+     */
+    public static function resolveStripeSsn(?string $stripeSecret, ?string $rawSsn): ?string
+    {
+        if (strpos((string) $stripeSecret, '_test_') !== false) {
+            return '000000000';
+        }
+
+        $digits = preg_replace('/[^0-9]/', '', (string) $rawSsn);
+        return strlen($digits) === 9 ? $digits : null;
+    }
+
+    /**
      * Tiny HTML bounce page that returns the user to the app via a custom-scheme
      * deep link after Stripe onboarding. A bare 302 to taistexpo:// is unreliable
      * in Safari, so we JS-redirect immediately with a manual-tap fallback.

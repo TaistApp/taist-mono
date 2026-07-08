@@ -58,6 +58,27 @@ export const Delay = (ms: number) => {
   });
 };
 
+// Some records come back from the API with the literal strings "null" or
+// "undefined" (e.g. a null DB column that got stringified upstream). Treat
+// those — and whitespace-only values — as empty so they never render as text.
+export const cleanText = (value?: string | null): string => {
+  if (value == null) return '';
+  const trimmed = String(value).trim();
+  if (trimmed === '' || trimmed.toLowerCase() === 'null' || trimmed.toLowerCase() === 'undefined') {
+    return '';
+  }
+  return trimmed;
+};
+
+// Capitalizes the first letter of each space-separated word, leaving the rest
+// of each word untouched (so "pumpkin seeds" -> "Pumpkin Seeds" but "BBQ sauce"
+// -> "BBQ Sauce"). Used for chef-entered names like custom add-ons.
+export const capitalizeWords = (value?: string | null): string =>
+  cleanText(value)
+    .split(' ')
+    .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : w))
+    .join(' ');
+
 export const formatDisplayName = (firstName?: string, lastName?: string, includeLastInitial: boolean = true) => {
   const first = firstName || '';
   if (!includeLastInitial) return first;

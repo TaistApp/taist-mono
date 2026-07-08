@@ -66,6 +66,13 @@ class ReferralService
             return ['success' => false, 'error' => 'Please enter a valid phone number.'];
         }
 
+        // Prevent self-referral. Phone number is the strongest anti-gaming
+        // signal we have (emails are free and infinite; phones are not), so a
+        // user can't refer their own number to credit themselves.
+        if ($this->isSelfReferral($referrer->phone ?? null, $phone)) {
+            return ['success' => false, 'error' => "You can't refer your own phone number."];
+        }
+
         $existingCustomer = Listener::where('phone', $normalizedPhone)
             ->where('user_type', 1)
             ->exists();
@@ -224,10 +231,12 @@ class ReferralService
             return null;
         }
 
-        $code = 'REFER-' . strtoupper(Str::random(6));
+        // Bare 6-char code (no "REFER-" prefix) so the SMS reads cleaner:
+        // "Use code IPDCNB for 50% off".
+        $code = strtoupper(Str::random(6));
         $attempts = 0;
         while (DiscountCodes::where('code', $code)->exists() && $attempts < 10) {
-            $code = 'REFER-' . strtoupper(Str::random(6));
+            $code = strtoupper(Str::random(6));
             $attempts++;
         }
 
@@ -266,6 +275,18 @@ class ReferralService
             ->with(['referredUser:id,first_name,last_name', 'chef:id,first_name,last_name', 'referrerDiscountCode:id,code,is_active,valid_until,current_uses'])
             ->orderBy('created_at', 'desc')
             ->get();
+    }
+
+    /**
+     * True when the target phone resolves to the referrer's own phone. Both are
+     * normalized first so different formatting (spaces, dashes, +1) can't bypass
+     * the check. Returns false if either number is missing/invalid.
+     */
+    public function isSelfReferral(?string $referrerPhone, string $targetPhone): bool
+    {
+        $a = $this->normalizePhone($referrerPhone ?? '');
+        $b = $this->normalizePhone($targetPhone);
+        return $a !== null && $b !== null && $a === $b;
     }
 
     private function normalizePhone(string $phone)

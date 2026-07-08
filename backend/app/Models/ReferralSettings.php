@@ -37,6 +37,7 @@ class ReferralSettings extends Model
         if ($this->discount_type === 'fixed') {
             return '$' . number_format($this->discount_value, 2) . ' off';
         }
-        return $this->discount_value . '% off';
+        // Drop trailing decimals for percentages: 50.00 -> "50", 12.50 -> "12.5".
+        return rtrim(rtrim(number_format($this->discount_value, 2, '.', ''), '0'), '.') . '% off';
     }
 }
