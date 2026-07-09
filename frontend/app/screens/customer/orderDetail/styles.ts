@@ -113,6 +113,44 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  customTipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 12,
+  },
+  customTipToggle: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: '#7f7f7f',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  customTipToggleBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+  },
+  customTipToggleBtnActive: {
+    backgroundColor: '#fa4616',
+  },
+  customTipToggleText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#000000',
+  },
+  customTipToggleTextActive: {
+    color: '#ffffff',
+  },
+  customTipPreview: {
+    marginTop: 8,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000000',
+    alignSelf: 'flex-end',
+  },
   btnPayment: {
     flexDirection: 'row',
     justifyContent: 'space-between',

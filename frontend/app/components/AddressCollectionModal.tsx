@@ -9,6 +9,7 @@ import { ShowErrorToast, ShowSuccessToast } from '../utils/toast';
 import StyledTextInput from './styledTextInput';
 import StyledButton from './styledButton';
 import ParkingPicker from './ParkingPicker';
+import { cleanText } from '../utils/functions';
 import * as Location from 'expo-location';
 
 interface AddressCollectionModalProps {
@@ -26,14 +27,16 @@ export const AddressCollectionModal: React.FC<AddressCollectionModalProps> = ({
   onCancel,
   loading = false,
 }) => {
-  const [firstName, setFirstName] = useState(userInfo.first_name || '');
-  const [lastName, setLastName] = useState(userInfo.last_name || '');
-  const [address, setAddress] = useState(userInfo.address || '');
-  const [city, setCity] = useState(userInfo.city || '');
-  const [state, setState] = useState(userInfo.state || '');
-  const [zip, setZip] = useState(userInfo.zip || '');
-  const [parkingType, setParkingType] = useState<string | undefined>(userInfo.parking_type);
-  const [parkingInstructions, setParkingInstructions] = useState(userInfo.parking_instructions || '');
+  // cleanText strips the literal "null"/"undefined" strings the API can return
+  // for empty columns, so they never appear as field values or placeholders.
+  const [firstName, setFirstName] = useState(cleanText(userInfo.first_name));
+  const [lastName, setLastName] = useState(cleanText(userInfo.last_name));
+  const [address, setAddress] = useState(cleanText(userInfo.address));
+  const [city, setCity] = useState(cleanText(userInfo.city));
+  const [state, setState] = useState(cleanText(userInfo.state));
+  const [zip, setZip] = useState(cleanText(userInfo.zip));
+  const [parkingType, setParkingType] = useState<string | undefined>(cleanText(userInfo.parking_type) || undefined);
+  const [parkingInstructions, setParkingInstructions] = useState(cleanText(userInfo.parking_instructions));
   const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   const statesData = [

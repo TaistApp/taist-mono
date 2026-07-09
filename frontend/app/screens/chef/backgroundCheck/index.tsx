@@ -217,10 +217,10 @@ const BackgroundCheck = () => {
           </View>
           <View style={styles.switchWrapper}>
             <Text style={styles.agreeText}>
-              I agree to submit this information to Taist's third party
-              background check service. Your SSN is stored securely (encrypted)
-              and used only to verify your identity with Stripe and our
-              background check provider.{' '}
+              I agree to submit this information to SafeScreener, Taist's
+              third party background check service. Your SSN is stored securely
+              (encrypted) and used only to verify your identity with Stripe and
+              SafeScreener.{' '}
             </Text>
             <StyledSwitch
               label="Yes "
