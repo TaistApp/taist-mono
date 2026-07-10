@@ -67,7 +67,10 @@ export const styles = StyleSheet.create({
 	},
 	buttonsWrapper: {
 		width: '100%',
-		paddingHorizontal: Spacing.xxl,
+		// `main` already insets by Spacing.xl; keep only a small extra inset so the
+		// long "Continue with Google" label has breathing room and doesn't run to
+		// the button edges.
+		paddingHorizontal: Spacing.xs,
 		gap: Spacing.md,
 	},
 	button: {
