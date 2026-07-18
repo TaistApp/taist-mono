@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [32.4.3] - 2026-07-18
+
+### Changed
+- Renamed the "Use My Current Location" button to "Next" on the customer ZIP step, chef address step, and post-social-signup location screen, with an explanatory hint above it (App Review Guideline 5.1.1(iv) — buttons shown before a permission request must use neutral wording)
+- Bumped iOS build number to 58
+- Bumped Android versionCode to 179
+
+---
+
 ## [32.3.0] - 2026-06-04
 
 ### Added
