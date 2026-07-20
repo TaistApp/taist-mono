@@ -110,6 +110,12 @@ export default function CompleteLocationScreen() {
           delivery address later when you order.
         </Text>
 
+        {/* ASC Guideline 5.1.1(iv): the button preceding the location permission
+            prompt must use neutral wording like "Continue"/"Next" — the
+            description lives in the hint text instead */}
+        <Text style={styles.locationHint}>
+          We can fill in your ZIP code automatically using your device's location
+        </Text>
         <Pressable
           testID="completeLocation.useMyLocation"
           style={styles.locationButton}
@@ -118,7 +124,7 @@ export default function CompleteLocationScreen() {
         >
           <FontAwesomeIcon icon={faLocationArrow} size={22} color={AppColors.primary} />
           <Text style={styles.locationButtonText}>
-            {isGettingLocation ? 'Getting location...' : 'Use My Current Location'}
+            {isGettingLocation ? 'Getting location...' : 'Next'}
           </Text>
         </Pressable>
 
@@ -173,6 +179,12 @@ const styles = StyleSheet.create({
     color: AppColors.textSecondary,
     lineHeight: 21,
     marginBottom: Spacing.md,
+  },
+  locationHint: {
+    fontSize: 14,
+    color: AppColors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   locationButton: {
     flexDirection: 'row',
