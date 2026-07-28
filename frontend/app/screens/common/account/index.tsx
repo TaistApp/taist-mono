@@ -58,6 +58,7 @@ import {
   RegisterAPI,
   UpdateUserAPI,
   VerifyPhoneAPI,
+  ConfirmPhoneCodeAPI,
 } from "../../../services/api";
 import { checkLocalPath, getImageURL } from "../../../utils/functions";
 import { ShowErrorToast, ShowSuccessToast } from "../../../utils/toast";
@@ -96,7 +97,6 @@ const Account = () => {
   const [felony, onChangeFelony] = useState(false);
   const [visibleVerifyCode, onChangeVisibleVerifyCode] = useState(false);
   const [verificationCode, onChangeVerificationCode] = useState("");
-  const [verificationCode1, onChangeVerificationCode1] = useState(""); //server
   const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   const statesData = [
@@ -326,18 +326,18 @@ const Account = () => {
       ShowErrorToast(resp.error || resp.message);
       return;
     }
-    const code = resp.data.code;
-    onChangeVerificationCode1(code);
     onChangeVisibleVerifyCode(true);
   };
 
-  const handleVerify = () => {
-    console.log(
-      "verificationCode:",
-      verificationCode + " --->>" + verificationCode1,
+  const handleVerify = async () => {
+    dispatch(showLoading());
+    const resp = await ConfirmPhoneCodeAPI(
+      userInfo.phone ?? "",
+      verificationCode.trim(),
     );
-    if (verificationCode != verificationCode1) {
-      ShowErrorToast("Please enter the verification code again");
+    dispatch(hideLoading());
+    if (resp.success != 1) {
+      ShowErrorToast(resp.error || "Please enter the verification code again");
       return;
     }
     onChangeVisibleVerifyCode(false);
