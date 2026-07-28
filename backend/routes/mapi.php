@@ -11,6 +11,7 @@ Route::post('social-login', 'SocialAuthController@login');
 Route::post('forgot', 'MapiController@forgot');
 Route::post('reset_password', 'MapiController@resetpassword');
 Route::post('verify_phone', 'MapiController@verifyPhone');
+Route::post('confirm_phone_code', 'MapiController@confirmPhoneCode');
 Route::post('complete_chef_quiz', 'MapiController@completeChefQuiz');
 Route::get('background_check_order_status', 'MapiController@backgroundCheckOrderStatus');
 Route::get('get-version', 'MapiController@getVersion');

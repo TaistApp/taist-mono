@@ -14,7 +14,7 @@ import { ShowErrorToast, ShowSuccessToast } from "../../../../utils/toast";
 import StyledTextInput from "../../../../components/styledTextInput";
 import StyledButton from "../../../../components/styledButton";
 import OTPInput from "../../../../components/OTPInput";
-import { VerifyPhoneAPI } from "../../../../services/api";
+import { VerifyPhoneAPI, ConfirmPhoneCodeAPI } from "../../../../services/api";
 
 interface StepChefPhoneProps {
   userInfo: IUser;
@@ -31,7 +31,6 @@ export const StepChefPhone: React.FC<StepChefPhoneProps> = ({
 }) => {
   const [visibleVerifyCode, setVisibleVerifyCode] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
-  const [serverCode, setServerCode] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSendingCode, setIsSendingCode] = useState(false);
 
@@ -58,7 +57,6 @@ export const StepChefPhone: React.FC<StepChefPhoneProps> = ({
       const response = await VerifyPhoneAPI(userInfo.phone!);
 
       if (response.success === 1) {
-        setServerCode(response.data.code);
         setVisibleVerifyCode(true);
         ShowSuccessToast("Verification code sent to your phone!");
       } else {
@@ -72,21 +70,27 @@ export const StepChefPhone: React.FC<StepChefPhoneProps> = ({
     }
   };
 
-  const handleVerify = () => {
-    console.log(
-      "Verifying code:",
-      verificationCode,
-      "Server code:",
-      serverCode,
-    );
+  const handleVerify = async () => {
+    setIsVerifying(true);
+    try {
+      const response = await ConfirmPhoneCodeAPI(
+        userInfo.phone!,
+        verificationCode.trim(),
+      );
 
-    if (verificationCode.trim() !== serverCode.toString().trim()) {
-      ShowErrorToast("Incorrect verification code");
-      return;
+      if (response.success !== 1) {
+        ShowErrorToast(response.error || "Incorrect verification code");
+        return;
+      }
+      setVisibleVerifyCode(false);
+      ShowSuccessToast("Phone verified successfully!");
+      onNext();
+    } catch (error) {
+      console.error("Error verifying code:", error);
+      ShowErrorToast("Failed to verify code. Please try again.");
+    } finally {
+      setIsVerifying(false);
     }
-    setVisibleVerifyCode(false);
-    ShowSuccessToast("Phone verified successfully!");
-    onNext();
   };
 
   return (

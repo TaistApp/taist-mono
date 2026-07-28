@@ -71,6 +71,10 @@ class MapiController extends Controller
     const ORDER_BUFFER_MINUTES = 30;                  // Buffer time (minutes) between orders
     const DEFAULT_ORDER_DURATION_MINUTES = 120;       // Fallback if chef has no live menu items
 
+    // Server-side SMS verification (confirm_phone_code)
+    const PHONE_CODE_TTL_SECONDS = 600;               // Code valid for 10 minutes after send
+    const PHONE_CODE_MAX_ATTEMPTS = 5;                // Wrong guesses before the code is invalidated
+
     public function __construct(Request $request, OrderSmsService $orderSmsService, ChatSmsService $chatSmsService, ReferralService $referralService)
     {
         $this->request = $request;
@@ -342,10 +346,88 @@ class MapiController extends Controller
             ]);
         }
 
+        $this->_storePhoneVerificationCode($request->phone_number, $code);
+
+        // LEGACY: data.code lets old app versions verify client-side. Remove it
+        // only after MIN_VERSION forces out every version that reads it (new
+        // versions use confirm_phone_code and ignore this field). Until then,
+        // removing it would break phone verification for all existing installs.
         return response()->json([
             'success' => 1,
             'data' => ['code' => $code]
         ]);
+    }
+
+    /**
+     * Server-side check of the SMS code sent by verify_phone. The code is held
+     * in cache for PHONE_CODE_TTL_SECONDS and discarded after
+     * PHONE_CODE_MAX_ATTEMPTS wrong guesses or one successful confirmation.
+     */
+    public function confirmPhoneCode(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'phone_number' => 'required|string|min:10',
+            'code' => 'required|string'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => 0,
+                'error' => 'Invalid phone number or code'
+            ]);
+        }
+
+        $key = $this->_phoneVerificationCacheKey($request->phone_number);
+        $entry = Cache::get($key);
+
+        if (!$entry || time() > $entry['expires_at']) {
+            Cache::forget($key);
+            return response()->json([
+                'success' => 0,
+                'error' => 'Verification code expired. Please request a new code.'
+            ]);
+        }
+
+        if (!hash_equals((string) $entry['code'], trim((string) $request->code))) {
+            $entry['attempts']++;
+            if ($entry['attempts'] >= self::PHONE_CODE_MAX_ATTEMPTS) {
+                Cache::forget($key);
+                return response()->json([
+                    'success' => 0,
+                    'error' => 'Too many incorrect attempts. Please request a new code.'
+                ]);
+            }
+            Cache::put($key, $entry, max(1, $entry['expires_at'] - time()));
+            return response()->json([
+                'success' => 0,
+                'error' => 'Incorrect verification code'
+            ]);
+        }
+
+        Cache::forget($key);
+
+        return response()->json(['success' => 1]);
+    }
+
+    private function _storePhoneVerificationCode($phoneNumber, $code)
+    {
+        Cache::put($this->_phoneVerificationCacheKey($phoneNumber), [
+            'code' => (string) $code,
+            'attempts' => 0,
+            'expires_at' => time() + self::PHONE_CODE_TTL_SECONDS,
+        ], self::PHONE_CODE_TTL_SECONDS);
+    }
+
+    private function _phoneVerificationCacheKey($phoneNumber)
+    {
+        // Digits-only so "(555) 123-4567" and "+1 555-123-4567" share one key;
+        // a bare 10-digit US number gets the leading 1 so it matches the E.164
+        // form Twilio actually texted.
+        $digits = preg_replace('/\D/', '', (string) $phoneNumber);
+        if (strlen($digits) === 10) {
+            $digits = '1' . $digits;
+        }
+        return 'phone-verification:' . $digits;
     }
 
     /** Push Notification */
