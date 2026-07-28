@@ -1107,6 +1107,17 @@ export const VerifyPhoneAPI = async (phone_number: string) => {
   return response;
 };
 
+export const ConfirmPhoneCodeAPI = async (
+  phone_number: string,
+  code: string,
+) => {
+  var response = await POSTAPICALL("confirm_phone_code", {
+    phone_number,
+    code,
+  });
+  return response;
+};
+
 /**
  * Toggle chef online/offline status
  */
