@@ -143,6 +143,11 @@ $chefs = [
 
 echo "\n";
 
+// 555 area-code numbers are invalid, so Twilio rejects any send to them at the
+// API (error 21211, unbilled). Random real +1317 numbers here previously caused
+// order/reminder SMS to text real strangers and get billed.
+$testPhoneSeq = 9100;
+
 foreach ($chefs as $chefData) {
     $existing = Listener::where('email', $chefData['email'])->first();
     if ($existing) {
@@ -156,7 +161,7 @@ foreach ($chefs as $chefData) {
         'last_name' => $chefData['last_name'],
         'email' => $chefData['email'],
         'password' => bcrypt('taist2026'),
-        'phone' => '+1317' . str_pad((string) rand(0, 9999999), 7, '0', STR_PAD_LEFT),
+        'phone' => '+1555123' . $testPhoneSeq++,
         'bio' => $chefData['bio'],
         'address' => $chefData['address'],
         'city' => $chefData['city'],

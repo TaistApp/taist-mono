@@ -11,12 +11,23 @@ class TwilioService
     protected $client;
     protected $fromNumber;
     protected $enabled;
+    protected $sendingAllowed;
 
     public function __construct()
     {
         $this->enabled = !empty(env('TWILIO_SID')) &&
                         !empty(env('TWILIO_TOKEN')) &&
                         !empty(env('TWILIO_FROM'));
+
+        // SMS only goes out in production unless SMS_ENABLED explicitly overrides
+        // (same pattern as ChefConfirmationReminderService). Staging shares the
+        // production Twilio account, so ungated sends from testing/E2E are billed
+        // real money. Suppressed sends log and report success so non-production
+        // flows (signup verification, order lifecycle) keep working.
+        $this->sendingAllowed = filter_var(
+            env('SMS_ENABLED', env('APP_ENV') === 'production'),
+            FILTER_VALIDATE_BOOLEAN
+        );
 
         if ($this->enabled) {
             $sid = env('TWILIO_SID');
@@ -45,6 +56,16 @@ class TwilioService
             return [
                 'success' => false,
                 'error' => 'Invalid phone number format'
+            ];
+        }
+
+        if (!$this->sendingAllowed) {
+            Log::info('SMS suppressed outside production (verification code)', [
+                'phone' => $phone
+            ]);
+            return [
+                'success' => true,
+                'error' => null
             ];
         }
 
@@ -179,6 +200,17 @@ class TwilioService
             return [
                 'success' => false,
                 'error' => 'Invalid phone number format',
+                'sid' => null
+            ];
+        }
+
+        if (!$this->sendingAllowed) {
+            Log::info('SMS suppressed outside production', array_merge([
+                'phone' => $formattedPhone
+            ], $metadata));
+            return [
+                'success' => true,
+                'error' => null,
                 'sid' => null
             ];
         }
