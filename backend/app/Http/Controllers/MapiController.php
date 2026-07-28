@@ -47,6 +47,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
 use Twilio\Rest\Client;
 use Kreait\Laravel\Firebase\Facades\Firebase;
@@ -310,6 +311,22 @@ class MapiController extends Controller
                 'error' => 'Invalid phone number'
             ]);
         }
+
+        // Rate-limit sends: this endpoint is unauthenticated and every SMS costs
+        // money, making it a target for SMS-pumping abuse. Limits are per-phone
+        // (normalized to digits so formatting variants share one bucket) and per-IP.
+        $phoneKey = 'verify-phone:' . preg_replace('/\D/', '', $request->phone_number);
+        $ipKey = 'verify-phone-ip:' . $request->ip();
+
+        if (RateLimiter::tooManyAttempts($phoneKey, 3) || RateLimiter::tooManyAttempts($ipKey, 10)) {
+            return response()->json([
+                'success' => 0,
+                'error' => 'Too many verification attempts. Please wait a few minutes and try again.'
+            ]);
+        }
+
+        RateLimiter::hit($phoneKey, 600);  // 3 sends per phone per 10 minutes
+        RateLimiter::hit($ipKey, 3600);    // 10 sends per IP per hour
 
         // Generate verification code
         $code = $this->_generateCode();
