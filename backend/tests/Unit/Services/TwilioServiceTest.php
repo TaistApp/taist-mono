@@ -318,4 +318,73 @@ class TwilioServiceTest extends TestCase
         $this->assertFalse($result['success']);
         $this->assertNotNull($result['error']);
     }
+
+    // ==========================================
+    // Environment Gating Tests (SMS_ENABLED)
+    // ==========================================
+
+    /**
+     * Outside production (APP_ENV=testing here), sends are suppressed and
+     * reported as success so callers' flows keep working — no Twilio charge.
+     */
+    public function test_send_sms_suppressed_outside_production()
+    {
+        $result = $this->twilioService->sendSMS('3175550188', 'Test message');
+
+        $this->assertTrue($result['success']);
+        $this->assertNull($result['error']);
+        $this->assertNull($result['sid']);
+    }
+
+    public function test_send_verification_code_suppressed_outside_production()
+    {
+        $result = $this->twilioService->sendVerificationCode('3175550188', '123456');
+
+        $this->assertTrue($result['success']);
+        $this->assertNull($result['error']);
+    }
+
+    /**
+     * Control: SMS_ENABLED=true overrides the gate. With no Twilio credentials
+     * configured, the send falls through to the "not configured" error —
+     * proving the gate (not credential absence) produced the success above.
+     */
+    public function test_send_sms_attempted_when_sms_enabled_override_set()
+    {
+        putenv('SMS_ENABLED=true');
+        try {
+            $service = new TwilioService();
+            $result = $service->sendSMS('3175550188', 'Test message');
+
+            $this->assertFalse($result['success']);
+            $this->assertEquals('SMS service not configured', $result['error']);
+        } finally {
+            putenv('SMS_ENABLED');
+        }
+    }
+
+    public function test_send_verification_code_attempted_when_sms_enabled_override_set()
+    {
+        putenv('SMS_ENABLED=true');
+        try {
+            $service = new TwilioService();
+            $result = $service->sendVerificationCode('3175550188', '123456');
+
+            $this->assertFalse($result['success']);
+            $this->assertEquals('SMS service not configured', $result['error']);
+        } finally {
+            putenv('SMS_ENABLED');
+        }
+    }
+
+    /**
+     * Invalid phone still errors before the gate — validation is unchanged.
+     */
+    public function test_invalid_phone_still_errors_when_suppressed()
+    {
+        $result = $this->twilioService->sendSMS('invalid', 'Test message');
+
+        $this->assertFalse($result['success']);
+        $this->assertEquals('Invalid phone number format', $result['error']);
+    }
 }
