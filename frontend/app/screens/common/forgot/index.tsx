@@ -18,7 +18,7 @@ const Forgot = () => {
   const dispatch = useAppDispatch();
 
   const [email, onChangeEmail] = useState("");
-  const [serverCode, onChangeServerCode] = useState("");
+  const [codeRequested, onChangeCodeRequested] = useState(false);
   const [code, onChangeCode] = useState("");
   const [password, onChangePassword] = useState("");
   const [confirmPassword, onChangeConfirmPassword] = useState("");
@@ -48,8 +48,7 @@ const Forgot = () => {
       ShowErrorToast(resp.message ?? resp.error);
       return;
     }
-    console.log("serverCode", resp.data);
-    onChangeServerCode(resp.data);
+    onChangeCodeRequested(true);
   };
 
   const handleReset = async () => {
@@ -63,8 +62,8 @@ const Forgot = () => {
       ShowErrorToast(errorMsg);
       return;
     }
-    if (code != serverCode) {
-      ShowErrorToast("Please enter the code correctly");
+    if (code.trim() === "") {
+      ShowErrorToast("Please enter the code");
       return;
     }
     if (password != confirmPassword) {
@@ -73,7 +72,7 @@ const Forgot = () => {
     }
 
     dispatch(showLoading());
-    const resp = await ResetPasswordAPI({ code, password });
+    const resp = await ResetPasswordAPI({ email, code: code.trim(), password });
     dispatch(hideLoading());
 
     if (resp.success == 0) {
@@ -96,7 +95,7 @@ const Forgot = () => {
         <View>
           <Text style={styles.heading}>Forgot Password</Text>
         </View>
-        {serverCode == "" ? (
+        {!codeRequested ? (
           <View>
             {/* @ts-ignore - TextInput from @react-native-material/core has different props */}
             <TextInput
@@ -184,10 +183,10 @@ const Forgot = () => {
         <Pressable
           testID="forgotPassword.submitButton"
           style={styles.button}
-          onPress={serverCode == "" ? handleRequest : handleReset}
+          onPress={!codeRequested ? handleRequest : handleReset}
         >
           <Text style={styles.buttonText}>
-            {serverCode == "" ? "Request " : "Reset "}
+            {!codeRequested ? "Request " : "Reset "}
           </Text>
         </Pressable>
         <Pressable
