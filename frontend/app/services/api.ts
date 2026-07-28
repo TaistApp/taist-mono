@@ -443,8 +443,8 @@ export const ForgotAPI = async (email: string) => {
   return response;
 };
 
-export const ResetPasswordAPI = async ({ code, password }: any) => {
-  var response = await POSTAPICALL("reset_password", { code, password });
+export const ResetPasswordAPI = async ({ email, code, password }: any) => {
+  var response = await POSTAPICALL("reset_password", { email, code, password });
   return response;
 };
 
