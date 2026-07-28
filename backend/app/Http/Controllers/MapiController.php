@@ -75,6 +75,10 @@ class MapiController extends Controller
     const PHONE_CODE_TTL_SECONDS = 600;               // Code valid for 10 minutes after send
     const PHONE_CODE_MAX_ATTEMPTS = 5;                // Wrong guesses before the code is invalidated
 
+    // Server-side password-reset verification (reset_password with email)
+    const RESET_CODE_TTL_SECONDS = 600;               // Reset code valid for 10 minutes after send
+    const RESET_CODE_MAX_ATTEMPTS = 5;                // Wrong guesses before the reset code is invalidated
+
     public function __construct(Request $request, OrderSmsService $orderSmsService, ChatSmsService $chatSmsService, ReferralService $referralService)
     {
         $this->request = $request;
@@ -596,6 +600,12 @@ class MapiController extends Controller
 
             Log::info('email Logs', [json_encode($b)]);
 
+            $this->_storePasswordResetCode($request->email, $code);
+
+            // LEGACY: data still carries the code so old app versions can verify
+            // client-side. Remove it (and the code-only branch in resetpassword)
+            // only after MIN_VERSION forces out every version that reads it —
+            // new versions verify via reset_password with the email field.
             return response()->json(['success' => 1, 'data' => $code]);
         }
         return response()->json(['success' => 0, 'error' => 'The email does not exist.']);
@@ -613,11 +623,72 @@ class MapiController extends Controller
         if ($validator->fails()) {
             return response()->json(['success' => 0, 'error' => "The password field is required."]);
         }
+
+        // New clients send the account email so the code is checked server-side
+        // (cache entry with TTL + attempt limit, single-use).
+        if ($request->filled('email')) {
+            $error = $this->_checkPasswordResetCode($request->email, $request->code);
+            if ($error !== null) {
+                return response()->json(['success' => 0, 'error' => $error]);
+            }
+            if ($user = app(Listener::class)->where(['email' => $request->email])->first()) {
+                $user->update(['code' => '', 'password' => $request->password]);
+                return response()->json(['success' => 1, 'data' => '']);
+            }
+            return response()->json(['success' => 0, 'error' => 'The email does not exist.']);
+        }
+
+        // LEGACY: old app versions send only {code, password} and rely on this
+        // lookup-by-code path. Remove together with data.code in forgot once
+        // MIN_VERSION forces those versions out.
         if ($user = app(Listener::class)->where(['code' => $request->code])->where('code', '<>', '')->first()) {
             $user->update(['code' => '', 'password' => $request->password]);
             return response()->json(['success' => 1, 'data' => '']);
         }
         return response()->json(['success' => 0, 'error' => 'The email does not exist.']);
+    }
+
+    private function _storePasswordResetCode($email, $code)
+    {
+        Cache::put($this->_passwordResetCacheKey($email), [
+            'code' => (string) $code,
+            'attempts' => 0,
+            'expires_at' => time() + self::RESET_CODE_TTL_SECONDS,
+        ], self::RESET_CODE_TTL_SECONDS);
+    }
+
+    /**
+     * Returns null when the code is valid (and consumes it), otherwise a
+     * user-facing error string. Same rules as confirmPhoneCode: expiry,
+     * attempt limit, constant-time compare, single-use.
+     */
+    private function _checkPasswordResetCode($email, $code)
+    {
+        $key = $this->_passwordResetCacheKey($email);
+        $entry = Cache::get($key);
+
+        if (!$entry || time() > $entry['expires_at']) {
+            Cache::forget($key);
+            return 'Verification code expired. Please request a new code.';
+        }
+
+        if (!hash_equals((string) $entry['code'], trim((string) $code))) {
+            $entry['attempts']++;
+            if ($entry['attempts'] >= self::RESET_CODE_MAX_ATTEMPTS) {
+                Cache::forget($key);
+                return 'Too many incorrect attempts. Please request a new code.';
+            }
+            Cache::put($key, $entry, max(1, $entry['expires_at'] - time()));
+            return 'Incorrect verification code';
+        }
+
+        Cache::forget($key);
+        return null;
+    }
+
+    private function _passwordResetCacheKey($email)
+    {
+        return 'password-reset:' . strtolower(trim((string) $email));
     }
 
     public function login(Request $request)
