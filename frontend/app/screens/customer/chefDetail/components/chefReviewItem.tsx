@@ -11,6 +11,11 @@ type Props = {
 const ChefReviewItem = (props: Props) => {
   return (
     <View style={styles.chefCard}>
+      {props.item.reviewer_name ? (
+        <Text style={styles.chefCardReviewerName}>
+          {props.item.reviewer_name}
+        </Text>
+      ) : null}
       <Text style={styles.chefCardInsured}>{props.item.review}</Text>
       <View style={styles.chefCardInnerReview}>
         <StarRatingDisplay

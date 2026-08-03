@@ -12,6 +12,7 @@ import {
 
 // NPM
 import {
+  faAngleDown,
   faAngleLeft,
   faShareNodes
 } from '@fortawesome/free-solid-svg-icons';
@@ -61,6 +62,7 @@ const ChefDetail = () => {
   const [availabilityDate, setAvailabilityDate] = useState<string>('');
   const scrollViewRef = useRef<ScrollView>(null);
   const availabilityY = useRef<number>(0);
+  const [hasReachedOrdering, setHasReachedOrdering] = useState(false);
 
   const chefInfo: IUser = JSON.parse(params.chefInfo as string);
   const reviews: Array<IReview> = JSON.parse(params.reviews as string);
@@ -190,7 +192,17 @@ const ChefDetail = () => {
   return (
     <SafeAreaView style={styles.main}>
       <Container>
-        <ScrollView ref={scrollViewRef} contentContainerStyle={styles.pageView}>
+        <ScrollView
+          ref={scrollViewRef}
+          contentContainerStyle={styles.pageView}
+          scrollEventThrottle={16}
+          onScroll={(e) => {
+            if (availabilityY.current > 0) {
+              setHasReachedOrdering(
+                e.nativeEvent.contentOffset.y >= availabilityY.current - 200,
+              );
+            }
+          }}>
           <View style={[styles.heading, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
             <Pressable onPress={() => router.back()}>
               <FontAwesomeIcon icon={faAngleLeft} size={20} color="#ffffff" />
@@ -236,11 +248,6 @@ const ChefDetail = () => {
                 chefProfile={chefProfile}
                 selectedTime={selectedTime}
                 onTimeSelect={handleTimeSelect}
-                onReady={() => {
-                  setTimeout(() => {
-                    scrollViewRef.current?.scrollTo({ y: availabilityY.current, animated: true });
-                  }, 300);
-                }}
               />
             )}
           </View>
@@ -281,6 +288,23 @@ const ChefDetail = () => {
             </View>
           )}
         </ScrollView>
+        {chefProfile && !hasReachedOrdering && (
+          <TouchableOpacity
+            testID="chefDetail.skipToOrdering"
+            style={[
+              styles.skipToOrderingButton,
+              {bottom: price_checkout > 0 ? 130 : 24},
+            ]}
+            onPress={() =>
+              scrollViewRef.current?.scrollTo({
+                y: availabilityY.current,
+                animated: true,
+              })
+            }>
+            <Text style={styles.skipToOrderingLabel}>{`Skip to ordering `}</Text>
+            <FontAwesomeIcon icon={faAngleDown} size={14} color="#ffffff" />
+          </TouchableOpacity>
+        )}
         {price_checkout > 0 && (
           <View style={{width: '100%', padding: 10, gap: 10}}>
             <TouchableOpacity testID="chefDetail.checkoutButton" style={GlobalStyles.btn} onPress={handleCheckout}>
