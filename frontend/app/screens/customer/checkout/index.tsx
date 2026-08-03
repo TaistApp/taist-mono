@@ -534,6 +534,21 @@ const Checkout = () => {
 
     dispatch(hideLoading());
     if (isCreateSuccess) {
+      // Save parking preferences back to the profile so the next order
+      // starts pre-filled with what the customer entered this time.
+      if (
+        (parkingType ?? '') !== cleanText(self.parking_type) ||
+        (parkingInstructions ?? '') !== cleanText(self.parking_instructions)
+      ) {
+        UpdateUserAPI(
+          {
+            ...self,
+            parking_type: parkingType,
+            parking_instructions: parkingInstructions,
+          },
+          dispatch,
+        ).catch(() => {});
+      }
       dispatch(removeCustomerOrders(chefInfo.id ?? 0));
       dispatch(setSelectedDate(null));  // Clear date after successful order
       goBack();
@@ -794,8 +809,10 @@ const Checkout = () => {
                 />
               ) : (
                 <Text style={styles.checkoutAddressItemTitle}>
-                  {parkingType
-                    ? `${getParkingLabel(parkingType)}${parkingInstructions ? ` · ${parkingInstructions}` : ''}`
+                  {parkingType || parkingInstructions
+                    ? [getParkingLabel(parkingType), parkingInstructions]
+                        .filter(Boolean)
+                        .join(' · ')
                     : 'Not set — tap Edit to add parking info for the chef'}
                 </Text>
               )}
@@ -859,9 +876,14 @@ const Checkout = () => {
             <View style={styles.switchWrapper}>
               <StyledSwitch
                 testID="checkout.applianceSwitch"
-                label={`I have the following appliances available for the Chef: ${getAppliances().join(
-                  ', ',
-                )}`}
+                label={
+                  <>
+                    {'I have the following appliances available for the Chef: '}
+                    <Text style={{color: AppColors.primary, fontWeight: '700'}}>
+                      {getAppliances().join(', ')}
+                    </Text>
+                  </>
+                }
                 labelLines={0}
                 value={appliance}
                 onPress={() => onChangeAppliance(!appliance)}

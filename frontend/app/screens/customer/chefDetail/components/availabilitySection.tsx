@@ -19,7 +19,6 @@ interface Props {
   chefProfile?: IChefProfile;
   selectedTime: string | null; // "HH:MM" or null
   onTimeSelect: (time: string | null, date: string) => void;
-  onReady?: () => void;
 }
 
 const hasValidTime = (value: string | number | undefined): boolean => {
@@ -50,9 +49,7 @@ const AvailabilitySection: React.FC<Props> = ({
   chefProfile,
   selectedTime,
   onTimeSelect,
-  onReady,
 }) => {
-  const hasCalledReady = useRef(false);
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [timeslots, setTimeslots] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -115,10 +112,6 @@ const AvailabilitySection: React.FC<Props> = ({
     } finally {
       if (requestRef.current === requestId) {
         setIsLoading(false);
-        if (!hasCalledReady.current && onReady) {
-          hasCalledReady.current = true;
-          onReady();
-        }
       }
     }
   };

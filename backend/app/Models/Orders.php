@@ -23,6 +23,7 @@ class Orders extends Model
         'notes',
         'payment_token',
         'acceptance_deadline',
+        'acceptance_reminder_sent_at',
         'reminder_sent_at',
         // Discount tracking fields
         'discount_code_id',
@@ -158,6 +159,40 @@ class Orders extends Model
 
         $remaining = (int)$this->acceptance_deadline - time();
         return max(0, $remaining);
+    }
+
+    /**
+     * Whether the chef should get a 5-minute acceptance reminder push right
+     * now. True only while the order is still awaiting acceptance (status 1,
+     * deadline in the future), at least 5 minutes have passed since the
+     * request was created, and no reminder went out in the current 5-minute
+     * cycle.
+     *
+     * @param int|null $now Unix timestamp to evaluate against (defaults to now)
+     * @return bool
+     */
+    public function shouldSendAcceptanceReminder(?int $now = null)
+    {
+        $now = $now ?? time();
+
+        if ($this->status != 1 || !$this->acceptance_deadline) {
+            return false;
+        }
+
+        $deadline = (int)$this->acceptance_deadline;
+        if ($now >= $deadline) {
+            return false; // Window closed — expiry processing takes over
+        }
+
+        // The request was created 30 minutes before its deadline
+        $requestedAt = $deadline - 1800;
+        if ($now - $requestedAt < 300) {
+            return false; // First reminder comes 5 minutes after the request
+        }
+
+        // 270s instead of 300s so scheduler jitter can't skip a whole cycle
+        $lastSent = (int)($this->acceptance_reminder_sent_at ?? 0);
+        return ($now - $lastSent) >= 270;
     }
 
     /**

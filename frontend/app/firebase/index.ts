@@ -151,6 +151,12 @@ export const InitializeNotification = () => {
             return;
           }
 
+          // Expired order request — go to home to order from similar chefs
+          if (remoteMessage?.data?.type === 'order_expired') {
+            navigate.toCustomer.home();
+            return;
+          }
+
           if (remoteMessage?.data?.role == 'chef') {
             navigate.toChef.orderDetailFromNotification({
               orderId: (remoteMessage?.data?.order_id || '0').toString(),
@@ -389,6 +395,14 @@ const handleNotificationNavigation = (remoteMessage: any) => {
 
     // Handle weekly nudge notifications - just open the app, no specific navigation needed
     if (isWeeklyNudgeNotification(remoteMessage)) {
+      return;
+    }
+
+    // Expired order request — take the customer to the home screen so they
+    // can order from similar chefs.
+    if (remoteMessage?.data?.type === 'order_expired') {
+      console.log('>>>Order expired notification - navigating to customer home>>>', JSON.stringify(remoteMessage));
+      navigate.toCustomer.home();
       return;
     }
 

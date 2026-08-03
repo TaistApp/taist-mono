@@ -1,10 +1,11 @@
+import {ReactNode} from 'react';
 import {TouchableOpacity, View, Text} from 'react-native';
 
 import {FontAwesomeIcon} from '@fortawesome/react-native-fontawesome';
 import styles from './styles';
- 
+
 type Props = {
-  label: string;
+  label: ReactNode;
   labelLines?: number;
   value: boolean;
   onPress: () => void;

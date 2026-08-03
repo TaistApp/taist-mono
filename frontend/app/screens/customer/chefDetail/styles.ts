@@ -89,7 +89,7 @@ export const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     width: '70%',
-    color: AppColors.text,
+    color: AppColors.primary,
   },
   chefCardMenuItemPrice: {
     fontSize: 18,
@@ -99,6 +99,12 @@ export const styles = StyleSheet.create({
   chefCardMenuItemDescription: {
     marginVertical: 5,
     color: AppColors.text,
+  },
+  chefCardReviewerName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: AppColors.textSecondary,
+    marginBottom: 4,
   },
   chefCardInnerReview: {
     flexDirection: 'row',
@@ -132,6 +138,23 @@ export const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'center',
     gap: 10,
+  },
+  skipToOrderingButton: {
+    position: 'absolute',
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: AppColors.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 24,
+    ...Shadows.sm,
+  },
+  skipToOrderingLabel: {
+    color: AppColors.textOnPrimary,
+    fontSize: 13,
+    fontWeight: '600',
   },
   checkoutButton: {
     position: 'absolute',
