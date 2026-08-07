@@ -336,6 +336,13 @@ class TestHelperController extends Controller
             return response()->json(['success' => 0, 'error' => 'Access denied.']);
         }
 
+        // Safety: same gate as the other E2E endpoints. Without it this is an
+        // unauthenticated approval bypass in production — the apiKey above
+        // ships inside the app bundle and is extractable.
+        if (!$this->isStripeTestMode()) {
+            return response()->json(['success' => 0, 'error' => 'E2E endpoints only work with Stripe test keys.']);
+        }
+
         $userId = $request->input('user_id');
         $user = Listener::find($userId);
 
