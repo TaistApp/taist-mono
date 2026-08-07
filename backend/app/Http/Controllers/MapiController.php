@@ -3918,6 +3918,53 @@ Write only the review text:";
         return ['lat' => null, 'lng' => null];
     }
 
+    /**
+     * SQL expression for the hour-of-day of an availability column.
+     *
+     * Availability columns hold "HH:MM" strings written by the current app;
+     * legacy rows may still hold unix timestamps. "HH:MM" is already the
+     * chef's local wall-clock time so its hour is used directly; legacy
+     * timestamps are UTC and shifted by the requester's timezone gap (the
+     * pre-HH:MM behavior). Running from_unixtime() on an "HH:MM" string was
+     * the bug: MySQL coerces '09:00' to 9, i.e. seconds after the 1970
+     * epoch, so every chef collapsed onto one bogus hour and the meal-time
+     * filters returned wrong results.
+     */
+    private static function availabilityHourExpr(string $column, float $timezoneGap): string
+    {
+        $tz = "time_format(sec_to_time({$timezoneGap} * 60 * 60), '%H:%i')";
+        return "(CASE WHEN {$column} LIKE '%:%'"
+            . " THEN CAST(SUBSTRING_INDEX({$column}, ':', 1) AS UNSIGNED)"
+            . " ELSE HOUR(convert_tz(from_unixtime({$column}), '+00:00', {$tz})) END)";
+    }
+
+    /**
+     * WHERE fragment matching chefs whose availability on $day overlaps the
+     * requested meal window: 1 Breakfast (5-11), 2 Lunch (11-16),
+     * 3 Dinner (16-22), 4 Late night (22-5, may wrap past midnight).
+     * Window shapes match the original inline SQL exactly.
+     */
+    private static function availabilityTimeSlotCondition(string $day, int $timeSlot, float $timezoneGap): ?string
+    {
+        $start = self::availabilityHourExpr("{$day}_start", $timezoneGap);
+        $end = self::availabilityHourExpr("{$day}_end", $timezoneGap);
+
+        switch ($timeSlot) {
+            case 1:
+                return "(({$start} >= 5 AND {$start} < 11) OR ({$end} > 5 AND {$end} < 12) OR ({$start} <= 5 AND {$end} > 11))";
+            case 2:
+                return "(({$start} >= 11 AND {$start} < 16) OR ({$end} > 11 AND {$end} < 17) OR ({$start} <= 11 AND {$end} > 16))";
+            case 3:
+                return "(({$start} >= 16 AND {$start} < 22) OR ({$end} > 16 AND {$end} < 23) OR ({$start} <= 16 AND {$end} > 22))";
+            case 4:
+                return "((({$start} >= 22 AND {$start} < 25) OR ({$start} >= 0 AND {$start} < 5))"
+                    . " OR (({$end} > 22 AND {$end} < 25) OR ({$end} >= 0 AND {$end} < 6))"
+                    . " OR ({$start} <= 22 AND {$end} > 5 AND {$day}_start > {$day}_end))";
+        }
+
+        return null;
+    }
+
     public function getSearchChefs(Request $request, $id)
     {
         if ($this->_checktaistApiKey($request->header('apiKey')) === false)
@@ -3978,109 +4025,27 @@ Write only the review text:";
             return response()->json(['success' => 1, 'data' => $cachedData, 'cached' => true]);
         }
 
+        // Availability day/time filter. tbl_availabilities stores "HH:MM"
+        // strings (legacy rows may still hold unix timestamps) — see
+        // availabilityHourExpr() for how both formats are handled.
         $whereDayTime = "";
-        if ($request->week_day == 1) {
-            $whereDayTime .= " (monday_start IS NOT NULL AND monday_start != '' AND monday_end IS NOT NULL AND monday_end != '')";
-
-            if (isset($request->time_slot) && isset($request->timezone_gap)) {
-                if ($request->time_slot == 1) {
-                    $whereDayTime .= " AND ((HOUR(convert_tz(from_unixtime(monday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 5 AND HOUR(convert_tz(from_unixtime(monday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 11) OR (HOUR(convert_tz(from_unixtime(monday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 5 AND HOUR(convert_tz(from_unixtime(monday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 12) OR (HOUR(convert_tz(from_unixtime(monday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 5 AND HOUR(convert_tz(from_unixtime(monday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 11))";
-                } else if ($request->time_slot == 2) {
-                    $whereDayTime .= " AND ((HOUR(convert_tz(from_unixtime(monday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 11 AND HOUR(convert_tz(from_unixtime(monday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 16) OR (HOUR(convert_tz(from_unixtime(monday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 11 AND HOUR(convert_tz(from_unixtime(monday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 17) OR (HOUR(convert_tz(from_unixtime(monday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 11 AND HOUR(convert_tz(from_unixtime(monday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 16))";
-                } else if ($request->time_slot == 3) {
-                    $whereDayTime .= " AND ((HOUR(convert_tz(from_unixtime(monday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 16 AND HOUR(convert_tz(from_unixtime(monday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 22) OR (HOUR(convert_tz(from_unixtime(monday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 16 AND HOUR(convert_tz(from_unixtime(monday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 23) OR (HOUR(convert_tz(from_unixtime(monday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 16 AND HOUR(convert_tz(from_unixtime(monday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 22))";
-                } else if ($request->time_slot == 4) {
-                    //$whereDayTime .= " AND (HOUR(convert_tz(from_unixtime(monday_start), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) >= 22 OR HOUR(convert_tz(from_unixtime(monday_start), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) < 5) OR (HOUR(convert_tz(from_unixtime(monday_end), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) > 22 OR HOUR(convert_tz(from_unixtime(monday_end), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) <= 5) OR (HOUR(convert_tz(from_unixtime(monday_start), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) <= 22 AND HOUR(convert_tz(from_unixtime(monday_end), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) > 5)";
-                    $whereDayTime .= " AND ((((HOUR(convert_tz(from_unixtime(monday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 22 AND HOUR(convert_tz(from_unixtime(monday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 25) OR (HOUR(convert_tz(from_unixtime(monday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 0 AND HOUR(convert_tz(from_unixtime(monday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 5)) OR ((HOUR(convert_tz(from_unixtime(monday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 22 AND HOUR(convert_tz(from_unixtime(monday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 25) OR (HOUR(convert_tz(from_unixtime(monday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 0 AND HOUR(convert_tz(from_unixtime(monday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 6)) OR (HOUR(convert_tz(from_unixtime(monday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 22 AND HOUR(convert_tz(from_unixtime(monday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 5 AND monday_start > monday_end)))";
-                }
+        $dayColumn = null;
+        // Checked in this order to preserve the legacy behavior that a
+        // missing week_day (null == 0) falls through to Sunday.
+        foreach ([1 => 'monday', 2 => 'tuesday', 3 => 'wednesday', 4 => 'thursday', 5 => 'friday', 6 => 'saterday', 0 => 'sunday'] as $dayNumber => $dayName) {
+            if ($request->week_day == $dayNumber) {
+                $dayColumn = $dayName;
+                break;
             }
-        } else if ($request->week_day == 2) {
-            $whereDayTime .= " (tuesday_start IS NOT NULL AND tuesday_start != '' AND tuesday_end IS NOT NULL AND tuesday_end != '')";
+        }
+
+        if ($dayColumn !== null) {
+            $whereDayTime .= " ({$dayColumn}_start IS NOT NULL AND {$dayColumn}_start != '' AND {$dayColumn}_end IS NOT NULL AND {$dayColumn}_end != '')";
 
             if (isset($request->time_slot) && isset($request->timezone_gap)) {
-                if ($request->time_slot == 1) {
-                    $whereDayTime .= " AND ((HOUR(convert_tz(from_unixtime(tuesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 5 AND HOUR(convert_tz(from_unixtime(tuesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 11) OR (HOUR(convert_tz(from_unixtime(tuesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 5 AND HOUR(convert_tz(from_unixtime(tuesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 12) OR (HOUR(convert_tz(from_unixtime(tuesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 5 AND HOUR(convert_tz(from_unixtime(tuesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 11))";
-                } else if ($request->time_slot == 2) {
-                    $whereDayTime .= " AND ((HOUR(convert_tz(from_unixtime(tuesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 11 AND HOUR(convert_tz(from_unixtime(tuesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 16) OR (HOUR(convert_tz(from_unixtime(tuesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 11 AND HOUR(convert_tz(from_unixtime(tuesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 17) OR (HOUR(convert_tz(from_unixtime(tuesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 11 AND HOUR(convert_tz(from_unixtime(tuesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 16))";
-                } else if ($request->time_slot == 3) {
-                    $whereDayTime .= " AND ((HOUR(convert_tz(from_unixtime(tuesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 16 AND HOUR(convert_tz(from_unixtime(tuesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 22) OR (HOUR(convert_tz(from_unixtime(tuesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 16 AND HOUR(convert_tz(from_unixtime(tuesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 23) OR (HOUR(convert_tz(from_unixtime(tuesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 16 AND HOUR(convert_tz(from_unixtime(tuesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 22))";
-                } else if ($request->time_slot == 4) {
-                    //$whereDayTime .= " AND (HOUR(convert_tz(from_unixtime(tuesday_start), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) >= 22 OR HOUR(convert_tz(from_unixtime(tuesday_start), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) < 5) OR (HOUR(convert_tz(from_unixtime(tuesday_end), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) > 22 OR HOUR(convert_tz(from_unixtime(tuesday_end), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) <= 5) OR (HOUR(convert_tz(from_unixtime(tuesday_start), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) <= 22 AND HOUR(convert_tz(from_unixtime(tuesday_end), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) > 5)";
-                    $whereDayTime .= " AND ((((HOUR(convert_tz(from_unixtime(tuesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 22 AND HOUR(convert_tz(from_unixtime(tuesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 25) OR (HOUR(convert_tz(from_unixtime(tuesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 0 AND HOUR(convert_tz(from_unixtime(tuesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 5)) OR ((HOUR(convert_tz(from_unixtime(tuesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 22 AND HOUR(convert_tz(from_unixtime(tuesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 25) OR (HOUR(convert_tz(from_unixtime(tuesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 0 AND HOUR(convert_tz(from_unixtime(tuesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 6)) OR (HOUR(convert_tz(from_unixtime(tuesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 22 AND HOUR(convert_tz(from_unixtime(tuesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 5 AND tuesday_start > tuesday_end)))";
-                }
-            }
-        } else if ($request->week_day == 3) {
-            $whereDayTime .= " (wednesday_start IS NOT NULL AND wednesday_start != '' AND wednesday_end IS NOT NULL AND wednesday_end != '')";
-
-            if (isset($request->time_slot) && isset($request->timezone_gap)) {
-                if ($request->time_slot == 1) {
-                    $whereDayTime .= " AND ((HOUR(convert_tz(from_unixtime(wednesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 5 AND HOUR(convert_tz(from_unixtime(wednesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 11) OR (HOUR(convert_tz(from_unixtime(wednesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 5 AND HOUR(convert_tz(from_unixtime(wednesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 12) OR (HOUR(convert_tz(from_unixtime(wednesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 5 AND HOUR(convert_tz(from_unixtime(wednesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 11))";
-                } else if ($request->time_slot == 2) {
-                    $whereDayTime .= " AND ((HOUR(convert_tz(from_unixtime(wednesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 11 AND HOUR(convert_tz(from_unixtime(wednesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 16) OR (HOUR(convert_tz(from_unixtime(wednesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 11 AND HOUR(convert_tz(from_unixtime(wednesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 17) OR (HOUR(convert_tz(from_unixtime(wednesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 11 AND HOUR(convert_tz(from_unixtime(wednesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 16))";
-                } else if ($request->time_slot == 3) {
-                    $whereDayTime .= " AND ((HOUR(convert_tz(from_unixtime(wednesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 16 AND HOUR(convert_tz(from_unixtime(wednesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 22) OR (HOUR(convert_tz(from_unixtime(wednesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 16 AND HOUR(convert_tz(from_unixtime(wednesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 23) OR (HOUR(convert_tz(from_unixtime(wednesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 16 AND HOUR(convert_tz(from_unixtime(wednesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 22))";
-                } else if ($request->time_slot == 4) {
-                    //$whereDayTime .= " AND (HOUR(convert_tz(from_unixtime(wednesday_start), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) >= 22 OR HOUR(convert_tz(from_unixtime(wednesday_start), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) < 5) OR (HOUR(convert_tz(from_unixtime(wednesday_end), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) > 22 OR HOUR(convert_tz(from_unixtime(wednesday_end), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) <= 5) OR (HOUR(convert_tz(from_unixtime(wednesday_start), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) <= 22 AND HOUR(convert_tz(from_unixtime(wednesday_end), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) > 5)";
-                    $whereDayTime .= " AND ((((HOUR(convert_tz(from_unixtime(wednesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 22 AND HOUR(convert_tz(from_unixtime(wednesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 25) OR (HOUR(convert_tz(from_unixtime(wednesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 0 AND HOUR(convert_tz(from_unixtime(wednesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 5)) OR ((HOUR(convert_tz(from_unixtime(wednesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 22 AND HOUR(convert_tz(from_unixtime(wednesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 25) OR (HOUR(convert_tz(from_unixtime(wednesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 0 AND HOUR(convert_tz(from_unixtime(wednesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 6)) OR (HOUR(convert_tz(from_unixtime(wednesday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 22 AND HOUR(convert_tz(from_unixtime(wednesday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 5 AND wednesday_start > wednesday_end)))";
-                }
-            }
-        } else if ($request->week_day == 4) {
-            $whereDayTime .= " (thursday_start IS NOT NULL AND thursday_start != '' AND thursday_end IS NOT NULL AND thursday_end != '')";
-
-            if (isset($request->time_slot) && isset($request->timezone_gap)) {
-                if ($request->time_slot == 1) {
-                    $whereDayTime .= " AND ((HOUR(convert_tz(from_unixtime(thursday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 5 AND HOUR(convert_tz(from_unixtime(thursday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 11) OR (HOUR(convert_tz(from_unixtime(thursday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 5 AND HOUR(convert_tz(from_unixtime(thursday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 12) OR (HOUR(convert_tz(from_unixtime(thursday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 5 AND HOUR(convert_tz(from_unixtime(thursday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 11))";
-                } else if ($request->time_slot == 2) {
-                    $whereDayTime .= " AND ((HOUR(convert_tz(from_unixtime(thursday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 11 AND HOUR(convert_tz(from_unixtime(thursday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 16) OR (HOUR(convert_tz(from_unixtime(thursday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 11 AND HOUR(convert_tz(from_unixtime(thursday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 17) OR (HOUR(convert_tz(from_unixtime(thursday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 11 AND HOUR(convert_tz(from_unixtime(thursday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 16))";
-                } else if ($request->time_slot == 3) {
-                    $whereDayTime .= " AND ((HOUR(convert_tz(from_unixtime(thursday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 16 AND HOUR(convert_tz(from_unixtime(thursday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 22) OR (HOUR(convert_tz(from_unixtime(thursday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 16 AND HOUR(convert_tz(from_unixtime(thursday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 23) OR (HOUR(convert_tz(from_unixtime(thursday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 16 AND HOUR(convert_tz(from_unixtime(thursday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 22))";
-                } else if ($request->time_slot == 4) {
-                    $whereDayTime .= " AND ((((HOUR(convert_tz(from_unixtime(thursday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 22 AND HOUR(convert_tz(from_unixtime(thursday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 25) OR (HOUR(convert_tz(from_unixtime(thursday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 0 AND HOUR(convert_tz(from_unixtime(thursday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 5)) OR ((HOUR(convert_tz(from_unixtime(thursday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 22 AND HOUR(convert_tz(from_unixtime(thursday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 25) OR (HOUR(convert_tz(from_unixtime(thursday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 0 AND HOUR(convert_tz(from_unixtime(thursday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 6)) OR (HOUR(convert_tz(from_unixtime(thursday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 22 AND HOUR(convert_tz(from_unixtime(thursday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 5 AND thursday_start > thursday_end)))";
-                }
-            }
-        } else if ($request->week_day == 5) {
-            $whereDayTime .= " (friday_start IS NOT NULL AND friday_start != '' AND friday_end IS NOT NULL AND friday_end != '')";
-
-            if (isset($request->time_slot) && isset($request->timezone_gap)) {
-                if ($request->time_slot == 1) {
-                    $whereDayTime .= " AND ((HOUR(convert_tz(from_unixtime(friday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 5 AND HOUR(convert_tz(from_unixtime(friday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 11) OR (HOUR(convert_tz(from_unixtime(friday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 5 AND HOUR(convert_tz(from_unixtime(friday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 12) OR (HOUR(convert_tz(from_unixtime(friday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 5 AND HOUR(convert_tz(from_unixtime(friday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 11))";
-                } else if ($request->time_slot == 2) {
-                    $whereDayTime .= " AND ((HOUR(convert_tz(from_unixtime(friday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 11 AND HOUR(convert_tz(from_unixtime(friday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 16) OR (HOUR(convert_tz(from_unixtime(friday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 11 AND HOUR(convert_tz(from_unixtime(friday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 17) OR (HOUR(convert_tz(from_unixtime(friday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 11 AND HOUR(convert_tz(from_unixtime(friday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 16))";
-                } else if ($request->time_slot == 3) {
-                    $whereDayTime .= " AND ((HOUR(convert_tz(from_unixtime(friday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 16 AND HOUR(convert_tz(from_unixtime(friday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 22) OR (HOUR(convert_tz(from_unixtime(friday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 16 AND HOUR(convert_tz(from_unixtime(friday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 23) OR (HOUR(convert_tz(from_unixtime(friday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 16 AND HOUR(convert_tz(from_unixtime(friday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 22))";
-                } else if ($request->time_slot == 4) {
-                    //$whereDayTime .= " AND (HOUR(convert_tz(from_unixtime(friday_start), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) >= 22 OR HOUR(convert_tz(from_unixtime(friday_start), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) < 5) OR (HOUR(convert_tz(from_unixtime(friday_end), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) > 22 OR HOUR(convert_tz(from_unixtime(friday_end), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) <= 5) OR (HOUR(convert_tz(from_unixtime(friday_start), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) <= 22 AND HOUR(convert_tz(from_unixtime(friday_end), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) > 5)";
-                    $whereDayTime .= " AND ((((HOUR(convert_tz(from_unixtime(friday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 22 AND HOUR(convert_tz(from_unixtime(friday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 25) OR (HOUR(convert_tz(from_unixtime(friday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 0 AND HOUR(convert_tz(from_unixtime(friday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 5)) OR ((HOUR(convert_tz(from_unixtime(friday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 22 AND HOUR(convert_tz(from_unixtime(friday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 25) OR (HOUR(convert_tz(from_unixtime(friday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 0 AND HOUR(convert_tz(from_unixtime(friday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 6)) OR (HOUR(convert_tz(from_unixtime(friday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 22 AND HOUR(convert_tz(from_unixtime(friday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 5 AND friday_start > friday_end)))";
-                }
-            }
-        } else if ($request->week_day == 6) {
-            $whereDayTime .= " (saterday_start IS NOT NULL AND saterday_start != '' AND saterday_end IS NOT NULL AND saterday_end != '')";
-
-            if (isset($request->time_slot) && isset($request->timezone_gap)) {
-                if ($request->time_slot == 1) {
-                    $whereDayTime .= " AND ((HOUR(convert_tz(from_unixtime(saterday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 5 AND HOUR(convert_tz(from_unixtime(saterday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 11) OR (HOUR(convert_tz(from_unixtime(saterday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 5 AND HOUR(convert_tz(from_unixtime(saterday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 12) OR (HOUR(convert_tz(from_unixtime(saterday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 5 AND HOUR(convert_tz(from_unixtime(saterday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 11))";
-                } else if ($request->time_slot == 2) {
-                    $whereDayTime .= " AND ((HOUR(convert_tz(from_unixtime(saterday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 11 AND HOUR(convert_tz(from_unixtime(saterday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 16) OR (HOUR(convert_tz(from_unixtime(saterday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 11 AND HOUR(convert_tz(from_unixtime(saterday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 17) OR (HOUR(convert_tz(from_unixtime(saterday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 11 AND HOUR(convert_tz(from_unixtime(saterday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 16))";
-                } else if ($request->time_slot == 3) {
-                    $whereDayTime .= " AND ((HOUR(convert_tz(from_unixtime(saterday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 16 AND HOUR(convert_tz(from_unixtime(saterday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 22) OR (HOUR(convert_tz(from_unixtime(saterday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 16 AND HOUR(convert_tz(from_unixtime(saterday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 23) OR (HOUR(convert_tz(from_unixtime(saterday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 16 AND HOUR(convert_tz(from_unixtime(saterday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 22))";
-                } else if ($request->time_slot == 4) {
-                    //$whereDayTime .= " AND (HOUR(convert_tz(from_unixtime(saterday_start), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) >= 22 OR HOUR(convert_tz(from_unixtime(saterday_start), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) < 5) OR (HOUR(convert_tz(from_unixtime(saterday_end), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) > 22 OR HOUR(convert_tz(from_unixtime(saterday_end), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) <= 5) OR (HOUR(convert_tz(from_unixtime(saterday_start), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) <= 22 AND HOUR(convert_tz(from_unixtime(saterday_end), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) > 5)";
-                    $whereDayTime .= " AND ((((HOUR(convert_tz(from_unixtime(saterday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 22 AND HOUR(convert_tz(from_unixtime(saterday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 25) OR (HOUR(convert_tz(from_unixtime(saterday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 0 AND HOUR(convert_tz(from_unixtime(saterday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 5)) OR ((HOUR(convert_tz(from_unixtime(saterday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 22 AND HOUR(convert_tz(from_unixtime(saterday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 25) OR (HOUR(convert_tz(from_unixtime(saterday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 0 AND HOUR(convert_tz(from_unixtime(saterday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 6)) OR (HOUR(convert_tz(from_unixtime(saterday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 22 AND HOUR(convert_tz(from_unixtime(saterday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 5 AND saterday_start > saterday_end)))";
-                }
-            }
-        } else if ($request->week_day == 0) {
-            $whereDayTime .= " (sunday_start IS NOT NULL AND sunday_start != '' AND sunday_end IS NOT NULL AND sunday_end != '')";
-
-            if (isset($request->time_slot) && isset($request->timezone_gap)) {
-                if ($request->time_slot == 1) {
-                    $whereDayTime .= " AND ((HOUR(convert_tz(from_unixtime(sunday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 5 AND HOUR(convert_tz(from_unixtime(sunday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 11) OR (HOUR(convert_tz(from_unixtime(sunday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 5 AND HOUR(convert_tz(from_unixtime(sunday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 12) OR (HOUR(convert_tz(from_unixtime(sunday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 5 AND HOUR(convert_tz(from_unixtime(sunday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 11))";
-                } else if ($request->time_slot == 2) {
-                    $whereDayTime .= " AND ((HOUR(convert_tz(from_unixtime(sunday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 11 AND HOUR(convert_tz(from_unixtime(sunday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 16) OR (HOUR(convert_tz(from_unixtime(sunday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 11 AND HOUR(convert_tz(from_unixtime(sunday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 17) OR (HOUR(convert_tz(from_unixtime(sunday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 11 AND HOUR(convert_tz(from_unixtime(sunday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 16))";
-                } else if ($request->time_slot == 3) {
-                    $whereDayTime .= " AND ((HOUR(convert_tz(from_unixtime(sunday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 16 AND HOUR(convert_tz(from_unixtime(sunday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 22) OR (HOUR(convert_tz(from_unixtime(sunday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 16 AND HOUR(convert_tz(from_unixtime(sunday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 23) OR (HOUR(convert_tz(from_unixtime(sunday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 16 AND HOUR(convert_tz(from_unixtime(sunday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 22))";
-                } else if ($request->time_slot == 4) {
-                    //$whereDayTime .= " AND (HOUR(convert_tz(from_unixtime(sunday_start), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) >= 22 OR HOUR(convert_tz(from_unixtime(sunday_start), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) < 5) OR (HOUR(convert_tz(from_unixtime(sunday_end), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) > 22 OR HOUR(convert_tz(from_unixtime(sunday_end), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) <= 5) OR (HOUR(convert_tz(from_unixtime(sunday_start), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) <= 22 AND HOUR(convert_tz(from_unixtime(sunday_end), '+00:00', time_format(sec_to_time(".$request->timezone_gap." * 60 * 60), '%H:%i'))) > 5)";
-                    $whereDayTime .= " AND ((((HOUR(convert_tz(from_unixtime(sunday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 22 AND HOUR(convert_tz(from_unixtime(sunday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 25) OR (HOUR(convert_tz(from_unixtime(sunday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 0 AND HOUR(convert_tz(from_unixtime(sunday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 5)) OR ((HOUR(convert_tz(from_unixtime(sunday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 22 AND HOUR(convert_tz(from_unixtime(sunday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 25) OR (HOUR(convert_tz(from_unixtime(sunday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) >= 0 AND HOUR(convert_tz(from_unixtime(sunday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) < 6)) OR (HOUR(convert_tz(from_unixtime(sunday_start), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) <= 22 AND HOUR(convert_tz(from_unixtime(sunday_end), '+00:00', time_format(sec_to_time(" . $request->timezone_gap . " * 60 * 60), '%H:%i'))) > 5 AND sunday_start > sunday_end)))";
+                $slotCondition = self::availabilityTimeSlotCondition($dayColumn, (int) $request->time_slot, (float) $request->timezone_gap);
+                if ($slotCondition !== null) {
+                    $whereDayTime .= " AND " . $slotCondition;
                 }
             }
         }
@@ -4754,10 +4719,35 @@ Write only the review text:";
 
     /** Background check */
 
+    /**
+     * Which SafeScreener environment to hit. Controlled by SAFESCREENER_MODE
+     * ('prod' or 'stag'); defaults to the sandbox so non-production
+     * environments can never file real background checks. Production must set
+     * SAFESCREENER_MODE=prod (with production credentials) or chefs' checks
+     * silently go to the sandbox and the report linked in the admin email
+     * won't exist.
+     */
+    private function backgroundCheckMode()
+    {
+        return env('SAFESCREENER_MODE', 'stag') === 'prod' ? 'prod' : 'stag';
+    }
+
+    /**
+     * A chef has only truly applied once BOTH SafeScreener calls succeeded:
+     * applicant created AND order placed. If the applicant exists but the
+     * order call failed, a retry must reuse the saved applicant and re-attempt
+     * the order — previously the applicant check alone dead-ended the chef on
+     * "You have already applied" forever, with no way to finish step 4.
+     */
+    public static function backgroundCheckAlreadyComplete($applicantGuid, $orderGuid): bool
+    {
+        return !empty($applicantGuid) && !empty($orderGuid);
+    }
+
     private function sendBackgroundCheckRequest($uri, $postData, $method = 'POST')
     {
         $password = env('SAFESCREENER_PASSWORD');
-        $mode = 'stag';
+        $mode = $this->backgroundCheckMode();
 
         if ($mode == 'prod') {
             $api_url = 'https://api.instascreen.net/v1/clients/' . $uri;
@@ -4824,7 +4814,7 @@ Write only the review text:";
         $api_key = env('SAFESCREENER_GUID');
         $candidate_id = $user->applicant_guid;
 
-        if ($candidate_id) return response()->json(['success' => 0, 'error' => "You have already applied for your background check."]);
+        if (self::backgroundCheckAlreadyComplete($candidate_id, $user->order_guid)) return response()->json(['success' => 0, 'error' => "You have already applied for your background check."]);
 
         if (!$candidate_id || $candidate_id == '') {
 
@@ -4902,11 +4892,19 @@ Write only the review text:";
             // dd($response);
             //$order_status = $this->sendBackgroundCheckRequest($api_key.'/orders/'.$response['orderGuid'].'/status', [], 'GET');
 
+            if (empty($response['orderGuid'])) {
+                Log::error('Background check order creation failed: ' . json_encode($response));
+                return response()->json(['success' => 0, 'error' => "We couldn't submit your background check. Please try again in a few minutes."]);
+            }
+
             app(Listener::class)->where('id', $id)->update(['order_guid' => $response['orderGuid']]);
 
             $msg = "";
             $msg .= "<p>Hi Taist Admin,</p>";
-            $msg .= "<p>Please check <a href='https://safescreener.instascreen.net/editor/viewReport.taz?file=" . $response['fileNumber'] . "'>SafeScreener</a> for their status and convert them from Pending to Active from <a href='" . $this->_adminUrl() . "'>Taist Admin</a>.</p>";
+            $msg .= "<p>Please check <a href='https://safescreener.instascreen.net/editor/viewReport.taz?file=" . ($response['fileNumber'] ?? '') . "'>SafeScreener</a> for their status and convert them from Pending to Active from <a href='" . $this->_adminUrl() . "'>Taist Admin</a>.</p>";
+            if ($this->backgroundCheckMode() !== 'prod') {
+                $msg .= "<p><b>Note:</b> this order was filed in the SafeScreener SANDBOX (SAFESCREENER_MODE is not 'prod'), so the report link above will not work.</p>";
+            }
             $msg .= "<p>Thank You! <div>- The Taist Team</div></p>";
             $msg .= "<p><img alt='Taist logo' src='" . $this->_logoUrl() . "' /></p>";
 
