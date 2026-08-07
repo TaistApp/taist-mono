@@ -27,7 +27,7 @@ import Container from '../../../layout/Container';
 import { setNotificationOrderId } from '../../../reducers/deviceSlice';
 import { hideLoading, showLoading } from '../../../reducers/loadingSlice';
 import { setUser } from '../../../reducers/userSlice';
-import { GetChefOrdersAPI, GetUserById, GetPaymentMethodAPI, ReactivateAccountAPI, getChefShareUrl } from '../../../services/api';
+import { GetChefOrdersAPI, GetChefProfileAPI, GetUserById, GetPaymentMethodAPI, ReactivateAccountAPI, getChefShareUrl } from '../../../services/api';
 import { getImageURL, formatDisplayName } from '../../../utils/functions';
 import { ShowErrorToast, ShowSuccessToast } from '../../../utils/toast';
 import { getDateStartTime } from '../../../utils/validations';
@@ -100,8 +100,22 @@ useFocusEffect(
         hasLoadedOnce.current = true;
         loadData(0, today_time + 24 * 3600);
       }
-    }, [notification_id, redirectingToWelcome]),
+      // Checklist step 5 (weekly hours) reads the availability row; refresh
+      // it whenever the chef comes back here (e.g. from the profile screen).
+      if (self.is_pending == 1 && self.id) {
+        GetChefProfileAPI({ user_id: self.id }, dispatch);
+      }
+    }, [notification_id, redirectingToWelcome, self.is_pending, self.id]),
   );
+
+  // An approved chef is only visible in customer search on days with hours
+  // set — a chef with no availability row is invisible despite being Active.
+  const hasWeeklyHours = useMemo(() => {
+    const p: any = profile ?? {};
+    return ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saterday', 'sunday'].some(
+      day => p[`${day}_start`] && p[`${day}_start`] !== '0' && p[`${day}_end`] && p[`${day}_end`] !== '0',
+    );
+  }, [profile]);
   useEffect(() => {
     if (notificationOrderId >= 0) {
        const orderInfo = { id: notificationOrderId } as IOrder;
@@ -425,6 +439,15 @@ useFocusEffect(
                     }
                     navigate.toChef.backgroundCheck();
                    }}
+                />
+                <SettingItem
+                  title={'5. Set Your Weekly Hours'}
+                  completed={hasWeeklyHours}
+                  subtitle={'Customers only see you on days you set hours'}
+                  isNext={!!self.applicant_guid && !hasWeeklyHours}
+                  onPress={() => {
+                    navigate.toChef.profile();
+                  }}
                 />
               </View>
             </>
