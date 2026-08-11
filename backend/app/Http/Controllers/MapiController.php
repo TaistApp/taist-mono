@@ -137,6 +137,27 @@ class MapiController extends Controller
         return $user;
     }
 
+    /**
+     * IDOR guard for the per-id account endpoints (get_user / update_user /
+     * remove_user). The {id} in the URL is attacker-controlled; without this
+     * check any signed-in user could read, overwrite, or delete any other
+     * account. Every legitimate caller of these endpoints operates on the
+     * authenticated user's own record (session resume, profile edit, account
+     * deletion). Admin account management uses separate admin routes, not
+     * these mapi routes.
+     *
+     * Returns a JSON error response to short-circuit with, or null when the
+     * request is acting on the caller's own record.
+     */
+    private function _denyIfNotSelf($id)
+    {
+        $authUser = $this->_authUser();
+        if (!$authUser || (string) $authUser->id !== (string) $id) {
+            return response()->json(['success' => 0, 'error' => "Access denied."]);
+        }
+        return null;
+    }
+
     private function _appBaseUrl()
     {
         $baseUrl = rtrim((string) config('app.url'), '/');
@@ -3728,6 +3749,8 @@ Write only the review text:";
         else if ($this->_checktaistApiKey($request->header('apiKey')) === -1)
             return response()->json(['success' => 0, 'error' => "Token has been expired."]);
 
+        if ($resp = $this->_denyIfNotSelf($id)) return $resp;
+
         $data = app(Listener::class)->where(['id' => $id])->first();
 
         return response()->json(['success' => 1, 'data' => $data]);
@@ -3766,6 +3789,8 @@ Write only the review text:";
 	Log::info('update user' . json_encode($request->all()));
         if ($this->_checktaistApiKey($request->header('apiKey')) === false)
             return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
+
+        if ($resp = $this->_denyIfNotSelf($id)) return $resp;
 
         $ary = [
             'updated_at' => now(),
@@ -3851,7 +3876,11 @@ Write only the review text:";
         if (isset($request->user_type)) $ary['user_type'] = $request->user_type;
         if (isset($request->is_pending)) $ary['is_pending'] = $request->is_pending;
         if (isset($request->is_paused)) $ary['is_paused'] = $request->is_paused;
-        if (isset($request->verified)) $ary['verified'] = $request->verified;
+        // NOTE: `verified` is intentionally NOT client-settable. It is the chef
+        // approval flag, set only server-side by the SafeScreener/admin approval
+        // path. Accepting it here let a user POST verified=1 on their own record
+        // (alongside the legitimate become-a-chef user_type=2/is_pending=0 flow)
+        // to self-approve as a verified chef and bypass the background check.
         if (isset($photo) && $photo != '') $ary['photo'] = $photo;
         if (isset($request->api_token)) $ary['api_token'] = $request->api_token;
         if (isset($request->token_date)) $ary['token_date'] = $request->token_date;
@@ -3879,6 +3908,8 @@ Write only the review text:";
     {
         if ($this->_checktaistApiKey($request->header('apiKey')) === false)
             return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
+
+        if ($resp = $this->_denyIfNotSelf($id)) return $resp;
 
         $data = app(Listener::class)->where(['id' => $id])->delete();
         return response()->json(['success' => 1, 'data' => '']);
