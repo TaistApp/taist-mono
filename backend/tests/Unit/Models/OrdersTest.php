@@ -782,4 +782,66 @@ class OrdersTest extends TestCase
 
         $this->assertTrue($order->isOnOrAfterOrderDay());
     }
+
+    // ==========================================
+    // isEligibleForUpcomingReminder() Tests
+    // ==========================================
+
+    /**
+     * A Requested order (status 1) must NOT get the 24-hour reminder —
+     * the chef hasn't accepted yet, so the customer would be reminded
+     * about a meal that may still be declined.
+     */
+    public function test_requested_order_not_eligible_for_upcoming_reminder()
+    {
+        $order = new Orders(['status' => 1]);
+
+        $this->assertFalse($order->isEligibleForUpcomingReminder());
+    }
+
+    /**
+     * Control: an Accepted order (status 2) gets the reminder.
+     */
+    public function test_accepted_order_eligible_for_upcoming_reminder()
+    {
+        $order = new Orders(['status' => 2]);
+
+        $this->assertTrue($order->isEligibleForUpcomingReminder());
+    }
+
+    /**
+     * Control: an OnTheWay order (status 7) gets the reminder.
+     */
+    public function test_on_the_way_order_eligible_for_upcoming_reminder()
+    {
+        $order = new Orders(['status' => 7]);
+
+        $this->assertTrue($order->isEligibleForUpcomingReminder());
+    }
+
+    /**
+     * Completed and cancelled orders never get the reminder.
+     */
+    public function test_closed_orders_not_eligible_for_upcoming_reminder()
+    {
+        foreach ([3, 4, 5, 6] as $closedStatus) {
+            $order = new Orders(['status' => $closedStatus]);
+
+            $this->assertFalse(
+                $order->isEligibleForUpcomingReminder(),
+                "Status {$closedStatus} should not be reminder-eligible"
+            );
+        }
+    }
+
+    /**
+     * The status column arrives from MySQL as a string — eligibility must
+     * still match (guards the strict in_array comparison).
+     */
+    public function test_string_status_from_db_still_eligible()
+    {
+        $order = new Orders(['status' => '2']);
+
+        $this->assertTrue($order->isEligibleForUpcomingReminder());
+    }
 }
