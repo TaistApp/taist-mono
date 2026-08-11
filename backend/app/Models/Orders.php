@@ -6,8 +6,17 @@ use Illuminate\Database\Eloquent\Model;
 
 class Orders extends Model
 {
+    /**
+     * Statuses eligible for the 24-hour upcoming-order reminder SMS.
+     * Requested (1) is deliberately excluded: the chef hasn't accepted yet,
+     * so reminding the customer would promise a meal that may still be
+     * declined. Skipped orders keep reminder_sent_at null, so the reminder
+     * goes out on a later scheduler run once the chef accepts.
+     */
+    public const REMINDER_ELIGIBLE_STATUSES = [2, 7]; // Accepted, OnTheWay
+
     protected $table = 'tbl_orders';
-    
+
     protected $fillable = [
         'chef_user_id',
         'menu_id',
@@ -193,6 +202,18 @@ class Orders extends Model
         // 270s instead of 300s so scheduler jitter can't skip a whole cycle
         $lastSent = (int)($this->acceptance_reminder_sent_at ?? 0);
         return ($now - $lastSent) >= 270;
+    }
+
+    /**
+     * Whether this order should get the 24-hour upcoming-order reminder.
+     * Only chef-accepted, still-active orders qualify — see
+     * REMINDER_ELIGIBLE_STATUSES.
+     *
+     * @return bool
+     */
+    public function isEligibleForUpcomingReminder()
+    {
+        return in_array((int)$this->status, self::REMINDER_ELIGIBLE_STATUSES, true);
     }
 
     /**

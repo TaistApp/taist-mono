@@ -51,9 +51,11 @@ class SendOrderReminders extends Command
         $windowStart = $now + (23 * 3600); // 23 hours from now
         $windowEnd = $now + (25 * 3600);   // 25 hours from now
 
-        // Find orders in the reminder window that haven't been reminded
-        // Only consider active orders (status 1=Requested, 2=Accepted, 7=OnTheWay)
-        $orders = Orders::whereIn('status', [1, 2, 7])
+        // Find orders in the reminder window that haven't been reminded.
+        // Requested (status 1) orders are excluded so the customer isn't
+        // reminded before the chef accepts; they keep reminder_sent_at null
+        // and are picked up by a later run once accepted (status 2).
+        $orders = Orders::whereIn('status', Orders::REMINDER_ELIGIBLE_STATUSES)
             ->whereNull('reminder_sent_at')
             ->where('order_date', '>=', (string)$windowStart)
             ->where('order_date', '<=', (string)$windowEnd)
