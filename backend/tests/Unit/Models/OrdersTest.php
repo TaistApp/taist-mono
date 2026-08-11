@@ -474,6 +474,109 @@ class OrdersTest extends TestCase
     }
 
     // ==========================================
+    // shouldSendAcceptanceReminder() Tests
+    // ==========================================
+
+    /**
+     * Test pending order 10 minutes into its window, never reminded, is due
+     */
+    public function test_acceptance_reminder_due_mid_window()
+    {
+        $now = 1754200000;
+        $order = new Orders([
+            'status' => 1,
+            'acceptance_deadline' => (string)($now + 1200), // 20 min left = 10 min elapsed
+        ]);
+
+        $this->assertTrue($order->shouldSendAcceptanceReminder($now));
+    }
+
+    /**
+     * Control: order created under 5 minutes ago gets no reminder yet
+     */
+    public function test_acceptance_reminder_not_due_in_first_five_minutes()
+    {
+        $now = 1754200000;
+        $order = new Orders([
+            'status' => 1,
+            'acceptance_deadline' => (string)($now + 1600), // only ~3 min elapsed
+        ]);
+
+        $this->assertFalse($order->shouldSendAcceptanceReminder($now));
+    }
+
+    /**
+     * Test no reminder once the acceptance window has closed
+     */
+    public function test_acceptance_reminder_not_sent_after_expiry()
+    {
+        $now = 1754200000;
+        $order = new Orders([
+            'status' => 1,
+            'acceptance_deadline' => (string)($now - 60),
+        ]);
+
+        $this->assertFalse($order->shouldSendAcceptanceReminder($now));
+    }
+
+    /**
+     * Test accepted order (status 2) never gets a reminder
+     */
+    public function test_acceptance_reminder_not_sent_for_accepted_order()
+    {
+        $now = 1754200000;
+        $order = new Orders([
+            'status' => 2,
+            'acceptance_deadline' => (string)($now + 1200),
+        ]);
+
+        $this->assertFalse($order->shouldSendAcceptanceReminder($now));
+    }
+
+    /**
+     * Test order without a deadline never gets a reminder
+     */
+    public function test_acceptance_reminder_not_sent_without_deadline()
+    {
+        $order = new Orders([
+            'status' => 1,
+            'acceptance_deadline' => null,
+        ]);
+
+        $this->assertFalse($order->shouldSendAcceptanceReminder(1754200000));
+    }
+
+    /**
+     * Test reminder throttling: one sent 2 minutes ago blocks the next
+     */
+    public function test_acceptance_reminder_throttled_within_five_minutes()
+    {
+        $now = 1754200000;
+        $order = new Orders([
+            'status' => 1,
+            'acceptance_deadline' => (string)($now + 1200),
+            'acceptance_reminder_sent_at' => (string)($now - 120), // 2 min ago
+        ]);
+
+        $this->assertFalse($order->shouldSendAcceptanceReminder($now));
+    }
+
+    /**
+     * Test reminder repeats: one sent 6 minutes ago allows the next
+     */
+    public function test_acceptance_reminder_repeats_after_five_minutes()
+    {
+        $now = 1754200000;
+        $order = new Orders([
+            'status' => 1,
+            'acceptance_deadline' => (string)($now + 600), // 10 min left
+            'acceptance_reminder_sent_at' => (string)($now - 360), // 6 min ago
+        ]);
+
+        $this->assertTrue($order->shouldSendAcceptanceReminder($now));
+    }
+
+    // ==========================================
     // Scheduled DateTime Attribute Tests
     // ==========================================
 
@@ -678,5 +781,67 @@ class OrdersTest extends TestCase
         ]);
 
         $this->assertTrue($order->isOnOrAfterOrderDay());
+    }
+
+    // ==========================================
+    // isEligibleForUpcomingReminder() Tests
+    // ==========================================
+
+    /**
+     * A Requested order (status 1) must NOT get the 24-hour reminder —
+     * the chef hasn't accepted yet, so the customer would be reminded
+     * about a meal that may still be declined.
+     */
+    public function test_requested_order_not_eligible_for_upcoming_reminder()
+    {
+        $order = new Orders(['status' => 1]);
+
+        $this->assertFalse($order->isEligibleForUpcomingReminder());
+    }
+
+    /**
+     * Control: an Accepted order (status 2) gets the reminder.
+     */
+    public function test_accepted_order_eligible_for_upcoming_reminder()
+    {
+        $order = new Orders(['status' => 2]);
+
+        $this->assertTrue($order->isEligibleForUpcomingReminder());
+    }
+
+    /**
+     * Control: an OnTheWay order (status 7) gets the reminder.
+     */
+    public function test_on_the_way_order_eligible_for_upcoming_reminder()
+    {
+        $order = new Orders(['status' => 7]);
+
+        $this->assertTrue($order->isEligibleForUpcomingReminder());
+    }
+
+    /**
+     * Completed and cancelled orders never get the reminder.
+     */
+    public function test_closed_orders_not_eligible_for_upcoming_reminder()
+    {
+        foreach ([3, 4, 5, 6] as $closedStatus) {
+            $order = new Orders(['status' => $closedStatus]);
+
+            $this->assertFalse(
+                $order->isEligibleForUpcomingReminder(),
+                "Status {$closedStatus} should not be reminder-eligible"
+            );
+        }
+    }
+
+    /**
+     * The status column arrives from MySQL as a string — eligibility must
+     * still match (guards the strict in_array comparison).
+     */
+    public function test_string_status_from_db_still_eligible()
+    {
+        $order = new Orders(['status' => '2']);
+
+        $this->assertTrue($order->isEligibleForUpcomingReminder());
     }
 }

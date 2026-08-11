@@ -36,6 +36,14 @@ const ParkingPicker: React.FC<Props> = ({
     onTypeChange(updated.length > 0 ? updated.join(',') : undefined);
   };
 
+  // Filling the free-text field counts as "Other" — no separate tap needed.
+  const handleInstructionsChange = (text: string) => {
+    onInstructionsChange(text);
+    if (text.trim().length > 0 && selectedIds.length === 0) {
+      onTypeChange('other');
+    }
+  };
+
   return (
     <View style={styles.container}>
       {!compact && (
@@ -63,7 +71,7 @@ const ParkingPicker: React.FC<Props> = ({
         placeholder="Additional instructions (gate code, building #, etc.)"
         placeholderTextColor={AppColors.textTertiary}
         value={parkingInstructions ?? ''}
-        onChangeText={onInstructionsChange}
+        onChangeText={handleInstructionsChange}
         maxLength={255}
         multiline
         numberOfLines={2}

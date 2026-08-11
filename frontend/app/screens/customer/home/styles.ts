@@ -106,7 +106,7 @@ export const styles = StyleSheet.create({
   chefCardMenuItemTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: AppColors.text,
+    color: AppColors.primary,
   },
   chefCardMenuItemPrice: {
     fontSize: 16,

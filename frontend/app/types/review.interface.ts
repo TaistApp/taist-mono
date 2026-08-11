@@ -6,6 +6,7 @@ export default interface ReviewInterface {
   rating?: number;
   review?: string;
   tip_amount?: number;
+  reviewer_name?: string;
   created_at?: number;
   updated_at?: number;
 }

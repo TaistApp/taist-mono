@@ -160,10 +160,15 @@ class ProcessExpiredOrders extends Command
                 return;
             }
 
-            $title = "Order Not Accepted";
-            $body = "Your order was not accepted by the chef within the time limit. You have been fully refunded.";
+            $chef = Listener::find($order->chef_user_id);
+            $chefName = $chef && trim($chef->first_name) !== '' ? trim($chef->first_name) : 'The chef';
 
-            // Send Firebase notification
+            $title = "Order Not Accepted";
+            $body = "{$chefName} is busy right now. try ordering from similar chefs.";
+
+            // Send Firebase notification — tapping it opens the app on the
+            // customer home screen so they can order from similar chefs
+            // (type 'order_expired' is routed there by the app).
             $messaging = app('firebase.messaging');
 
             $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token', $customer->fcm_token)
@@ -171,10 +176,22 @@ class ProcessExpiredOrders extends Command
                 ->withData([
                     'type' => 'order_expired',
                     'order_id' => (string)$order->id,
+                    'chef_id' => (string)$order->chef_user_id,
                     'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
                 ]);
 
             $messaging->send($message);
+
+            // Persist to the in-app notification inbox
+            \App\Notification::create([
+                'title' => $title,
+                'body' => $body,
+                'image' => $chef->photo ?? 'N/A',
+                'fcm_token' => $customer->fcm_token,
+                'user_id' => $customer->id,
+                'navigation_id' => $order->id,
+                'role' => 'customer',
+            ]);
 
             Log::info("Notification sent to customer #{$customer->id} for expired order #{$order->id}");
 

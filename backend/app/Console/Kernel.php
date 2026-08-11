@@ -24,12 +24,24 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // Process expired orders every 30 minutes
-        // Checks for orders that exceeded 30-minute acceptance deadline and issues automatic refunds
+        // Process expired orders every 5 minutes
+        // Checks for orders that exceeded the 30-minute acceptance deadline,
+        // issues automatic refunds, and notifies the customer. Runs on a
+        // 5-minute cadence so the expiry push lands promptly after the
+        // window closes.
         $schedule->command('orders:process-expired')
-                 ->everyThirtyMinutes()
+                 ->everyFiveMinutes()
                  ->withoutOverlapping()
                  ->runInBackground();
+
+        // Remind chefs about pending order requests every 5 minutes
+        // Pushes a reminder to the chef every 5 minutes of the 30-minute
+        // acceptance window until they accept or decline.
+        $schedule->command('orders:send-acceptance-reminders')
+                 ->everyFiveMinutes()
+                 ->withoutOverlapping()
+                 ->runInBackground()
+                 ->appendOutputTo('/proc/1/fd/1');
 
         // Send 24-hour order reminders every 30 minutes
         // Sends SMS reminders to both chef and customer for orders happening tomorrow

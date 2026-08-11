@@ -6,8 +6,17 @@ use Illuminate\Database\Eloquent\Model;
 
 class Orders extends Model
 {
+    /**
+     * Statuses eligible for the 24-hour upcoming-order reminder SMS.
+     * Requested (1) is deliberately excluded: the chef hasn't accepted yet,
+     * so reminding the customer would promise a meal that may still be
+     * declined. Skipped orders keep reminder_sent_at null, so the reminder
+     * goes out on a later scheduler run once the chef accepts.
+     */
+    public const REMINDER_ELIGIBLE_STATUSES = [2, 7]; // Accepted, OnTheWay
+
     protected $table = 'tbl_orders';
-    
+
     protected $fillable = [
         'chef_user_id',
         'menu_id',
@@ -23,6 +32,7 @@ class Orders extends Model
         'notes',
         'payment_token',
         'acceptance_deadline',
+        'acceptance_reminder_sent_at',
         'reminder_sent_at',
         // Discount tracking fields
         'discount_code_id',
@@ -158,6 +168,52 @@ class Orders extends Model
 
         $remaining = (int)$this->acceptance_deadline - time();
         return max(0, $remaining);
+    }
+
+    /**
+     * Whether the chef should get a 5-minute acceptance reminder push right
+     * now. True only while the order is still awaiting acceptance (status 1,
+     * deadline in the future), at least 5 minutes have passed since the
+     * request was created, and no reminder went out in the current 5-minute
+     * cycle.
+     *
+     * @param int|null $now Unix timestamp to evaluate against (defaults to now)
+     * @return bool
+     */
+    public function shouldSendAcceptanceReminder(?int $now = null)
+    {
+        $now = $now ?? time();
+
+        if ($this->status != 1 || !$this->acceptance_deadline) {
+            return false;
+        }
+
+        $deadline = (int)$this->acceptance_deadline;
+        if ($now >= $deadline) {
+            return false; // Window closed — expiry processing takes over
+        }
+
+        // The request was created 30 minutes before its deadline
+        $requestedAt = $deadline - 1800;
+        if ($now - $requestedAt < 300) {
+            return false; // First reminder comes 5 minutes after the request
+        }
+
+        // 270s instead of 300s so scheduler jitter can't skip a whole cycle
+        $lastSent = (int)($this->acceptance_reminder_sent_at ?? 0);
+        return ($now - $lastSent) >= 270;
+    }
+
+    /**
+     * Whether this order should get the 24-hour upcoming-order reminder.
+     * Only chef-accepted, still-active orders qualify — see
+     * REMINDER_ELIGIBLE_STATUSES.
+     *
+     * @return bool
+     */
+    public function isEligibleForUpcomingReminder()
+    {
+        return in_array((int)$this->status, self::REMINDER_ELIGIBLE_STATUSES, true);
     }
 
     /**
