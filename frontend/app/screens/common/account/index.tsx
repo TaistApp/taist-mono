@@ -653,6 +653,13 @@ const Account = () => {
             value={userInfo.address ?? ""}
           />
           <StyledTextInput
+            testID="account.address2Input"
+            label="Apt / Unit / Suite (Optional)"
+            placeholder="Apt 4B"
+            onChangeText={(val) => setUserInfo({ ...userInfo, address2: val })}
+            value={userInfo.address2 ?? ""}
+          />
+          <StyledTextInput
             testID="account.cityInput"
             label={userInfo.user_type === 1 ? "City (Optional)" : "City"}
             placeholder="City"

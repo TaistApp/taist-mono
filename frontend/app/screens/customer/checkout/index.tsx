@@ -426,6 +426,14 @@ const Checkout = () => {
   const amountNeeded = minimumOrderAmount - price_total;
 
   const handleCheckout = () => {
+    // The profile-completion modal can be cancelled, so re-check here: without
+    // this gate a customer could place an order with no name or address and
+    // the chef would see a nameless order.
+    if (!self.first_name || !self.last_name || !self.address || !self.city || !self.state || !self.zip) {
+      ShowErrorToast('Please add your name and delivery address first');
+      setShowAddressModal(true);
+      return;
+    }
     if (isBelowMinimum) {
       ShowErrorToast(`Add $${amountNeeded.toFixed(2)} more to meet the minimum order of $${minimumOrderAmount.toFixed(2)}`);
       return;
@@ -781,7 +789,7 @@ const Checkout = () => {
                   {`${self.phone}`}
                 </Text>
                 <Text style={styles.checkoutAddressItemTitle}>
-                  {`${self.address}`}
+                  {`${self.address}${self.address2 ? `, ${self.address2}` : ''}`}
                 </Text>
                 <Text style={styles.checkoutAddressItemTitle}>
                   {`${self.city}, ${self.state}, ${self.zip}`}

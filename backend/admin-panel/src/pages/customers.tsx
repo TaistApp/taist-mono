@@ -27,6 +27,7 @@ interface Customer {
   phone: string;
   birthday: number;
   address: string;
+  address2: string | null;
   city: string;
   state: string;
   zip: string;
@@ -282,6 +283,7 @@ export default function CustomersPage() {
       Phone: c.phone,
       Birthday: formatTimestamp(c.birthday),
       Address: c.address,
+      "Apt/Unit": c.address2 ?? "",
       City: c.city,
       State: c.state,
       Zip: c.zip,

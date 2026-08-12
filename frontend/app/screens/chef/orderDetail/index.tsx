@@ -326,7 +326,7 @@ const OrderDetail = () => {
                 size={20}
               />
               <View style={{ flex: 1 }}>
-                <Text style={styles.text}>{customerInfo?.address ?? ''}</Text>
+                <Text style={styles.text}>{`${customerInfo?.address ?? ''}${customerInfo?.address2 ? `, ${customerInfo.address2}` : ''}`}</Text>
                 <Text style={styles.text}>{`${customerInfo?.city ?? ''}, ${customerInfo?.state ?? ''} ${customerInfo?.zip ?? ''}`}</Text>
               </View>
               <FontAwesomeIcon icon={faChevronRight} color="#999" size={16} />
@@ -371,6 +371,9 @@ const OrderDetail = () => {
             <View style={[styles.cardMain, { justifyContent: 'space-between' }]}>
               <View style={{ rowGap: 5 }}>
                 <Text style={styles.text} numberOfLines={1}>
+                  Customer
+                </Text>
+                <Text style={styles.text} numberOfLines={1}>
                   Order ID
                 </Text>
                 <Text style={styles.text} numberOfLines={1}>
@@ -381,6 +384,11 @@ const OrderDetail = () => {
                 </Text>
               </View>
               <View style={{ rowGap: 5 }}>
+                <Text style={styles.text} numberOfLines={1}>
+                  {customerInfo?.first_name
+                    ? `${customerInfo.first_name} ${customerInfo?.last_name?.substring(0, 1) ?? ''}${customerInfo?.last_name ? '.' : ''}`
+                    : '—'}
+                </Text>
                 <Text style={styles.text} numberOfLines={1}>
                   {GetOrderString(orderInfo?.id ?? 0)}
                 </Text>
