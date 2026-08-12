@@ -5400,16 +5400,18 @@ Write only the review text:";
                 return response()->json(['success' => 0, 'error' => "The card has expired."]);
             }
 
-            // Create payment intent
+            // Create payment intent. The customer is charged the discounted
+            // total, but the chef's payout stays at 70% of the pre-discount
+            // subtotal — discount codes come out of the platform commission.
             $piToken = $stripe->paymentIntents->create([
-                'amount' => $order->total_price * 100,
+                'amount' => $order->chargeAmountCents(),
                 'currency' => 'usd',
                 'payment_method_types' => ['card'],
                 'description' => 'Order ' . $order->id,
                 'confirm' => true,
                 'customer' => $customer['id'],
                 'payment_method' => $pdata->card_token,
-                'application_fee_amount' => intval(round(($order->total_price * 0.30) * 100)),
+                'application_fee_amount' => $order->applicationFeeCents(),
                 'transfer_data' => [
                     'destination' => $chefData->stripe_account_id,
                 ],
