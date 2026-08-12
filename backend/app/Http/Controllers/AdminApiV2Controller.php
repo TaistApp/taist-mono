@@ -427,6 +427,7 @@ class AdminApiV2Controller extends Controller
                 'phone' => $c->phone,
                 'birthday' => $c->birthday,
                 'address' => $c->address,
+                'address2' => $c->address2,
                 'city' => $c->city,
                 'state' => $c->state,
                 'zip' => $c->zip,

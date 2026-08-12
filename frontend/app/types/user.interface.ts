@@ -7,6 +7,7 @@ export default interface UserInterface {
   birthday?: number;
   bio?: string;
   address?: string;
+  address2?: string;
   city?: string;
   state?: string;
   zip?: string;

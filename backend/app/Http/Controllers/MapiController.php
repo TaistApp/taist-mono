@@ -574,6 +574,7 @@ class MapiController extends Controller
             'phone' => isset($request->phone) ? $request->phone : '',
             'birthday' => isset($request->birthday) ? $request->birthday : 0,
             'address' => isset($request->address) ? $request->address : '',
+            'address2' => isset($request->address2) ? $request->address2 : '',
             'city' => isset($request->city) ? $request->city : '',
             'state' => isset($request->state) ? $request->state : '',
             'zip' => isset($request->zip) ? $request->zip : '',
@@ -3826,6 +3827,9 @@ Write only the review text:";
         if (isset($request->phone)) $ary['phone'] = $request->phone;
         if (isset($request->birthday)) $ary['birthday'] = $request->birthday;
         if (isset($request->address)) $ary['address'] = $request->address;
+        // has() rather than isset(): an empty string must clear a previously
+        // saved unit number.
+        if ($request->has('address2')) $ary['address2'] = $request->address2;
         if (isset($request->city)) $ary['city'] = $request->city;
         if (isset($request->state)) $ary['state'] = $request->state;
         if ($request->has('parking_type')) $ary['parking_type'] = $request->parking_type;
