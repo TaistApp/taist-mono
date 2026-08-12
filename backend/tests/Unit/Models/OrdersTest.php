@@ -844,4 +844,82 @@ class OrdersTest extends TestCase
 
         $this->assertTrue($order->isEligibleForUpcomingReminder());
     }
+
+    // ==========================================
+    // chargeAmountCents() / applicationFeeCents() Tests
+    // Discount codes are funded by the platform, not the chef
+    // ==========================================
+
+    /**
+     * Control: without a discount the platform takes its normal 30% and the
+     * chef nets 70% of the order total.
+     */
+    public function test_fee_without_discount_is_thirty_percent()
+    {
+        $order = new Orders(['total_price' => 65.00, 'discount_amount' => 0]);
+
+        $this->assertSame(6500, $order->chargeAmountCents());
+        $this->assertSame(1950, $order->applicationFeeCents()); // 30% of $65
+    }
+
+    /**
+     * A partial discount reduces only the platform's fee. $10 off a $65
+     * order: customer pays $55, chef must still net $45.50 (70% of $65),
+     * so the fee drops to $9.50.
+     */
+    public function test_partial_discount_comes_out_of_platform_fee()
+    {
+        $order = new Orders(['total_price' => 55.00, 'discount_amount' => 10.00]);
+
+        $this->assertSame(5500, $order->chargeAmountCents());
+        $this->assertSame(950, $order->applicationFeeCents());
+    }
+
+    /**
+     * A discount equal to the full 30% commission leaves the platform with
+     * nothing: the whole charged amount ($45.50) flows to the chef, matching
+     * her undiscounted 70% share of $65.
+     */
+    public function test_discount_equal_to_commission_zeroes_the_fee()
+    {
+        $order = new Orders(['total_price' => 45.50, 'discount_amount' => 19.50]);
+
+        $this->assertSame(4550, $order->chargeAmountCents());
+        $this->assertSame(0, $order->applicationFeeCents());
+    }
+
+    /**
+     * A destination charge cannot transfer more than was charged, so a
+     * discount deeper than the commission clamps the fee at zero instead of
+     * going negative.
+     */
+    public function test_discount_deeper_than_commission_clamps_fee_at_zero()
+    {
+        $order = new Orders(['total_price' => 32.50, 'discount_amount' => 32.50]); // 50% off $65
+
+        $this->assertSame(0, $order->applicationFeeCents());
+    }
+
+    /**
+     * Orders created before the discount columns existed have a null
+     * discount_amount — fee must fall back to the plain 30%.
+     */
+    public function test_null_discount_amount_treated_as_no_discount()
+    {
+        $order = new Orders(['total_price' => 100.00]);
+
+        $this->assertSame(3000, $order->applicationFeeCents());
+    }
+
+    /**
+     * Fractional totals round to whole cents (Stripe requires integer
+     * amounts).
+     */
+    public function test_amounts_round_to_whole_cents()
+    {
+        $order = new Orders(['total_price' => 33.33, 'discount_amount' => 0]);
+
+        $this->assertSame(3333, $order->chargeAmountCents());
+        $this->assertSame(1000, $order->applicationFeeCents()); // 3333 - round(3333 * 0.7) = 3333 - 2333
+    }
 }

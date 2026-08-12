@@ -15,6 +15,11 @@ class Orders extends Model
      */
     public const REMINDER_ELIGIBLE_STATUSES = [2, 7]; // Accepted, OnTheWay
 
+    /**
+     * Platform commission taken from each order (Stripe application fee).
+     */
+    public const PLATFORM_COMMISSION = 0.30;
+
     protected $table = 'tbl_orders';
 
     protected $fillable = [
@@ -139,6 +144,37 @@ class Orders extends Model
             'final_total' => $this->total_price,
             'savings' => '$' . number_format($this->discount_amount, 2),
         ];
+    }
+
+    /**
+     * Amount to charge the customer for this order, in cents (the
+     * post-discount total).
+     *
+     * @return int
+     */
+    public function chargeAmountCents()
+    {
+        return (int) round($this->total_price * 100);
+    }
+
+    /**
+     * Stripe application fee (the platform's cut) in cents for this order's
+     * charge. The chef's payout must always be 70% of the pre-discount
+     * subtotal — discount codes are funded out of the platform's 30%
+     * commission, never out of the chef's share. Clamped at zero because a
+     * destination charge cannot transfer more than the amount charged, so a
+     * discount deeper than the commission still shorts the chef by the
+     * difference.
+     *
+     * @return int
+     */
+    public function applicationFeeCents()
+    {
+        $chargeCents = $this->chargeAmountCents();
+        $discountCents = (int) round(max(0, (float) $this->discount_amount) * 100);
+        $chefShareCents = (int) round(($chargeCents + $discountCents) * (1 - self::PLATFORM_COMMISSION));
+
+        return max(0, $chargeCents - $chefShareCents);
     }
 
     /**
