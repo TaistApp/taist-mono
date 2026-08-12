@@ -30,7 +30,10 @@ class ChefConfirmationReminderServiceTest extends TestCase
         parent::setUp();
 
         // findChefsNeedingReminders() only runs in production; force it on.
-        $this->originalAppEnv = getenv('APP_ENV');
+        // phpunit.xml sets APP_ENV as a $_SERVER var (not a real env var), so
+        // capture from $_SERVER first — restoring from getenv() alone wiped
+        // APP_ENV for every test that ran after this class.
+        $this->originalAppEnv = $_SERVER['APP_ENV'] ?? getenv('APP_ENV');
         putenv('APP_ENV=production');
         $_ENV['APP_ENV'] = 'production';
         $_SERVER['APP_ENV'] = 'production';
