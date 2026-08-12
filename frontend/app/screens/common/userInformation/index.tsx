@@ -288,6 +288,12 @@ const UserInformation = ({navigation, route}: any) => {
             value={userInfo.address ?? ''}
           />
           <StyledTextInput
+            label="Apt / Unit / Suite (optional) "
+            placeholder="Apt 4B "
+            onChangeText={val => setUserInfo({...userInfo, address2: val})}
+            value={userInfo.address2 ?? ''}
+          />
+          <StyledTextInput
             label="City "
             placeholder="City "
             onChangeText={val => setUserInfo({...userInfo, city: val})}

@@ -32,6 +32,7 @@ export const AddressCollectionModal: React.FC<AddressCollectionModalProps> = ({
   const [firstName, setFirstName] = useState(cleanText(userInfo.first_name));
   const [lastName, setLastName] = useState(cleanText(userInfo.last_name));
   const [address, setAddress] = useState(cleanText(userInfo.address));
+  const [address2, setAddress2] = useState(cleanText(userInfo.address2));
   const [city, setCity] = useState(cleanText(userInfo.city));
   const [state, setState] = useState(cleanText(userInfo.state));
   const [zip, setZip] = useState(cleanText(userInfo.zip));
@@ -195,6 +196,7 @@ export const AddressCollectionModal: React.FC<AddressCollectionModalProps> = ({
       first_name: firstName,
       last_name: lastName,
       address,
+      address2: address2?.trim() ?? '',
       city,
       state,
       zip,
@@ -271,6 +273,13 @@ export const AddressCollectionModal: React.FC<AddressCollectionModalProps> = ({
                 placeholder="123 Main St"
                 value={address}
                 onChangeText={setAddress}
+              />
+
+              <StyledTextInput
+                label="Apt / Unit / Suite (optional)"
+                placeholder="Apt 4B"
+                value={address2}
+                onChangeText={setAddress2}
               />
 
               <StyledTextInput
