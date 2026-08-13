@@ -1,9 +1,9 @@
 import React from 'react';
 import { render, fireEvent, screen } from '@testing-library/react-native';
-import ChefWelcome from './index';
-import { navigate } from '../../../utils/navigation';
+import ChefWelcome from '../../app/screens/chef/chefWelcome/index';
+import { navigate } from '../../app/utils/navigation';
 
-jest.mock('../../../utils/navigation', () => ({
+jest.mock('../../app/utils/navigation', () => ({
   navigate: {
     toChef: {
       safetyQuiz: jest.fn(),
