@@ -75,6 +75,11 @@ class MapiController extends Controller
     const PHONE_CODE_TTL_SECONDS = 600;               // Code valid for 10 minutes after send
     const PHONE_CODE_MAX_ATTEMPTS = 5;                // Wrong guesses before the code is invalidated
 
+    // Non-production QA bypass (staging suppresses real SMS): this phone
+    // number + code pair always verifies. See _isTestPhoneBypass().
+    const TEST_PHONE_DIGITS = '13173537345';          // (317) 353-7345
+    const TEST_PHONE_CODE = '000000';
+
     // Server-side password-reset verification (reset_password with email)
     const RESET_CODE_TTL_SECONDS = 600;               // Reset code valid for 10 minutes after send
     const RESET_CODE_MAX_ATTEMPTS = 5;                // Wrong guesses before the reset code is invalidated
@@ -402,6 +407,14 @@ class MapiController extends Controller
             ]);
         }
 
+        // QA bypass: outside production, the designated test number verifies
+        // with the fixed code 000000 — staging suppresses real SMS sends
+        // (TwilioService), so testers otherwise have no way to get a code.
+        if ($this->_isTestPhoneBypass($request->phone_number, $request->code)) {
+            Cache::forget($this->_phoneVerificationCacheKey($request->phone_number));
+            return response()->json(['success' => 1]);
+        }
+
         $key = $this->_phoneVerificationCacheKey($request->phone_number);
         $entry = Cache::get($key);
 
@@ -432,6 +445,24 @@ class MapiController extends Controller
         Cache::forget($key);
 
         return response()->json(['success' => 1]);
+    }
+
+    /**
+     * True when the non-production QA bypass applies: the designated test
+     * phone number paired with the fixed test code. Never active in
+     * production — app()->environment() (not env()) so tests can flip it.
+     */
+    private function _isTestPhoneBypass($phoneNumber, $code)
+    {
+        if (app()->environment('production')) {
+            return false;
+        }
+        $digits = preg_replace('/\D/', '', (string) $phoneNumber);
+        if (strlen($digits) === 10) {
+            $digits = '1' . $digits;
+        }
+        return $digits === self::TEST_PHONE_DIGITS
+            && hash_equals(self::TEST_PHONE_CODE, trim((string) $code));
     }
 
     private function _storePhoneVerificationCode($phoneNumber, $code)
