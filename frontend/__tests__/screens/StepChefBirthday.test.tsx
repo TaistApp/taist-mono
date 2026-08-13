@@ -2,9 +2,9 @@ import React from 'react';
 import { Platform } from 'react-native';
 import { render, fireEvent, screen } from '@testing-library/react-native';
 import moment from 'moment';
-import { StepChefBirthday } from './StepChefBirthday';
-import { ShowErrorToast } from '../../../../utils/toast';
-import { IUser } from '../../../../types/index';
+import { StepChefBirthday } from '../../app/screens/common/signup/steps/StepChefBirthday';
+import { ShowErrorToast } from '../../app/utils/toast';
+import { IUser } from '../../app/types/index';
 
 // Capture every render of the native date picker so tests can assert on props
 const mockPickerRenders: any[] = [];
@@ -16,7 +16,7 @@ jest.mock('@react-native-community/datetimepicker', () => ({
   },
 }));
 
-jest.mock('../../../../utils/toast', () => ({
+jest.mock('../../app/utils/toast', () => ({
   ShowErrorToast: jest.fn(),
   ShowSuccessToast: jest.fn(),
 }));
