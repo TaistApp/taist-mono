@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { SafeAreaView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Types & Services
 import { IMenu } from '../../../types/index';

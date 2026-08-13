@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { SafeAreaView, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Types & Services
 import { IUser } from '../../../types/index';

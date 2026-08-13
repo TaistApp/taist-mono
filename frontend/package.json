@@ -29,7 +29,8 @@
     "dev:customer-home": "adb reverse tcp:8081 tcp:8081 2>/dev/null; APP_ENV=staging DEV_SCREEN=\"/screens/customer/(tabs)/(home)\" DEV_USER_TYPE=customer expo start",
     "dev:customer-orders": "adb reverse tcp:8081 tcp:8081 2>/dev/null; APP_ENV=staging DEV_SCREEN=\"/screens/customer/(tabs)/orders\" DEV_USER_TYPE=customer expo start",
     "dev:login": "adb reverse tcp:8081 tcp:8081 2>/dev/null; APP_ENV=staging DEV_SCREEN=/screens/common/login expo start",
-    "eas-build-pre-install": "./scripts/eas-build-pre-install.sh"
+    "eas-build-pre-install": "./scripts/eas-build-pre-install.sh",
+    "test": "jest"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -110,9 +111,14 @@
     "@storybook/addon-ondevice-actions": "^10.1.11",
     "@storybook/addon-ondevice-controls": "^10.1.11",
     "@storybook/react-native": "^10.1.11",
+    "@testing-library/react-native": "^13.3.3",
+    "@types/jest": "29.5.14",
     "@types/react": "~19.1.10",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "jest": "~29.7.0",
+    "jest-expo": "~54.0.17",
+    "react-test-renderer": "19.1.0",
     "typescript": "~5.9.2"
   },
   "overrides": {

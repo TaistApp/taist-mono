@@ -1,5 +1,5 @@
 import { useState} from 'react';
-import {SafeAreaView} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {View} from 'react-native';
 // Hooks
 import {useAppDispatch, useAppSelector} from '../../../hooks/useRedux';

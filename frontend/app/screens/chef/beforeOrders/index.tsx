@@ -1,5 +1,6 @@
 import React from 'react';
-import { SafeAreaView, ScrollView, Text, StyleSheet } from 'react-native';
+import { ScrollView, Text, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Container from '../../../layout/Container';
 import { AppColors } from '../../../../constants/theme';
 import PrepList from '../components/prepList';
