@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
-import { RefreshControl, SafeAreaView, ScrollView, View } from 'react-native';
+import { RefreshControl, ScrollView, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Types & Services
 import { IOrder, IUser } from '../../../types/index';

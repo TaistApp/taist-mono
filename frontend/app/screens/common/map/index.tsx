@@ -1,7 +1,7 @@
 import type { Coordinates } from 'expo-maps';
 import { GoogleMaps } from 'expo-maps';
 import { useState } from 'react';
-import { SafeAreaView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAppDispatch, useAppSelector } from '../../../hooks/useRedux';
 import Container from '../../../layout/Container';
