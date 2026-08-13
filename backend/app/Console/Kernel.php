@@ -43,6 +43,22 @@ class Kernel extends ConsoleKernel
                  ->runInBackground()
                  ->appendOutputTo('/proc/1/fd/1');
 
+        // Walk chefs through active orders: "On My Way" nudge 30 min before
+        // arrival, and a "mark complete + dish photo" nudge once the menu
+        // item's estimated cook time has elapsed.
+        $schedule->command('orders:send-progression-reminders')
+                 ->everyFiveMinutes()
+                 ->withoutOverlapping()
+                 ->runInBackground()
+                 ->appendOutputTo('/proc/1/fd/1');
+
+        // Expire unclaimed dish pool requests and tell the customer.
+        $schedule->command('pool:expire-requests')
+                 ->everyFiveMinutes()
+                 ->withoutOverlapping()
+                 ->runInBackground()
+                 ->appendOutputTo('/proc/1/fd/1');
+
         // Send 24-hour order reminders every 30 minutes
         // Sends SMS reminders to both chef and customer for orders happening tomorrow
         $schedule->command('orders:send-reminders')

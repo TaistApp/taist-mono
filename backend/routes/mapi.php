@@ -89,7 +89,14 @@ Route::group(['middleware' => ['auth:mapi']], function () {
 	Route::post('create_order', 'MapiController@createOrder');
 	Route::post('update_order/{id}', 'MapiController@updateOrder');
 	Route::post('remove_order/{id}', 'MapiController@removeOrder');
-	
+
+	// Pool ordering ("request a dish") — first chef to accept wins
+	Route::get('pool/config', 'MapiController@getPoolConfig');
+	Route::post('pool/create_request', 'MapiController@createPoolRequest');
+	Route::get('pool/open_requests', 'MapiController@getOpenPoolRequests');
+	Route::post('pool/claim_request', 'MapiController@claimPoolRequest');
+	Route::get('pool/my_requests', 'MapiController@getMyPoolRequests');
+
 	// Discount Codes
 	Route::post('discount-codes/validate', 'MapiController@validateDiscountCode');
 

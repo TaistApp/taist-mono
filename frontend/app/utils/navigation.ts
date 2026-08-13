@@ -183,6 +183,7 @@ export const navigate = {
       params: params || {},
     } as any),
     cart: () => router.push('/screens/customer/cart' as any),
+    requestDish: () => router.push('/screens/customer/requestDish' as any),
   },
   toChef: {
     home: () => router.push('/screens/chef/(tabs)/home' as any),
@@ -240,6 +241,7 @@ export const navigate = {
       router.push('/screens/chef/addOnCustomization' as any);
     },
     backgroundCheck: () => router.push('/screens/chef/backgroundCheck' as any),
+    orderRequests: () => router.push('/screens/chef/orderRequests' as any),
     earningsDetails: () => router.push('/screens/chef/earnings' as any),
     cancelApplication: () => router.push('/screens/chef/cancelApplication' as any),
   },

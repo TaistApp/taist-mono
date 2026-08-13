@@ -14,7 +14,8 @@ export default interface OrderInterface {
   order_time?: string;
   order_time_string?: string; // HH:mm format (timezone-safe)
   timezone?: string; // IANA timezone identifier (e.g., 'America/Chicago') based on chef's location
-  status?: number; //1: Requested, 2:Accepted, 3:Completed, 4:Cancelled, 5:Rejected, 6:Expired
+  status?: number; //1: Requested, 2:Accepted, 3:Completed, 4:Cancelled, 5:Rejected, 6:Expired, 7:OnMyWay
+  acceptance_deadline?: number | string; // unix seconds; requested orders expire past this
   notes?: string;
   rating?: number;
   review?: string;

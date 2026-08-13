@@ -156,4 +156,32 @@ class ChefConfirmationReminderServiceTest extends TestCase
         $this->assertContains(1, $chefIds, 'Active chef should still be reminded');
         $this->assertNotContains(2, $chefIds, 'Paused chef must not be reminded');
     }
+
+    // ==========================================
+    // 48h throttle (was 12h) — rarer but louder
+    // ==========================================
+
+    public function test_reminder_sent_24h_ago_is_now_throttled()
+    {
+        // Regression: under the old 12h rule this chef would be re-reminded
+        // daily; the 48h throttle must hold them back.
+        $now = time();
+        $lastSent = date('Y-m-d H:i:s', $now - 24 * 3600);
+
+        $this->assertTrue(ChefConfirmationReminderService::shouldThrottle($lastSent, $now));
+    }
+
+    public function test_reminder_sent_over_48h_ago_is_not_throttled()
+    {
+        $now = time();
+        $lastSent = date('Y-m-d H:i:s', $now - 49 * 3600);
+
+        $this->assertFalse(ChefConfirmationReminderService::shouldThrottle($lastSent, $now));
+    }
+
+    public function test_never_reminded_chef_is_not_throttled()
+    {
+        $this->assertFalse(ChefConfirmationReminderService::shouldThrottle(null));
+        $this->assertFalse(ChefConfirmationReminderService::shouldThrottle(''));
+    }
 }

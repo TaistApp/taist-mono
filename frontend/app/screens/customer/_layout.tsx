@@ -8,6 +8,7 @@ export default function CustomerLayout() {
       <Stack.Screen name="chefDetail" options={{ title: 'Chef Detail' }} />
       <Stack.Screen name="addToOrder" options={{ title: 'Add To Order' }} />
       <Stack.Screen name="cart" options={{ title: 'Cart' }} />
+      <Stack.Screen name="requestDish" options={{ title: 'Request a Dish' }} />
       <Stack.Screen name="orderDetail" options={{ title: 'Order Detail' }} />
       <Stack.Screen name="checkout" options={{ title: 'Checkout' }} />
       <Stack.Screen name="earnByCooking" options={{ title: 'Earn By Cooking' }} />
