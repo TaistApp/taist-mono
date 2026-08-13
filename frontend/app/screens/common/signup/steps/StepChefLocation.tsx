@@ -192,6 +192,12 @@ export const StepChefLocation: React.FC<StepChefLocationProps> = ({
       subtitle="We need your address for verification purposes"
     >
       <View style={styles.locationOptionContainer}>
+        {/* ASC Guideline 5.1.1(iv): the button preceding the location permission
+            prompt must use neutral wording like "Continue"/"Next" — the
+            description lives in the hint text instead */}
+        <Text style={styles.locationHint}>
+          We can fill in your address automatically using your device's location
+        </Text>
         <Pressable
           testID="signup.chefLocation.useMyLocation"
           style={styles.locationButton}
@@ -200,7 +206,7 @@ export const StepChefLocation: React.FC<StepChefLocationProps> = ({
         >
           <FontAwesomeIcon icon={faLocationArrow} size={24} color={AppColors.primary} />
           <Text style={styles.locationButtonText}>
-            {isGettingLocation ? 'Getting location...' : 'Use My Current Location'}
+            {isGettingLocation ? 'Getting location...' : 'Next'}
           </Text>
         </Pressable>
 
@@ -281,6 +287,13 @@ export const StepChefLocation: React.FC<StepChefLocationProps> = ({
 
 const styles = StyleSheet.create({
   locationOptionContainer: {
+    marginBottom: Spacing.md,
+  },
+  locationHint: {
+    fontSize: 14,
+    color: AppColors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
     marginBottom: Spacing.md,
   },
   locationButton: {
