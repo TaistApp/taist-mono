@@ -14,6 +14,7 @@ export default function ChefLayout() {
       <Stack.Screen name="addMenuItem" options={{ title: 'Add Menu Item', animation: 'slide_from_right' }} />
       <Stack.Screen name="addOnCustomization" options={{ title: 'Add Add-on', animation: 'slide_from_right' }} />
       <Stack.Screen name="orderDetail" options={{ title: 'Order Detail', animation: 'slide_from_right' }} />
+      <Stack.Screen name="orderRequests" options={{ title: 'Order Requests', animation: 'slide_from_right' }} />
       <Stack.Screen name="backgroundCheck" options={{ title: 'Background Check', animation: 'slide_from_right' }} />
       <Stack.Screen name="onboarding" options={{ title: 'Chef Onboarding', animation: 'slide_from_right' }} />
       <Stack.Screen name="howToDo" options={{ title: 'How To Do', animation: 'slide_from_right' }} />

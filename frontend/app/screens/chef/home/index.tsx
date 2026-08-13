@@ -27,13 +27,19 @@ import Container from '../../../layout/Container';
 import { setNotificationOrderId } from '../../../reducers/deviceSlice';
 import { hideLoading, showLoading } from '../../../reducers/loadingSlice';
 import { setUser } from '../../../reducers/userSlice';
-import { GetChefOrdersAPI, GetChefProfileAPI, GetUserById, GetPaymentMethodAPI, ReactivateAccountAPI, getChefShareUrl } from '../../../services/api';
+import { GetChefOrdersAPI, GetChefProfileAPI, GetOpenPoolRequestsAPI, GetPaymentMethodAPI, GetUserById, ReactivateAccountAPI, getChefShareUrl } from '../../../services/api';
 import { getImageURL, formatDisplayName } from '../../../utils/functions';
 import { ShowErrorToast, ShowSuccessToast } from '../../../utils/toast';
 import { getDateStartTime } from '../../../utils/validations';
+import { findTodaysFirstActiveOrder, orderMatchesTab } from '../../../utils/orderPartition';
 import ChefOrderCard from './components/chefOrderCard';
 import SettingItem from './components/settingItem';
 import StripeOnboardingDialog from './components/stripeOnboardingDialog';
+
+// Once per app launch: on the day of an order, the chef should land directly
+// on their first active order rather than the dashboard. Module-level so
+// remounts of the home screen (tab switches) don't re-trigger the redirect.
+let autoOpenedTodaysOrderThisLaunch = false;
 import { styles } from './styles';
 
 
@@ -54,6 +60,9 @@ const Home = () => {
   const [tabId, onChangeTabId] = useState('1');
   const [orders, setOrders] = useState<Array<IOrder>>([]);
   const [stripeDialogVisible, setStripeDialogVisible] = useState(false);
+  // Open pool ("request a dish") requests this chef could claim. Stays 0
+  // when the server feature flag is off — the API returns [] then.
+  const [openPoolCount, setOpenPoolCount] = useState(0);
 
   const tabs = useMemo(
     () => [
@@ -105,6 +114,12 @@ useFocusEffect(
       if (self.is_pending == 1 && self.id) {
         GetChefProfileAPI({ user_id: self.id }, dispatch);
       }
+      // Pool request banner count (silent; feature-flagged server-side)
+      if (self.is_pending != 1) {
+        GetOpenPoolRequestsAPI()
+          .then(resp => setOpenPoolCount(resp?.success == 1 ? (resp.data?.length ?? 0) : 0))
+          .catch(() => setOpenPoolCount(0));
+      }
     }, [notification_id, redirectingToWelcome, self.is_pending, self.id]),
   );
 
@@ -137,6 +152,21 @@ useFocusEffect(
     }
     // If is_pending === 1 and quiz_completed === 1, show onboarding checklist (existing behavior below)
   }, []);
+
+  // Day-of-order default screen: once the orders load, if the chef has an
+  // active order (Accepted / OnMyWay) scheduled for today, open its detail
+  // screen — first order of the day first. Runs once per app launch; a push
+  // notification's explicit order routing (notificationOrderId) wins.
+  useEffect(() => {
+    if (autoOpenedTodaysOrderThisLaunch || redirectingToWelcome) return;
+    if (notificationOrderId >= 0) return;
+    const todaysOrder = findTodaysFirstActiveOrder(orders);
+    if (todaysOrder) {
+      autoOpenedTodaysOrderThisLaunch = true;
+      const customer = users.find(x => x.id == todaysOrder.customer_user_id) ?? {};
+      navigate.toChef.orderDetail(todaysOrder, customer as IUser);
+    }
+  }, [orders]);
 
   // (Initial load is handled by the focus effect above — no separate mount
   // fetch, which previously double-loaded and double-showed the spinner.)
@@ -309,7 +339,9 @@ useFocusEffect(
   };
 
   const selectedTab = tabs.find(x => x.id == tabId);
-  const filteredOrders = orders.filter(x => x.status == selectedTab?.status);
+  // orderMatchesTab keeps expired requests out of the REQUESTED tab and fixes
+  // the old filter dropping On-My-Way (status 7) orders from ACCEPTED.
+  const filteredOrders = orders.filter(x => orderMatchesTab(x, selectedTab));
 
   // Paused chefs see a dedicated reactivation screen instead of the dashboard
   // or onboarding checklist. They remain logged in and hidden from customers.
@@ -454,6 +486,28 @@ useFocusEffect(
           )}
           {self.is_pending != 1 && (
             <>
+              {openPoolCount > 0 && (
+                <TouchableOpacity
+                  testID="chefHome.poolRequestsBanner"
+                  style={{
+                    backgroundColor: '#FFF7ED',
+                    borderWidth: 1,
+                    borderColor: '#FDBA74',
+                    borderRadius: 12,
+                    padding: 15,
+                    width: '100%',
+                    gap: 2,
+                  }}
+                  onPress={() => navigate.toChef.orderRequests()}
+                >
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: '#000000' }}>
+                    {`🍽️ ${openPoolCount} open dish request${openPoolCount === 1 ? '' : 's'} near you`}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: '#666666' }}>
+                    First chef to accept wins the order — tap to view
+                  </Text>
+                </TouchableOpacity>
+              )}
               <View style={styles.tabContainer}>
                 {tabs.map((tab, idx) => {
                   const isActive = tab.id == tabId;
