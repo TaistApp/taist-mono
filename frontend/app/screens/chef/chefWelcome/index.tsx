@@ -1,6 +1,5 @@
 import React, { useRef, useState } from 'react';
 import {
-  SafeAreaView,
   View,
   Text,
   TouchableOpacity,
@@ -11,6 +10,7 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { navigate } from '../../../utils/navigation';
 import { AppColors } from '../../../../constants/theme';
 import PrepList from '../components/prepList';
@@ -56,7 +56,11 @@ const ChefWelcome = () => {
         style={styles.pager}
       >
         {/* PAGE 1 — What Chefs Love + insurance/background */}
-        <View style={[styles.page, { width: SCREEN_WIDTH }]}>
+        <ScrollView
+          style={{ width: SCREEN_WIDTH }}
+          contentContainerStyle={styles.page}
+          showsVerticalScrollIndicator={false}
+        >
           <Text style={styles.pageTitle}>What Chefs Love</Text>
 
           <View style={styles.card}>
@@ -100,17 +104,21 @@ const ChefWelcome = () => {
               ✅ <Text style={styles.infoBold}>Background check required</Text>
             </Text>
           </View>
-        </View>
+        </ScrollView>
 
         {/* PAGE 2 — What You'll Need */}
-        <View style={[styles.page, { width: SCREEN_WIDTH }]}>
+        <ScrollView
+          style={{ width: SCREEN_WIDTH }}
+          contentContainerStyle={styles.page}
+          showsVerticalScrollIndicator={false}
+        >
           <Text style={styles.needTitle}>What You'll Need</Text>
           <Text style={styles.cardSubtitle}>
             You'll cook in the customer's kitchen. Bring these for each order:
           </Text>
 
           <PrepList />
-        </View>
+        </ScrollView>
       </ScrollView>
 
       {/* Pager dots */}
@@ -151,7 +159,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   page: {
+    flexGrow: 1,
     paddingHorizontal: 24,
+    paddingVertical: 8,
     justifyContent: 'center',
   },
   pageTitle: {

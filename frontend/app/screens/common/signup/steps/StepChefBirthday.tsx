@@ -132,7 +132,7 @@ export const StepChefBirthday: React.FC<StepChefBirthdayProps> = ({
                 value={
                   userInfo.birthday
                     ? moment(userInfo.birthday * 1000).toDate()
-                    : new Date()
+                    : moment().subtract(18, 'years').toDate()
                 }
                 mode="date"
                 display="spinner"
@@ -155,7 +155,7 @@ export const StepChefBirthday: React.FC<StepChefBirthdayProps> = ({
                 : moment().subtract(18, 'years').toDate()
             }
             mode="date"
-            display="default"
+            display="spinner"
             onChange={onDateChange}
             maximumDate={new Date()}
             minimumDate={moment().subtract(120, 'years').toDate()}
