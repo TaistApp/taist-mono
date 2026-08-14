@@ -41,6 +41,7 @@ class Orders extends Model
         'reminder_sent_at',
         'omw_reminder_sent_at',
         'completion_reminder_sent_at',
+        'ingredients_reminder_sent_at',
         // Discount tracking fields
         'discount_code_id',
         'discount_code',
@@ -245,7 +246,21 @@ class Orders extends Model
     /**
      * How long before the arrival time the "On My Way" nudge fires (seconds).
      */
-    public const OMW_REMINDER_LEAD_SECONDS = 1800;
+    public const OMW_REMINDER_LEAD_SECONDS = 3600;
+
+    /**
+     * The "ingredients bought?" nudge window: opens 24h before arrival and
+     * closes 3h before (late-accepted orders still get it, but it never
+     * stacks onto the On-My-Way hour).
+     */
+    public const INGREDIENTS_REMINDER_LEAD_SECONDS = 86400;
+    public const INGREDIENTS_REMINDER_FLOOR_SECONDS = 10800;
+
+    /**
+     * The completion nudge fires this long BEFORE the estimated done time,
+     * in case the chef finishes quicker than the menu's estimate.
+     */
+    public const COMPLETION_REMINDER_EARLY_SECONDS = 600;
 
     /**
      * The nudges stop firing this long after their trigger moment, so a
@@ -255,9 +270,33 @@ class Orders extends Model
     public const PROGRESSION_REMINDER_GRACE_SECONDS = 3600;
 
     /**
+     * Whether to nudge the chef to confirm ingredients are bought: order is
+     * Accepted, we're 24h (down to 3h) out from arrival, and no nudge has
+     * been sent yet.
+     *
+     * @param int|null $now Unix timestamp to evaluate against (defaults to now)
+     * @return bool
+     */
+    public function shouldSendIngredientsReminder(?int $now = null)
+    {
+        $now = $now ?? time();
+        $arrival = (int) $this->order_date;
+
+        if ((int) $this->status !== 2 || !$arrival) {
+            return false;
+        }
+        if (!empty($this->ingredients_reminder_sent_at)) {
+            return false;
+        }
+
+        return $now >= $arrival - self::INGREDIENTS_REMINDER_LEAD_SECONDS
+            && $now <= $arrival - self::INGREDIENTS_REMINDER_FLOOR_SECONDS;
+    }
+
+    /**
      * Whether to nudge the chef to tap "On My Way": order is Accepted, we're
-     * inside the 30-minutes-to-arrival window (with a 1h grace past arrival
-     * for late starts), and no nudge has been sent yet.
+     * inside the hour-to-arrival window (with a 1h grace past arrival for
+     * late starts), and no nudge has been sent yet.
      *
      * @param int|null $now Unix timestamp to evaluate against (defaults to now)
      * @return bool
@@ -280,9 +319,10 @@ class Orders extends Model
 
     /**
      * Whether to nudge the chef to complete the order (and snap a dish photo
-     * before leaving): order is OnMyWay, the menu item's estimated cook time
-     * has elapsed since the arrival time, and no nudge has been sent yet.
-     * Stops after the grace window so ancient stuck orders stay quiet.
+     * before leaving): order is OnMyWay and we're within 10 minutes of the
+     * estimated done time (arrival + the menu item's estimated cook time) —
+     * early, in case the chef finishes quicker than the estimate. Stops
+     * after the grace window so ancient stuck orders stay quiet.
      *
      * @param int $estimatedMinutes The menu item's estimated_time in minutes
      * @param int|null $now Unix timestamp to evaluate against (defaults to now)
@@ -302,7 +342,7 @@ class Orders extends Model
 
         $expectedDone = $arrival + max(0, (int) $estimatedMinutes) * 60;
 
-        return $now >= $expectedDone
+        return $now >= $expectedDone - self::COMPLETION_REMINDER_EARLY_SECONDS
             && $now <= $expectedDone + self::PROGRESSION_REMINDER_GRACE_SECONDS;
     }
 

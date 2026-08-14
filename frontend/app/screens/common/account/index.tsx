@@ -685,7 +685,6 @@ const Account = () => {
             inputStyles={styles.dropdownInput}
             dropdownStyles={styles.dropdown}
             dropdownTextStyles={styles.dropdownText}
-            dropdownProps={{ nestedScrollEnabled: true }}
             arrowicon={
               <FontAwesomeIcon icon={faAngleDown} size={20} color="#666666" />
             }
