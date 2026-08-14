@@ -3449,12 +3449,47 @@ Write only the review text:";
 
         $data = app(Reviews::class)->where(['id' => $id])->first();
 
+        // Notify the chef here, not in tipOrderPayment: the app only calls
+        // tip_order_payment when a tip was left, so a review without a tip
+        // (or with a failed tip charge) would otherwise never notify the chef.
+        // The tip itself is still announced from tipOrderPayment once the
+        // charge succeeds.
+        try {
+            $chef = app(Listener::class)->where('id', $request->to_user_id)->first();
+            if ($chef) {
+                $subject = 'Review for chef';
+                $body = [
+                    'review' => $request->review,
+                    'ratings' => $request->rating
+                ];
+
+                // DB row first so the in-app notification survives even if
+                // the push fails (stale/missing FCM token).
+                Notification::create([
+                    'title' => $subject,
+                    'body' => json_encode($body),
+                    'image' => $chef->photo ?? 'N/A',
+                    'fcm_token' => $chef->fcm_token ?? '',
+                    'user_id' => $chef->id,
+                    'navigation_id' => $request->order_id,
+                    'role' => 'chef',
+                ]);
+
+                $this->notification($chef->fcm_token, $subject, json_encode($body), $request->order_id, $role = 'chef');
+            }
+        } catch (\Exception $e) {
+            Log::warning('Chef review notification failed for review ID: ' . $id, [
+                'error' => $e->getMessage()
+            ]);
+        }
+
         // Trigger AI review generation asynchronously (don't block review creation)
         try {
             // Call internal method to generate AI reviews
             $this->generateAIReviewsInternal($id);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             // Log warning but don't fail the authentic review creation
+            // (\Throwable: a missing OpenAI key raises a TypeError, not an Exception)
             Log::warning('AI review generation failed for review ID: ' . $id, [
                 'error' => $e->getMessage()
             ]);
@@ -5808,26 +5843,10 @@ Write only the review text:";
                         'navigation_id' => $order->id,
                         'role' => $role,
                     ]);
-                } else {
-                    $subject = 'Review for chef';
-                    $body = [
-                        'review' => $review->review,
-                        'ratings' => $review->rating
-                    ];
-
-                    $this->notification($user->fcm_token, $subject, json_encode($body), $order->id, $role = 'chef');
-
-                    // Create the notification in the database
-                    Notification::create([
-                        'title' => $subject,
-                        'body' => json_encode($body),
-                        'image' => $user->photo ?? 'N/A',
-                        'fcm_token' => $user->fcm_token,
-                        'user_id' => $user->id,
-                        'navigation_id' => $order->id,
-                        'role' => $role,
-                    ]);
                 }
+                // No tip: nothing to charge, and the review notification was
+                // already sent from createReview — sending it again here would
+                // double-notify the chef.
             } else {
                 $errorMsg = "Invalid Stripe Customer.";
             }
