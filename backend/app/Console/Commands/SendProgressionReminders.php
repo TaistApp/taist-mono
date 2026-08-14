@@ -24,7 +24,7 @@ class SendProgressionReminders extends Command
      *
      * @var string
      */
-    protected $description = 'Nudge chefs through active orders: 30 min before arrival ("On My Way") and once the estimated cook time has elapsed ("mark complete + dish photo")';
+    protected $description = 'Nudge chefs through active orders: 24h out ("ingredients bought?"), 1h before arrival ("On My Way"), and 10 min before estimated completion ("mark complete + dish photo")';
 
     /**
      * Execute the console command.
@@ -35,6 +35,27 @@ class SendProgressionReminders extends Command
     {
         $now = time();
         $sent = 0;
+
+        // "Ingredients bought?" nudges: accepted orders arriving in 3-24h.
+        $upcoming = Orders::where('status', 2)
+            ->whereNull('ingredients_reminder_sent_at')
+            ->whereBetween('order_date', [
+                $now + Orders::INGREDIENTS_REMINDER_FLOOR_SECONDS,
+                $now + Orders::INGREDIENTS_REMINDER_LEAD_SECONDS,
+            ])
+            ->get();
+
+        foreach ($upcoming as $order) {
+            if (!$order->shouldSendIngredientsReminder($now)) {
+                continue;
+            }
+            $customerName = $this->customerFirstName($order);
+            $menuTitle = Menus::where('id', $order->menu_id)->value('title') ?? 'the dish';
+            $when = date('l g:i A', (int) $order->order_date);
+            $body = "{$customerName}'s {$menuTitle} is coming up {$when}. Got all the ingredients? Grab anything missing today so you're ready to cook.";
+
+            $sent += $this->pushToChef($order, 'ingredients_reminder', 'Ingredients ready? 🛒', $body, 'ingredients_reminder_sent_at', $now);
+        }
 
         // "On My Way" nudges: accepted orders arriving within the lead window
         // (bounded query; the model predicate applies the exact window).
@@ -59,8 +80,8 @@ class SendProgressionReminders extends Command
             $sent += $this->pushToChef($order, 'omw_reminder', 'Time to head out 🚗', $body, 'omw_reminder_sent_at', $now);
         }
 
-        // Completion nudges: on-my-way orders whose estimated cook time has
-        // elapsed since arrival.
+        // Completion nudges: on-my-way orders within 10 min of estimated
+        // completion (early, in case the chef beats the estimate).
         $onMyWay = Orders::where('status', 7)
             ->whereNull('completion_reminder_sent_at')
             ->whereNotNull('order_date')

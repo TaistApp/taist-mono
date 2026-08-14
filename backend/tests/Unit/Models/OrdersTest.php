@@ -927,10 +927,10 @@ class OrdersTest extends TestCase
     // Progression reminder predicates
     // ==========================================
 
-    public function test_omw_reminder_fires_inside_30_min_window()
+    public function test_omw_reminder_fires_inside_one_hour_window()
     {
         $now = 1_800_000_000;
-        $order = new Orders(['status' => 2, 'order_date' => $now + 900]); // arrives in 15 min
+        $order = new Orders(['status' => 2, 'order_date' => $now + 2700]); // arrives in 45 min
 
         $this->assertTrue($order->shouldSendOnMyWayReminder($now));
     }
@@ -939,11 +939,41 @@ class OrdersTest extends TestCase
     {
         $now = 1_800_000_000;
 
-        $tooEarly = new Orders(['status' => 2, 'order_date' => $now + 3600]); // 1h out
+        $tooEarly = new Orders(['status' => 2, 'order_date' => $now + 2 * 3600]); // 2h out
         $this->assertFalse($tooEarly->shouldSendOnMyWayReminder($now));
 
         $tooLate = new Orders(['status' => 2, 'order_date' => $now - 7200]); // 2h past arrival
         $this->assertFalse($tooLate->shouldSendOnMyWayReminder($now));
+    }
+
+    public function test_ingredients_reminder_fires_between_24h_and_3h_out()
+    {
+        $now = 1_800_000_000;
+
+        $twentyHoursOut = new Orders(['status' => 2, 'order_date' => $now + 20 * 3600]);
+        $this->assertTrue($twentyHoursOut->shouldSendIngredientsReminder($now));
+
+        $thirtyHoursOut = new Orders(['status' => 2, 'order_date' => $now + 30 * 3600]);
+        $this->assertFalse($thirtyHoursOut->shouldSendIngredientsReminder($now));
+
+        // Inside 3h it's shopping-too-late territory — the OMW nudge takes over
+        $twoHoursOut = new Orders(['status' => 2, 'order_date' => $now + 2 * 3600]);
+        $this->assertFalse($twoHoursOut->shouldSendIngredientsReminder($now));
+    }
+
+    public function test_ingredients_reminder_only_for_accepted_and_only_once()
+    {
+        $now = 1_800_000_000;
+
+        $requested = new Orders(['status' => 1, 'order_date' => $now + 20 * 3600]);
+        $this->assertFalse($requested->shouldSendIngredientsReminder($now));
+
+        $alreadySent = new Orders([
+            'status' => 2,
+            'order_date' => $now + 20 * 3600,
+            'ingredients_reminder_sent_at' => (string)($now - 3600),
+        ]);
+        $this->assertFalse($alreadySent->shouldSendIngredientsReminder($now));
     }
 
     public function test_omw_reminder_only_for_accepted_and_only_once()
@@ -968,6 +998,19 @@ class OrdersTest extends TestCase
         $order = new Orders(['status' => 7, 'order_date' => $now - 70 * 60]);
 
         $this->assertTrue($order->shouldSendCompletionReminder(60, $now));
+    }
+
+    public function test_completion_reminder_fires_10_min_early_for_quick_chefs()
+    {
+        $now = 1_800_000_000;
+        // Arrived 55 min ago, dish takes 60 min — expected done in 5 min
+        $order = new Orders(['status' => 7, 'order_date' => $now - 55 * 60]);
+
+        $this->assertTrue($order->shouldSendCompletionReminder(60, $now));
+
+        // But 20 min before expected done is still too early
+        $early = new Orders(['status' => 7, 'order_date' => $now - 40 * 60]);
+        $this->assertFalse($early->shouldSendCompletionReminder(60, $now));
     }
 
     public function test_completion_reminder_quiet_while_still_cooking_and_when_stale()

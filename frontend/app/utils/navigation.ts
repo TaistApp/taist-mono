@@ -51,7 +51,8 @@ export const initializeNavigation = () => {
  * @param userType User type (1 = Customer, 2 = Chef)
  */
 export function useProtectedRoute(isSignedIn: boolean, userType?: number) {
-  const segments = useSegments();
+  // Widen expo-router's route-tree tuple: this hook inspects arbitrary depth.
+  const segments = useSegments() as string[];
   const segmentString = segments[1] ? segments[1].toString() : ''; // Get the second segment (chef/customer/common)
   const isAuthGroup = segmentString === 'common'; // Only common screens are auth screens
   const isInChefTabs = segments.length >= 3 && segments[1] === 'chef' && segments[2] === '(tabs)';
