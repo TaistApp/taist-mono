@@ -976,19 +976,39 @@ class OrdersTest extends TestCase
         $this->assertFalse($alreadySent->shouldSendIngredientsReminder($now));
     }
 
-    public function test_omw_reminder_only_for_accepted_and_only_once()
+    public function test_omw_reminder_only_for_accepted_and_throttled_between_repeats()
     {
         $now = 1_800_000_000;
 
         $requested = new Orders(['status' => 1, 'order_date' => $now + 900]);
         $this->assertFalse($requested->shouldSendOnMyWayReminder($now));
 
-        $alreadySent = new Orders([
+        $sentFiveMinAgo = new Orders([
             'status' => 2,
             'order_date' => $now + 900,
             'omw_reminder_sent_at' => (string)($now - 300),
         ]);
-        $this->assertFalse($alreadySent->shouldSendOnMyWayReminder($now));
+        $this->assertFalse($sentFiveMinAgo->shouldSendOnMyWayReminder($now), 'quiet inside the 10-min repeat interval');
+    }
+
+    public function test_omw_reminder_repeats_every_10_min_until_chef_acts()
+    {
+        $now = 1_800_000_000;
+
+        $sentTenMinAgo = new Orders([
+            'status' => 2,
+            'order_date' => $now + 900,
+            'omw_reminder_sent_at' => (string)($now - 620),
+        ]);
+        $this->assertTrue($sentTenMinAgo->shouldSendOnMyWayReminder($now), 're-fires 10 min after the last send');
+
+        // The chef tapping "On My Way" (status 7) stops the loop
+        $acted = new Orders([
+            'status' => 7,
+            'order_date' => $now + 900,
+            'omw_reminder_sent_at' => (string)($now - 620),
+        ]);
+        $this->assertFalse($acted->shouldSendOnMyWayReminder($now));
     }
 
     public function test_completion_reminder_fires_after_estimated_cook_time()
@@ -1025,18 +1045,38 @@ class OrdersTest extends TestCase
         $this->assertFalse($stale->shouldSendCompletionReminder(60, $now));
     }
 
-    public function test_completion_reminder_only_for_on_my_way_and_only_once()
+    public function test_completion_reminder_only_for_on_my_way_and_throttled_between_repeats()
     {
         $now = 1_800_000_000;
 
         $accepted = new Orders(['status' => 2, 'order_date' => $now - 70 * 60]);
         $this->assertFalse($accepted->shouldSendCompletionReminder(60, $now));
 
-        $alreadySent = new Orders([
+        $sentJustNow = new Orders([
             'status' => 7,
             'order_date' => $now - 70 * 60,
             'completion_reminder_sent_at' => (string)($now - 60),
         ]);
-        $this->assertFalse($alreadySent->shouldSendCompletionReminder(60, $now));
+        $this->assertFalse($sentJustNow->shouldSendCompletionReminder(60, $now), 'quiet inside the 10-min repeat interval');
+    }
+
+    public function test_completion_reminder_repeats_every_10_min_until_completed()
+    {
+        $now = 1_800_000_000;
+
+        $sentTenMinAgo = new Orders([
+            'status' => 7,
+            'order_date' => $now - 70 * 60,
+            'completion_reminder_sent_at' => (string)($now - 620),
+        ]);
+        $this->assertTrue($sentTenMinAgo->shouldSendCompletionReminder(60, $now), 're-fires 10 min after the last send');
+
+        // Marking Complete (status 3) stops the loop
+        $completed = new Orders([
+            'status' => 3,
+            'order_date' => $now - 70 * 60,
+            'completion_reminder_sent_at' => (string)($now - 620),
+        ]);
+        $this->assertFalse($completed->shouldSendCompletionReminder(60, $now));
     }
 }

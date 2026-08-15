@@ -95,6 +95,7 @@ Route::group(['middleware' => ['auth:mapi']], function () {
 	Route::post('pool/create_request', 'MapiController@createPoolRequest');
 	Route::get('pool/open_requests', 'MapiController@getOpenPoolRequests');
 	Route::post('pool/claim_request', 'MapiController@claimPoolRequest');
+	Route::post('pool/cancel_request', 'MapiController@cancelPoolRequest');
 	Route::get('pool/my_requests', 'MapiController@getMyPoolRequests');
 
 	// Discount Codes

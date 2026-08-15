@@ -60,7 +60,6 @@ class SendProgressionReminders extends Command
         // "On My Way" nudges: accepted orders arriving within the lead window
         // (bounded query; the model predicate applies the exact window).
         $accepted = Orders::where('status', 2)
-            ->whereNull('omw_reminder_sent_at')
             ->whereBetween('order_date', [
                 $now - Orders::PROGRESSION_REMINDER_GRACE_SECONDS,
                 $now + Orders::OMW_REMINDER_LEAD_SECONDS,
@@ -83,7 +82,6 @@ class SendProgressionReminders extends Command
         // Completion nudges: on-my-way orders within 10 min of estimated
         // completion (early, in case the chef beats the estimate).
         $onMyWay = Orders::where('status', 7)
-            ->whereNull('completion_reminder_sent_at')
             ->whereNotNull('order_date')
             ->get();
 
