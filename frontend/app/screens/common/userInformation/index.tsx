@@ -312,7 +312,6 @@ const UserInformation = ({navigation, route}: any) => {
             inputStyles={styles.dropdownInput}
             dropdownStyles={styles.dropdown}
             dropdownTextStyles={styles.dropdownText}
-            dropdownProps={{ nestedScrollEnabled: true }}
             arrowicon={
               <FontAwesomeIcon icon={faAngleDown} size={20} color="#ffffff" />
             }

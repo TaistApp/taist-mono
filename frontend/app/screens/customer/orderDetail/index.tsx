@@ -55,6 +55,7 @@ import {
   getFormattedDateTimeInTimezone
 } from '../../../utils/validations';
 import { getParkingLabel } from '../../../constants/parkingTypes';
+import { REVIEW_MAX_LENGTH, truncateReview } from '../../../utils/review';
 import { styles } from './styles';
 
 const OrderDetail = () => {
@@ -91,7 +92,15 @@ const OrderDetail = () => {
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [showPushModal, setShowPushModal] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+  // Y-offset of the "Review your Experience" section inside the scroll content,
+  // so focusing the review input scrolls the section into view instead of
+  // overshooting to the end of the page (which left the input hidden above a
+  // block of blank space).
+  const reviewSectionY = useRef(0);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+
+  const scrollToReviewSection = () =>
+    scrollViewRef.current?.scrollTo({ y: Math.max(reviewSectionY.current - 10, 0), animated: true });
 
   useEffect(() => {
     const id = initialOrder.id ?? 0;
@@ -382,7 +391,7 @@ const OrderDetail = () => {
                 alignItems: 'center',
                 justifyContent: 'space-between',
               }}
-              onPress={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+              onPress={scrollToReviewSection}
             >
               <View>
                 <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: '700' }}>
@@ -510,21 +519,26 @@ const OrderDetail = () => {
 
           {orderInfo?.status == 3 && (
             <>
-              <Text style={styles.title}>Review your Experience</Text>
+              <Text
+                style={styles.title}
+                onLayout={(e) => { reviewSectionY.current = e.nativeEvent.layout.y; }}>
+                Review your Experience
+              </Text>
               <View style={[styles.card, { rowGap: 0 }]}>
                 <TextInput
                   testID="customerOrderDetail.reviewInput"
                   multiline
+                  maxLength={REVIEW_MAX_LENGTH}
                   placeholder="Type a message"
                   value={reviewText}
-                  onChangeText={(text) => onChangeReviewText(text.slice(0, 100))}
+                  onChangeText={(text) => onChangeReviewText(truncateReview(text))}
                   variant={'outlined'}
                   color="#7f7f7f"
                   inputContainerStyle={{ paddingVertical: 10 }}
-                  onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 300)}
+                  onFocus={() => setTimeout(scrollToReviewSection, 300)}
                 />
                 <Text style={{ color: '#7f7f7f', fontSize: 12, letterSpacing: 0.5, marginTop: 5, alignSelf: 'flex-end' }}>
-                  {`${reviewText.length}/100 Characters`}
+                  {`${reviewText.length}/${REVIEW_MAX_LENGTH} Characters`}
                 </Text>
 
                 <View style={{ width: '100%', alignItems: 'center', paddingTop: 10 }}>

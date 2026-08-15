@@ -21,6 +21,29 @@ use Exception;
  */
 class ChefConfirmationReminderService
 {
+    /**
+     * Minimum gap between availability reminders per chef. 48 hours — chefs
+     * with hours set most days were getting one every day and tuning them
+     * out; the reminder itself is now louder instead.
+     */
+    public const REMINDER_THROTTLE_SECONDS = 172800;
+
+    /**
+     * Whether a chef reminded at $lastSentAt is still inside the throttle
+     * window at $now.
+     *
+     * @param string|null $lastSentAt datetime string (last_online_reminder_sent_at)
+     * @param int|null $now unix timestamp, injectable for tests
+     */
+    public static function shouldThrottle($lastSentAt, ?int $now = null): bool
+    {
+        if (empty($lastSentAt)) {
+            return false;
+        }
+        $now = $now ?? time();
+        return ($now - strtotime($lastSentAt)) < self::REMINDER_THROTTLE_SECONDS;
+    }
+
     protected $twilioService;
     protected $firebaseMessaging;
 
@@ -77,26 +100,23 @@ class ChefConfirmationReminderService
             return false;
         }
 
-        // Check if we recently sent a reminder (prevent spam)
-        if ($chef->last_online_reminder_sent_at) {
-            $lastReminderTime = strtotime($chef->last_online_reminder_sent_at);
-            $timeSinceLastReminder = time() - $lastReminderTime;
-
-            // Don't send more than once per 12 hours
-            if ($timeSinceLastReminder < 43200) { // 12 hours
-                Log::info("Recently sent reminder, skipping", [
-                    'chef_id' => $chefId,
-                    'hours_since_last' => round($timeSinceLastReminder / 3600, 1)
-                ]);
-                return false;
-            }
+        // Check if we recently sent a reminder (prevent spam).
+        // 48h throttle (was 12h): chefs with availability set most days were
+        // getting a reminder every single day and tuning them out — rarer but
+        // more attention-grabbing is the goal.
+        if (self::shouldThrottle($chef->last_online_reminder_sent_at)) {
+            Log::info("Recently sent reminder, skipping", [
+                'chef_id' => $chefId,
+                'last_sent_at' => $chef->last_online_reminder_sent_at,
+            ]);
+            return false;
         }
 
         $tomorrowFormatted = date('l, M j', strtotime($tomorrowDate)); // "Tuesday, Dec 3"
         $timeRange = date('g:i A', strtotime($scheduledStart)) . ' - ' . date('g:i A', strtotime($scheduledEnd));
 
-        $title = "Availability reminder";
-        $body = "Your availability is set for {$tomorrowFormatted}, {$timeRange}. No orders yet — if your plans changed, update your availability in the app.";
+        $title = "⚠️ Cooking tomorrow? Confirm now";
+        $body = "You're bookable {$tomorrowFormatted}, {$timeRange} — customers can order you RIGHT NOW for tomorrow. Plans changed? Tap to update your hours before an order comes in.";
 
         $sent = false;
 
@@ -189,7 +209,7 @@ class ChefConfirmationReminderService
             return; // Skip SMS but don't throw - push notification may still succeed
         }
 
-        $message = "Taist: Reminder — your availability is set for {$tomorrowFormatted}, {$timeRange}. No orders yet. If your plans changed, open the app to update.";
+        $message = "Taist: You're bookable tomorrow ({$tomorrowFormatted}, {$timeRange}) and customers can order you right now. Plans changed? Open the app to update your hours.";
 
         $result = $this->twilioService->sendSMS(
             $chef->phone,

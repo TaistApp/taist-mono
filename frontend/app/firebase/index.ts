@@ -406,6 +406,22 @@ const handleNotificationNavigation = (remoteMessage: any) => {
       return;
     }
 
+    // Pool dish request — take the chef to the Order Requests feed to race
+    // for the claim.
+    if (remoteMessage?.data?.type === 'pool_request') {
+      console.log('>>>Pool request notification - navigating to order requests>>>', JSON.stringify(remoteMessage));
+      navigate.toChef.orderRequests();
+      return;
+    }
+
+    // Pool request expired with no chef — send the customer back to their
+    // request screen, which shows the outcome and lets them retry or browse.
+    if (remoteMessage?.data?.type === 'pool_request_expired') {
+      console.log('>>>Pool request expired - navigating to request dish>>>', JSON.stringify(remoteMessage));
+      navigate.toCustomer.requestDish();
+      return;
+    }
+
     // Handle availability confirmation notifications - navigate to chef profile and auto-open GoLive toggle
     if (isAvailabilityConfirmationNotification(remoteMessage)) {
       console.log('>>>Availability confirmation notification - navigating to chef profile>>>', JSON.stringify(remoteMessage));

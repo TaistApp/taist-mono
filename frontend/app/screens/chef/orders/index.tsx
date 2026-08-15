@@ -14,6 +14,7 @@ import { hideLoading, showLoading } from '../../../reducers/loadingSlice';
 import { GetChefOrdersAPI } from '../../../services/api';
 import { Delay } from '../../../utils/functions';
 import { navigate } from '../../../utils/navigation';
+import { orderMatchesTab } from '../../../utils/orderPartition';
 import ChefOrderCard from './components/chefOrderCard';
 import CustomCalendar from './components/customCalendar';
 import { styles } from './styles';
@@ -56,6 +57,11 @@ const Orders = () => {
         label: 'CANCELLED ',
         status: 4,
         status1: 5,
+      },
+      {
+        id: '5',
+        label: 'EXPIRED ',
+        expired: true,
       },
     ],
     [],
@@ -122,11 +128,9 @@ const Orders = () => {
 
 
   const selectedTab = tabs.find(x => x.id == tabId);
-  const filteredOrders = orders.filter(
-    x =>
-      x.status == selectedTab?.status ||
-      (selectedTab?.status1 && x.status == selectedTab.status1),
-  );
+  // Expired orders (status 6, or requested past their acceptance deadline)
+  // live only under the EXPIRED tab so the chef's active lists stay clean.
+  const filteredOrders = orders.filter(x => orderMatchesTab(x, selectedTab));
 
   return (
     <Container>

@@ -27,6 +27,7 @@ use App\Models\NotificationTemplates;
 use App\Models\Version;
 use App\Models\DiscountCodes;
 use App\Models\DiscountCodeUsage;
+use App\Models\PoolRequests;
 use App\Models\DishPhoto;
 use App\Notification;
 use App\Notifications\NewOrderNotification;
@@ -3448,12 +3449,47 @@ Write only the review text:";
 
         $data = app(Reviews::class)->where(['id' => $id])->first();
 
+        // Notify the chef here, not in tipOrderPayment: the app only calls
+        // tip_order_payment when a tip was left, so a review without a tip
+        // (or with a failed tip charge) would otherwise never notify the chef.
+        // The tip itself is still announced from tipOrderPayment once the
+        // charge succeeds.
+        try {
+            $chef = app(Listener::class)->where('id', $request->to_user_id)->first();
+            if ($chef) {
+                $subject = 'Review for chef';
+                $body = [
+                    'review' => $request->review,
+                    'ratings' => $request->rating
+                ];
+
+                // DB row first so the in-app notification survives even if
+                // the push fails (stale/missing FCM token).
+                Notification::create([
+                    'title' => $subject,
+                    'body' => json_encode($body),
+                    'image' => $chef->photo ?? 'N/A',
+                    'fcm_token' => $chef->fcm_token ?? '',
+                    'user_id' => $chef->id,
+                    'navigation_id' => $request->order_id,
+                    'role' => 'chef',
+                ]);
+
+                $this->notification($chef->fcm_token, $subject, json_encode($body), $request->order_id, $role = 'chef');
+            }
+        } catch (\Exception $e) {
+            Log::warning('Chef review notification failed for review ID: ' . $id, [
+                'error' => $e->getMessage()
+            ]);
+        }
+
         // Trigger AI review generation asynchronously (don't block review creation)
         try {
             // Call internal method to generate AI reviews
             $this->generateAIReviewsInternal($id);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             // Log warning but don't fail the authentic review creation
+            // (\Throwable: a missing OpenAI key raises a TypeError, not an Exception)
             Log::warning('AI review generation failed for review ID: ' . $id, [
                 'error' => $e->getMessage()
             ]);
@@ -5807,26 +5843,10 @@ Write only the review text:";
                         'navigation_id' => $order->id,
                         'role' => $role,
                     ]);
-                } else {
-                    $subject = 'Review for chef';
-                    $body = [
-                        'review' => $review->review,
-                        'ratings' => $review->rating
-                    ];
-
-                    $this->notification($user->fcm_token, $subject, json_encode($body), $order->id, $role = 'chef');
-
-                    // Create the notification in the database
-                    Notification::create([
-                        'title' => $subject,
-                        'body' => json_encode($body),
-                        'image' => $user->photo ?? 'N/A',
-                        'fcm_token' => $user->fcm_token,
-                        'user_id' => $user->id,
-                        'navigation_id' => $order->id,
-                        'role' => $role,
-                    ]);
                 }
+                // No tip: nothing to charge, and the review notification was
+                // already sent from createReview — sending it again here would
+                // double-notify the chef.
             } else {
                 $errorMsg = "Invalid Stripe Customer.";
             }
@@ -6015,6 +6035,438 @@ Write only the review text:";
         $chef->minimum_order_amount = $availability->minimum_order_amount ?? null;
 
         return response()->json(['success' => 1, 'data' => $chef]);
+    }
+
+    // ==========================================================
+    // Pool ordering ("request a dish"): customer requests a dish
+    // category; first eligible chef to accept wins the order.
+    // ==========================================================
+
+    /**
+     * Feature flag: enabled by default outside production; production needs
+     * an explicit POOL_ORDERS_ENABLED=true. Lets the feature bake on staging
+     * while the same code ships to production inert.
+     */
+    private function _poolOrdersEnabled()
+    {
+        return filter_var(
+            env('POOL_ORDERS_ENABLED', !app()->environment('production')),
+            FILTER_VALIDATE_BOOLEAN
+        );
+    }
+
+    /**
+     * Live menus whose CSV category_ids contains the category. The
+     * LIKE-variant match is portable (MySQL prod, SQLite tests) unlike
+     * FIND_IN_SET.
+     */
+    private function _poolCategoryMenuQuery($categoryId)
+    {
+        $id = (string) (int) $categoryId;
+        return app(Menus::class)->where('is_live', 1)->where(function ($q) use ($id) {
+            $q->where('category_ids', $id)
+                ->orWhere('category_ids', 'like', $id . ',%')
+                ->orWhere('category_ids', 'like', '%,' . $id)
+                ->orWhere('category_ids', 'like', '%,' . $id . ',%');
+        });
+    }
+
+    /**
+     * Chefs who can take a pool request: approved + active, a live menu item
+     * in the category, and available at the requested date/time. Returns
+     * [['chef' => Listener, 'menu' => Menus (their cheapest match)], ...]
+     */
+    private function _poolEligibleChefMenus($categoryId, $dateStr, $timeStr)
+    {
+        $menusByChef = $this->_poolCategoryMenuQuery($categoryId)->get()->groupBy('user_id');
+
+        $eligible = [];
+        foreach ($menusByChef as $chefId => $chefMenus) {
+            $chef = app(Listener::class)->where([
+                'id' => $chefId,
+                'user_type' => 2,
+                'verified' => 1,
+                'is_pending' => 0,
+                'is_paused' => 0,
+            ])->first();
+            if (!$chef) {
+                continue;
+            }
+            if (!$chef->isAvailableForOrder($dateStr, $timeStr)) {
+                continue;
+            }
+            $eligible[] = ['chef' => $chef, 'menu' => $chefMenus->sortBy('price')->first()];
+        }
+
+        return $eligible;
+    }
+
+    /** GET pool/config — lets the apps show/hide the feature entry points. */
+    public function getPoolConfig(Request $request)
+    {
+        if ($this->_checktaistApiKey($request->header('apiKey')) === false)
+            return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
+
+        return response()->json(['success' => 1, 'data' => ['enabled' => $this->_poolOrdersEnabled()]]);
+    }
+
+    /** POST pool/create_request — customer opens a dish request to the pool. */
+    public function createPoolRequest(Request $request)
+    {
+        if ($this->_checktaistApiKey($request->header('apiKey')) === false)
+            return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
+        else if ($this->_checktaistApiKey($request->header('apiKey')) === -1)
+            return response()->json(['success' => 0, 'error' => "Token has been expired."]);
+
+        if (!$this->_poolOrdersEnabled()) {
+            return response()->json(['success' => 0, 'error' => 'Dish requests are not available right now.']);
+        }
+
+        $user = $this->_authUser();
+
+        $validator = Validator::make($request->all(), [
+            'category_id' => 'required|integer',
+            'portions' => 'required|integer|min:1|max:10',
+            'request_date' => 'required|date_format:Y-m-d',
+            'request_time' => 'required|date_format:H:i',
+            'request_timestamp' => 'required|integer',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['success' => 0, 'error' => $validator->errors()->all()[0]]);
+        }
+
+        $category = app(Categories::class)->where('id', $request->category_id)->first();
+        if (!$category) {
+            return response()->json(['success' => 0, 'error' => 'Unknown dish category.']);
+        }
+
+        $ts = (int) $request->request_timestamp;
+        if ($ts < time() + 7200) {
+            return response()->json(['success' => 0, 'error' => 'Requests need at least 2 hours of lead time.']);
+        }
+
+        // The winning chef's acceptance charges the saved card immediately —
+        // require one up front so a claim can never fail on payment.
+        $pdata = app(PaymentMethodListener::class)->where(['user_id' => $user->id, 'active' => 1])->first();
+        if (!$pdata || !$pdata->card_token) {
+            return response()->json(['success' => 0, 'error' => 'Please add a payment method before requesting a dish.']);
+        }
+
+        $eligible = $this->_poolEligibleChefMenus($request->category_id, $request->request_date, $request->request_time);
+        if (empty($eligible)) {
+            return response()->json(['success' => 0, 'error' => 'No chefs are available for that category and time. Try another time or browse chefs directly.']);
+        }
+
+        $prices = array_map(function ($e) use ($request) {
+            return $e['menu']->price * (int) $request->portions;
+        }, $eligible);
+
+        // Open until an hour before the requested time, capped at 4h from now.
+        $expiresAt = min(time() + 14400, $ts - 3600);
+
+        $pool = PoolRequests::create([
+            'customer_user_id' => $user->id,
+            'category_id' => (int) $request->category_id,
+            'portions' => (int) $request->portions,
+            'notes' => $request->notes,
+            'request_date' => $request->request_date,
+            'request_time' => $request->request_time,
+            'timezone' => $request->timezone,
+            'request_timestamp' => $ts,
+            'status' => 'open',
+            'price_min' => min($prices),
+            'price_max' => max($prices),
+            'expires_at' => $expiresAt,
+            'created_at' => time(),
+            'updated_at' => time(),
+        ]);
+
+        // Fan the request out to every eligible chef. Push failures must not
+        // fail the request itself.
+        $customerName = trim((string) $user->first_name) !== '' ? trim($user->first_name) : 'A customer';
+        $when = date('D, M j g:i A', $ts);
+        foreach ($eligible as $e) {
+            try {
+                $chef = $e['chef'];
+                $payout = number_format($e['menu']->price * (int) $request->portions, 2);
+                if (!empty($chef->fcm_token)) {
+                    $title = "New dish request 🍽️";
+                    $body = "{$customerName} wants {$category->name} ({$request->portions}x) on {$when} — \${$payout} at your menu price. First chef to accept gets it!";
+                    $messaging = app('firebase.messaging');
+                    $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token', $chef->fcm_token)
+                        ->withNotification(\Kreait\Firebase\Messaging\Notification::create($title, $body))
+                        ->withData([
+                            'type' => 'pool_request',
+                            'role' => 'chef',
+                            'pool_request_id' => (string) $pool->id,
+                            'body' => $body,
+                            'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
+                        ]);
+                    $messaging->send($message);
+                    \App\Notification::create([
+                        'title' => $title,
+                        'body' => $body,
+                        'image' => 'N/A',
+                        'fcm_token' => $chef->fcm_token,
+                        'user_id' => $chef->id,
+                        'navigation_id' => $pool->id,
+                        'role' => 'chef',
+                    ]);
+                }
+            } catch (Exception $ex) {
+                Log::warning('Pool request push failed', ['chef_id' => $e['chef']->id, 'error' => $ex->getMessage()]);
+            }
+        }
+
+        return response()->json(['success' => 1, 'data' => [
+            'request' => $pool,
+            'chef_count' => count($eligible),
+        ]]);
+    }
+
+    /** GET pool/open_requests — the pool feed for an eligible chef. */
+    public function getOpenPoolRequests(Request $request)
+    {
+        if ($this->_checktaistApiKey($request->header('apiKey')) === false)
+            return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
+        else if ($this->_checktaistApiKey($request->header('apiKey')) === -1)
+            return response()->json(['success' => 0, 'error' => "Token has been expired."]);
+
+        if (!$this->_poolOrdersEnabled()) {
+            return response()->json(['success' => 1, 'data' => []]);
+        }
+
+        $chef = $this->_authUser();
+
+        $open = PoolRequests::where('status', 'open')
+            ->where('expires_at', '>', time())
+            ->orderBy('request_timestamp')
+            ->get();
+
+        $result = [];
+        foreach ($open as $pool) {
+            // Chef must have a live menu item in the category and be available.
+            $menu = $this->_poolCategoryMenuQuery($pool->category_id)
+                ->where('user_id', $chef->id)
+                ->orderBy('price')
+                ->first();
+            if (!$menu) {
+                continue;
+            }
+            if (!$chef->isAvailableForOrder($pool->request_date, $pool->request_time)) {
+                continue;
+            }
+            $customer = app(Listener::class)->find($pool->customer_user_id);
+            $category = app(Categories::class)->find($pool->category_id);
+
+            $result[] = [
+                'id' => $pool->id,
+                'category_id' => $pool->category_id,
+                'category_name' => $category->name ?? 'Dish',
+                'portions' => $pool->portions,
+                'notes' => $pool->notes,
+                'request_date' => $pool->request_date,
+                'request_time' => $pool->request_time,
+                'request_timestamp' => $pool->request_timestamp,
+                'timezone' => $pool->timezone,
+                'expires_at' => $pool->expires_at,
+                'customer_first_name' => $customer->first_name ?? '',
+                'customer_city' => $customer->city ?? '',
+                'your_menu_id' => $menu->id,
+                'your_menu_title' => $menu->title,
+                'your_price' => $menu->price * $pool->portions,
+            ];
+        }
+
+        return response()->json(['success' => 1, 'data' => $result]);
+    }
+
+    /** POST pool/claim_request — first chef to accept wins, atomically. */
+    public function claimPoolRequest(Request $request)
+    {
+        if ($this->_checktaistApiKey($request->header('apiKey')) === false)
+            return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
+        else if ($this->_checktaistApiKey($request->header('apiKey')) === -1)
+            return response()->json(['success' => 0, 'error' => "Token has been expired."]);
+
+        if (!$this->_poolOrdersEnabled()) {
+            return response()->json(['success' => 0, 'error' => 'Dish requests are not available right now.']);
+        }
+
+        $chef = $this->_authUser();
+        $poolId = (int) $request->pool_request_id;
+
+        $pool = PoolRequests::find($poolId);
+        if (!$pool) {
+            return response()->json(['success' => 0, 'error' => 'Request not found.']);
+        }
+
+        // Chef-side eligibility re-check before the race is decided.
+        $menu = $this->_poolCategoryMenuQuery($pool->category_id)
+            ->where('user_id', $chef->id)
+            ->orderBy('price')
+            ->first();
+        if (!$menu || $chef->verified != 1 || $chef->is_paused == 1 || $chef->is_pending == 1) {
+            return response()->json(['success' => 0, 'error' => 'You are not eligible for this request.']);
+        }
+
+        // THE race decider: a single conditional UPDATE. Whoever flips
+        // status open→claimed first wins; everyone else affects 0 rows.
+        $won = PoolRequests::where('id', $poolId)
+            ->where('status', 'open')
+            ->where('expires_at', '>', time())
+            ->update([
+                'status' => 'claimed',
+                'claimed_by_chef_id' => $chef->id,
+                'claimed_menu_id' => $menu->id,
+                'updated_at' => time(),
+            ]);
+
+        if (!$won) {
+            return response()->json(['success' => 0, 'error' => 'Too late — another chef already accepted this request.', 'already_claimed' => 1]);
+        }
+
+        $customer = app(Listener::class)->find($pool->customer_user_id);
+
+        // Create the real order at the winning chef's menu price, already
+        // Accepted (claiming IS the acceptance).
+        $order = Orders::create([
+            'chef_user_id' => $chef->id,
+            'menu_id' => $menu->id,
+            'customer_user_id' => $pool->customer_user_id,
+            'amount' => $pool->portions,
+            'total_price' => $menu->price * $pool->portions,
+            'address' => trim(($customer->address ?? '') . (($customer->address2 ?? '') ? ', ' . $customer->address2 : '')),
+            'parking_type' => $customer->parking_type ?? null,
+            'parking_instructions' => $customer->parking_instructions ?? null,
+            'order_date' => $pool->request_timestamp,
+            'order_date_new' => $pool->request_date,
+            'order_time' => $pool->request_time,
+            'order_timezone' => $pool->timezone,
+            'notes' => $pool->notes,
+            'status' => 2,
+        ]);
+
+        // Charge the customer's saved card now. On failure, undo everything
+        // so the request re-opens for other chefs.
+        $charge = $this->_chargePoolOrder($order);
+        if (!$charge['success']) {
+            Orders::where('id', $order->id)->delete();
+            PoolRequests::where('id', $poolId)->update([
+                'status' => 'open',
+                'claimed_by_chef_id' => null,
+                'claimed_menu_id' => null,
+                'updated_at' => time(),
+            ]);
+            Log::error('Pool claim payment failed — request reopened', ['pool_id' => $poolId, 'error' => $charge['error']]);
+            return response()->json(['success' => 0, 'error' => 'Payment failed: ' . $charge['error']]);
+        }
+
+        PoolRequests::where('id', $poolId)->update(['order_id' => $order->id, 'updated_at' => time()]);
+
+        // Notify the customer through the normal order-accepted channel.
+        try {
+            if ($customer) {
+                $customer->notify(new OrderAcceptedNotification(Orders::find($order->id)));
+            }
+        } catch (Exception $e) {
+            Log::warning('Pool claim customer push failed', ['order_id' => $order->id, 'error' => $e->getMessage()]);
+        }
+
+        return response()->json(['success' => 1, 'data' => [
+            'order_id' => $order->id,
+            'total_price' => $menu->price * $pool->portions,
+        ]]);
+    }
+
+    /** GET pool/my_requests — the customer's own requests, newest first. */
+    public function getMyPoolRequests(Request $request)
+    {
+        if ($this->_checktaistApiKey($request->header('apiKey')) === false)
+            return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
+        else if ($this->_checktaistApiKey($request->header('apiKey')) === -1)
+            return response()->json(['success' => 0, 'error' => "Token has been expired."]);
+
+        $user = $this->_authUser();
+
+        $requests = PoolRequests::where('customer_user_id', $user->id)
+            ->orderBy('id', 'desc')
+            ->limit(20)
+            ->get()
+            ->map(function ($pool) {
+                $category = app(Categories::class)->find($pool->category_id);
+                $chef = $pool->claimed_by_chef_id ? app(Listener::class)->find($pool->claimed_by_chef_id) : null;
+                $data = $pool->toArray();
+                $data['category_name'] = $category->name ?? 'Dish';
+                $data['chef_first_name'] = $chef->first_name ?? null;
+                return $data;
+            });
+
+        return response()->json(['success' => 1, 'data' => $requests]);
+    }
+
+    /**
+     * Charge a claimed pool order to the customer's saved card as a Stripe
+     * destination charge (same fee math as createPaymentIntent — the chef
+     * nets 70% of the pre-discount total). Testing env stamps a fake token
+     * so the claim flow is testable without Stripe.
+     *
+     * @return array ['success' => bool, 'error' => string|null]
+     */
+    private function _chargePoolOrder($order)
+    {
+        if (app()->environment('testing')) {
+            Orders::where('id', $order->id)->update(['payment_token' => 'pi_test_' . $order->id]);
+            return ['success' => true, 'error' => null];
+        }
+
+        try {
+            require_once('../stripe-php/init.php');
+            $stripe = new \Stripe\StripeClient(env('STRIPE_SECRET'));
+
+            $customerUser = app(Listener::class)->find($order->customer_user_id);
+            $customers = $stripe->customers->all(['email' => $customerUser->email ?? '']);
+            $customer = $customers['data'][0] ?? null;
+            if (!$customer) {
+                return ['success' => false, 'error' => 'Invalid Stripe customer.'];
+            }
+
+            $pdata = app(PaymentMethodListener::class)->where(['user_id' => $order->customer_user_id, 'active' => 1])->first();
+            $chefData = app(PaymentMethodListener::class)->where(['user_id' => $order->chef_user_id])->first();
+
+            if (!$chefData || !$chefData->stripe_account_id) {
+                return ['success' => false, 'error' => "The chef hasn't set up payments."];
+            }
+            if (!$pdata || !$pdata->card_token) {
+                return ['success' => false, 'error' => 'No valid payment method on file.'];
+            }
+
+            $paymentMethod = $stripe->paymentMethods->retrieve($pdata->card_token);
+            if (!$paymentMethod->customer) {
+                $stripe->paymentMethods->attach($pdata->card_token, ['customer' => $customer['id']]);
+            }
+
+            $orderModel = Orders::find($order->id);
+            $piToken = $stripe->paymentIntents->create([
+                'amount' => $orderModel->chargeAmountCents(),
+                'currency' => 'usd',
+                'payment_method_types' => ['card'],
+                'description' => 'Order ' . $order->id . ' (pool request)',
+                'confirm' => true,
+                'customer' => $customer['id'],
+                'payment_method' => $pdata->card_token,
+                'application_fee_amount' => $orderModel->applicationFeeCents(),
+                'transfer_data' => [
+                    'destination' => $chefData->stripe_account_id,
+                ],
+            ]);
+
+            Orders::where('id', $order->id)->update(['payment_token' => $piToken['id']]);
+
+            return ['success' => true, 'error' => null];
+        } catch (Exception $e) {
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
     }
 
 }

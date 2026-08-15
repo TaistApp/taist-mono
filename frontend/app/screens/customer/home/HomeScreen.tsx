@@ -24,7 +24,7 @@ import { AppColors, Spacing } from '../../../../constants/theme';
 import Container from '../../../layout/Container';
 import { hideLoading, showLoading } from '../../../reducers/loadingSlice';
 import { setSelectedDate } from '../../../reducers/customerSlice';
-import { GetSearchChefAPI, GetZipCodes } from '../../../services/api';
+import { GetPoolConfigAPI, GetSearchChefAPI, GetZipCodes } from '../../../services/api';
 import { navigate } from '../../../utils/navigation';
 import ChefCard from './components/chefCard';
 import CustomCalendar from './components/customCalendar';
@@ -43,6 +43,15 @@ const Home = () => {
   const [chefs, setChefs] = useState<Array<any>>([]);
   // Track when data is loaded to coordinate spinner hiding with UI rendering
   const [isDataLoaded, setIsDataLoaded] = useState(false);
+  // Pool ordering ("request a dish") is server-flagged: on in staging,
+  // off in production until it has baked.
+  const [poolEnabled, setPoolEnabled] = useState(false);
+
+  useEffect(() => {
+    GetPoolConfigAPI().then(resp => {
+      setPoolEnabled(resp?.success == 1 && !!resp?.data?.enabled);
+    }).catch(() => setPoolEnabled(false));
+  }, []);
 
   const isInArea = zipcodes.includes(self.zip ?? '');
   const startDate = moment();
@@ -277,6 +286,27 @@ const Home = () => {
                 value={searchTerm}
                 style={styles.searchInput}
               /> */}
+
+              {/* Pool ordering entry — only when the server flag is on */}
+              {poolEnabled && (
+                <Pressable
+                  testID="customerHome.requestDishCard"
+                  style={{
+                    backgroundColor: AppColors.primary,
+                    borderRadius: 12,
+                    padding: 15,
+                    gap: 4,
+                  }}
+                  onPress={() => navigate.toCustomer.requestDish()}
+                >
+                  <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '700' }}>
+                    🍽️ Craving something specific?
+                  </Text>
+                  <Text style={{ color: '#ffffff', fontSize: 13, lineHeight: 18 }}>
+                    Request a dish and the first chef to accept cooks it for you.
+                  </Text>
+                </Pressable>
+              )}
 
               <Text style={styles.sectionLabel}>Select Date</Text>
               <CustomCalendar

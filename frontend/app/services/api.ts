@@ -1238,6 +1238,36 @@ export const UploadDishPhotoAPI = async (params: { order_id: number; photo_uri: 
   return await POSTAPICALL("upload_dish_photo", formData, headers);
 };
 
+//////////-------Pool ordering (request a dish)-------/////////////////////
+
+export const GetPoolConfigAPI = async () => {
+  return await GETAPICALL("pool/config", {});
+};
+
+export const CreatePoolRequestAPI = async (params: {
+  category_id: number;
+  portions: number;
+  notes?: string;
+  request_date: string; // YYYY-MM-DD
+  request_time: string; // HH:mm
+  request_timestamp: number;
+  timezone?: string;
+}) => {
+  return await POSTAPICALL("pool/create_request", params);
+};
+
+export const GetOpenPoolRequestsAPI = async () => {
+  return await GETAPICALL("pool/open_requests", {});
+};
+
+export const ClaimPoolRequestAPI = async (params: { pool_request_id: number }) => {
+  return await POSTAPICALL("pool/claim_request", params);
+};
+
+export const GetMyPoolRequestsAPI = async () => {
+  return await GETAPICALL("pool/my_requests", {});
+};
+
 ///////////////////////////////////////////////////////
 
 const ConvertObjectToFormdata = (obj: any) => {

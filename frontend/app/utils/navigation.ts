@@ -51,7 +51,8 @@ export const initializeNavigation = () => {
  * @param userType User type (1 = Customer, 2 = Chef)
  */
 export function useProtectedRoute(isSignedIn: boolean, userType?: number) {
-  const segments = useSegments();
+  // Widen expo-router's route-tree tuple: this hook inspects arbitrary depth.
+  const segments = useSegments() as string[];
   const segmentString = segments[1] ? segments[1].toString() : ''; // Get the second segment (chef/customer/common)
   const isAuthGroup = segmentString === 'common'; // Only common screens are auth screens
   const isInChefTabs = segments.length >= 3 && segments[1] === 'chef' && segments[2] === '(tabs)';
@@ -183,6 +184,7 @@ export const navigate = {
       params: params || {},
     } as any),
     cart: () => router.push('/screens/customer/cart' as any),
+    requestDish: () => router.push('/screens/customer/requestDish' as any),
   },
   toChef: {
     home: () => router.push('/screens/chef/(tabs)/home' as any),
@@ -240,6 +242,7 @@ export const navigate = {
       router.push('/screens/chef/addOnCustomization' as any);
     },
     backgroundCheck: () => router.push('/screens/chef/backgroundCheck' as any),
+    orderRequests: () => router.push('/screens/chef/orderRequests' as any),
     earningsDetails: () => router.push('/screens/chef/earnings' as any),
     cancelApplication: () => router.push('/screens/chef/cancelApplication' as any),
   },
