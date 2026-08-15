@@ -1268,6 +1268,10 @@ export const GetMyPoolRequestsAPI = async () => {
   return await GETAPICALL("pool/my_requests", {});
 };
 
+export const CancelPoolRequestAPI = async (params: { pool_request_id: number }) => {
+  return await POSTAPICALL("pool/cancel_request", params);
+};
+
 ///////////////////////////////////////////////////////
 
 const ConvertObjectToFormdata = (obj: any) => {

@@ -90,6 +90,18 @@ export const styles = StyleSheet.create({
     fontSize: 15,
     color: AppColors.text,
   },
+  cancelBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: AppColors.primary,
+  },
+  cancelBtnText: {
+    color: AppColors.primary,
+    fontSize: 13,
+    fontWeight: '600',
+  },
   finePrint: {
     fontSize: 12,
     color: AppColors.textSecondary,
