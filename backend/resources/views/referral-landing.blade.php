@@ -9,8 +9,12 @@
     <meta property="og:type" content="website">
     <meta property="og:title" content="{{ $referrerName ? $referrerName . ' invited you to Taist' : "You're invited to Taist" }}">
     <meta property="og:description" content="{{ $discountText ? 'Get ' . $discountText . ' your first order of homemade food from local chefs.' : 'Homemade food from local chefs, delivered to your door.' }}">
-    <meta property="og:url" content="{{ url('/r/' . $code) }}">
-    <meta property="og:image" content="{{ url('/assets/images/taist-og-default.png') }}">
+    {{-- People share the taist.app link (Vercel proxies /r/* here), so the
+         canonical URL in the preview must be that public one, not the api host. --}}
+    <meta property="og:url" content="https://taist.app/r/{{ $code }}">
+    <meta property="og:image" content="https://taist.app/images/og-preview.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
     <meta property="og:site_name" content="Taist">
 
     <meta name="twitter:card" content="summary_large_image">

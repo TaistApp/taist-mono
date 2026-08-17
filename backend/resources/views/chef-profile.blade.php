@@ -13,7 +13,7 @@
     @if($chef->photo)
     <meta property="og:image" content="{{ $photoBaseUrl . $chef->photo }}">
     @else
-    <meta property="og:image" content="{{ url('/assets/images/taist-og-default.png') }}">
+    <meta property="og:image" content="https://taist.app/images/og-preview.png">
     @endif
     <meta property="og:site_name" content="Taist">
 
