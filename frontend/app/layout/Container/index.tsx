@@ -61,12 +61,6 @@ const Container = ({
   
   // Check if we're in a tab context (within chef/(tabs) or customer/(tabs))
   const isInTabContext = segments.some(segment => String(segment).includes('(tabs)'));
-  
-  // Debug logging
-  console.log('Container segments:', segments);
-  console.log('isInTabContext:', isInTabContext);
-  console.log('isInChefContext:', isInChefContext);
-  console.log('isInCustomerContext:', isInCustomerContext);
 
   const toggleDrawer = () => {
     try {
