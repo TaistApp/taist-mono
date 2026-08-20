@@ -5,6 +5,7 @@ namespace Tests\Unit\Notifications;
 use Tests\TestCase;
 use App\Notifications\ChefApprovedNotification;
 use App\Listener;
+use App\Notifications\Channels\AppDatabaseChannel;
 use App\Notifications\Channels\FirebaseChannel;
 
 class ChefApprovedNotificationTest extends TestCase
@@ -19,7 +20,7 @@ class ChefApprovedNotificationTest extends TestCase
 
         $channels = $notification->via($user);
 
-        $this->assertContains('database', $channels);
+        $this->assertContains(AppDatabaseChannel::class, $channels);
         $this->assertContains(FirebaseChannel::class, $channels);
     }
 

@@ -34,6 +34,7 @@ use App\Notifications\NewOrderNotification;
 use App\Notifications\OrderAcceptedNotification;
 use App\Notifications\OrderReadyNotification;
 use App\Notifications\OrderCompletedNotification;
+use App\Notifications\NewMessageNotification;
 use App\Notifications\OrderRejectedNotification;
 use App\Notifications\ChefOnTheWayNotification;
 use App\Notifications\NewMenuItemNotification;
@@ -1935,6 +1936,29 @@ class MapiController extends Controller
         $id = app(Conversations::class)->insertGetId($ary);
 
         $data = app(Conversations::class)->where(['id' => $id])->first();
+
+        // Push notification to the recipient (non-blocking). Chat used to rely
+        // on the SMS alert alone, so a throttled or undeliverable text meant the
+        // recipient never learned a message had arrived.
+        try {
+            $sender = app(Listener::class)->find((int) $request->from_user_id);
+            $recipient = app(Listener::class)->find((int) $request->to_user_id);
+
+            if ($sender && $recipient && $sender->id !== $recipient->id) {
+                $recipient->notify(new NewMessageNotification(
+                    $sender,
+                    (int) $request->order_id,
+                    (string) $request->message
+                ));
+            }
+        } catch (\Throwable $e) {
+            Log::error('Failed to send new chat message push notification', [
+                'from_user_id' => $request->from_user_id,
+                'to_user_id' => $request->to_user_id,
+                'order_id' => $request->order_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         // TMA-055: send throttled SMS chat alert to recipient (non-blocking)
         $this->chatSmsService->sendNewMessageAlert(
