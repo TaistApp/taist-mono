@@ -8,7 +8,7 @@
     <!-- Open Graph / Social Sharing -->
     <meta property="og:type" content="website">
     <meta property="og:title" content="{{ $referrerName ? $referrerName . ' invited you to Taist' : "You're invited to Taist" }}">
-    <meta property="og:description" content="{{ $discountText ? 'Get ' . $discountText . ' your first order of homemade food from local chefs.' : 'Homemade food from local chefs, delivered to your door.' }}">
+    <meta property="og:description" content="{{ $discountText ? 'Get ' . $discountText . ' your first order of homemade food from local chefs.' : 'A personal chef comes to your kitchen, cooks a fresh meal, and cleans up before they leave.' }}">
     {{-- People share the taist.app link (Vercel proxies /r/* here), so the
          canonical URL in the preview must be that public one, not the api host. --}}
     <meta property="og:url" content="https://taist.app/r/{{ $code }}">
@@ -115,9 +115,9 @@
 
         <p class="sub">
             @if($chef)
-                Order {{ $chef->first_name }}'s homemade food and more from local chefs, delivered to your door.
+                Book {{ $chef->first_name }} or another local chef to shop, cook a fresh meal in your kitchen, and clean up before they leave.
             @else
-                Homemade food from local chefs, delivered to your door.
+                A personal chef comes to your kitchen, cooks a fresh meal, and cleans up before they leave.
             @endif
         </p>
 
