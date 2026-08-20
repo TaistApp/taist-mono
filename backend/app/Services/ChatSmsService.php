@@ -34,23 +34,29 @@ class ChatSmsService
                 $throttleMinutes = 5;
             }
 
-            $orderedUsers = [$fromUserId, $toUserId];
-            sort($orderedUsers);
-            $conversationKey = sprintf(
-                'chat_sms_alert:%d:%d:%d',
-                $orderId,
-                $orderedUsers[0],
-                $orderedUsers[1]
-            );
+            // Throttle per recipient, not per conversation pair: a shared key
+            // meant a reply within the window silenced the alert for the other
+            // person, who had not been texted at all yet.
+            $conversationKey = sprintf('chat_sms_alert:%d:%d', $orderId, $toUserId);
 
-            if (Cache::has($conversationKey)) {
-                Log::info('Chat SMS skipped due to throttle window', [
-                    'from_user_id' => $fromUserId,
-                    'to_user_id' => $toUserId,
+            // A cache backend failure must not swallow the alert — before this,
+            // any Cache exception fell through to the outer catch and no SMS
+            // was ever sent.
+            try {
+                if (Cache::has($conversationKey)) {
+                    Log::info('Chat SMS skipped due to throttle window', [
+                        'from_user_id' => $fromUserId,
+                        'to_user_id' => $toUserId,
+                        'order_id' => $orderId,
+                        'throttle_minutes' => $throttleMinutes,
+                    ]);
+                    return;
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Chat SMS throttle lookup failed, sending anyway', [
                     'order_id' => $orderId,
-                    'throttle_minutes' => $throttleMinutes,
+                    'error' => $e->getMessage(),
                 ]);
-                return;
             }
 
             $sender = app(Listener::class)->find($fromUserId);
@@ -72,8 +78,15 @@ class ChatSmsService
             ]);
 
             if (!empty($result['success'])) {
-                // Use explicit seconds TTL for compatibility across cache drivers.
-                Cache::put($conversationKey, time(), $throttleMinutes * 60);
+                try {
+                    // Use explicit seconds TTL for compatibility across cache drivers.
+                    Cache::put($conversationKey, time(), $throttleMinutes * 60);
+                } catch (\Throwable $e) {
+                    Log::warning('Chat SMS throttle write failed', [
+                        'order_id' => $orderId,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
         } catch (\Throwable $e) {
             Log::error('Failed to send chat SMS alert', [

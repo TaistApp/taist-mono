@@ -120,8 +120,10 @@ const Container = ({
         ]}>
         {backMode === true ? (
           <View style={styles.topHeader}>
-            <View style={styles.logoContainer}>
-              <Text style={styles.title}>{title}</Text>
+            <View style={styles.logoContainer} pointerEvents="none">
+              <Text style={styles.title} numberOfLines={1} testID="header.title">
+                {title}
+              </Text>
             </View>
 
             <TouchableOpacity testID="header.backButton" onPress={handleBackPress} style={styles.button}>
@@ -146,7 +148,7 @@ const Container = ({
           </View>
         ) : (
           <View style={styles.topHeader}>
-            <View style={styles.logoContainer}>
+            <View style={styles.logoContainer} pointerEvents="none">
               <Image
                 style={styles.logo}
                 source={require('../../assets/images/logo-2.png')}

@@ -10,6 +10,7 @@ import { setUser } from '../reducers/userSlice';
 import { GetUserById, UpdateFCMTokenAPI } from '../services/api';
 import { store } from '../store';
 import { navigate, getActiveOrderDetailId } from '../utils/navigation';
+import { NotificationTypes, buildChatNavParams } from '../utils/notificationRouting';
 
 let ORDER_ID = -1;
 let isNavigationReady = false;
@@ -24,6 +25,29 @@ const isChefActivationNotification = (remoteMessage: any): boolean => {
 // Helper function to check if notification is availability confirmation reminder
 const isAvailabilityConfirmationNotification = (remoteMessage: any): boolean => {
   return remoteMessage?.data?.type === 'availability_confirmation';
+};
+
+// New chat message on an order — open the conversation itself.
+const isChatMessageNotification = (remoteMessage: any): boolean => {
+  return remoteMessage?.data?.type === NotificationTypes.chatMessage;
+};
+
+// Chef declined the order — the order detail screen is a dead end, so send the
+// customer back to Home where they can order from similar chefs.
+const isOrderRejectedNotification = (remoteMessage: any): boolean => {
+  return remoteMessage?.data?.type === NotificationTypes.orderRejected;
+};
+
+// The push carries just enough about the sender to render the chat header
+// without an extra round-trip; the chat screen fills in the rest if needed.
+const openChatFromNotification = (remoteMessage: any) => {
+  const target = buildChatNavParams(remoteMessage?.data);
+  if (!target) {
+    navigate.toCommon.inbox();
+    return;
+  }
+
+  navigate.toCommon.chat(target.userInfo, target.orderInfo);
 };
 
 // Helper function to refresh user data from the server
@@ -153,6 +177,16 @@ export const InitializeNotification = () => {
 
           // Expired order request — go to home to order from similar chefs
           if (remoteMessage?.data?.type === 'order_expired') {
+            navigate.toCustomer.home();
+            return;
+          }
+
+          if (isChatMessageNotification(remoteMessage)) {
+            openChatFromNotification(remoteMessage);
+            return;
+          }
+
+          if (isOrderRejectedNotification(remoteMessage)) {
             navigate.toCustomer.home();
             return;
           }
@@ -395,6 +429,21 @@ const handleNotificationNavigation = (remoteMessage: any) => {
 
     // Handle weekly nudge notifications - just open the app, no specific navigation needed
     if (isWeeklyNudgeNotification(remoteMessage)) {
+      return;
+    }
+
+    // New chat message — open the conversation.
+    if (isChatMessageNotification(remoteMessage)) {
+      console.log('>>>Chat message notification - opening chat>>>', JSON.stringify(remoteMessage));
+      openChatFromNotification(remoteMessage);
+      return;
+    }
+
+    // Chef declined the order — loop the customer back to Home so they can
+    // order from similar chefs instead of landing on a dead-end order screen.
+    if (isOrderRejectedNotification(remoteMessage)) {
+      console.log('>>>Order rejected notification - navigating to customer home>>>', JSON.stringify(remoteMessage));
+      navigate.toCustomer.home();
       return;
     }
 
