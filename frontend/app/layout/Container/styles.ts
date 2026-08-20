@@ -43,8 +43,14 @@ export const styles = StyleSheet.create({
     left: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    // Ensure logo renders behind header buttons (fixes Android overlap)
-    zIndex: -1,
+    // Leave room for the back button and the right-hand actions so a long
+    // title is truncated rather than sliding under them.
+    paddingHorizontal: 56,
+    // The overlay spans the whole header, so it must not intercept taps meant
+    // for the buttons underneath (the Android toggle/logo overlap this
+    // replaces was previously worked around with zIndex: -1, which also
+    // pushed the title out of view).
+    zIndex: 0,
   },
   logo: {
     width: 80,

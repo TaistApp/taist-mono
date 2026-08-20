@@ -263,6 +263,14 @@ class Orders extends Model
     public const COMPLETION_REMINDER_EARLY_SECONDS = 600;
 
     /**
+     * OMW/completion nudges repeat on this interval until the chef acts
+     * (status advances) or the window closes. Compared against a floor 30s
+     * lower so 5-minute scheduler jitter can't skip a whole cycle.
+     */
+    public const PROGRESSION_REMINDER_REPEAT_SECONDS = 600;
+    private const PROGRESSION_REPEAT_JITTER_FLOOR = 570;
+
+    /**
      * The nudges stop firing this long after their trigger moment, so a
      * backlog of stale orders doesn't get blasted when the scheduler catches
      * up (e.g. after a deploy pause).
@@ -309,7 +317,10 @@ class Orders extends Model
         if ((int) $this->status !== 2 || !$arrival) {
             return false;
         }
-        if (!empty($this->omw_reminder_sent_at)) {
+        // Repeats every 10 min until the chef taps "On My Way" (status
+        // leaves 2) or the window closes.
+        $lastSent = (int) ($this->omw_reminder_sent_at ?? 0);
+        if ($lastSent && ($now - $lastSent) < self::PROGRESSION_REPEAT_JITTER_FLOOR) {
             return false;
         }
 
@@ -336,7 +347,10 @@ class Orders extends Model
         if ((int) $this->status !== 7 || !$arrival) {
             return false;
         }
-        if (!empty($this->completion_reminder_sent_at)) {
+        // Repeats every 10 min until the chef marks Complete (status leaves
+        // 7) or the window closes.
+        $lastSent = (int) ($this->completion_reminder_sent_at ?? 0);
+        if ($lastSent && ($now - $lastSent) < self::PROGRESSION_REPEAT_JITTER_FLOOR) {
             return false;
         }
 

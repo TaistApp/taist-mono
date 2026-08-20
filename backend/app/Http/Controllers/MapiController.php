@@ -34,6 +34,7 @@ use App\Notifications\NewOrderNotification;
 use App\Notifications\OrderAcceptedNotification;
 use App\Notifications\OrderReadyNotification;
 use App\Notifications\OrderCompletedNotification;
+use App\Notifications\NewMessageNotification;
 use App\Notifications\OrderRejectedNotification;
 use App\Notifications\ChefOnTheWayNotification;
 use App\Notifications\NewMenuItemNotification;
@@ -1935,6 +1936,29 @@ class MapiController extends Controller
         $id = app(Conversations::class)->insertGetId($ary);
 
         $data = app(Conversations::class)->where(['id' => $id])->first();
+
+        // Push notification to the recipient (non-blocking). Chat used to rely
+        // on the SMS alert alone, so a throttled or undeliverable text meant the
+        // recipient never learned a message had arrived.
+        try {
+            $sender = app(Listener::class)->find((int) $request->from_user_id);
+            $recipient = app(Listener::class)->find((int) $request->to_user_id);
+
+            if ($sender && $recipient && $sender->id !== $recipient->id) {
+                $recipient->notify(new NewMessageNotification(
+                    $sender,
+                    (int) $request->order_id,
+                    (string) $request->message
+                ));
+            }
+        } catch (\Throwable $e) {
+            Log::error('Failed to send new chat message push notification', [
+                'from_user_id' => $request->from_user_id,
+                'to_user_id' => $request->to_user_id,
+                'order_id' => $request->order_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         // TMA-055: send throttled SMS chat alert to recipient (non-blocking)
         $this->chatSmsService->sendNewMessageAlert(
@@ -6072,11 +6096,24 @@ Write only the review text:";
     }
 
     /**
-     * Chefs who can take a pool request: approved + active, a live menu item
-     * in the category, and available at the requested date/time. Returns
-     * [['chef' => Listener, 'menu' => Menus (their cheapest match)], ...]
+     * Case-insensitive state match: pool requests never cross state lines
+     * (an IL chef must not be pinged for an IN request), but there's no
+     * finer distance filtering yet — chefs self-select by claiming.
      */
-    private function _poolEligibleChefMenus($categoryId, $dateStr, $timeStr)
+    private function _poolStateMatches($chefState, $customerState)
+    {
+        return $customerState !== null
+            && trim(strtolower((string) $chefState)) === trim(strtolower((string) $customerState));
+    }
+
+    /**
+     * Chefs who can take a pool request: approved + active, a live menu item
+     * in the category, and in the customer's state. Deliberately NOT
+     * filtered by availability — a chef who can't make that hour just
+     * ignores the request; this maximizes the pool while supply is thin.
+     * Returns [['chef' => Listener, 'menu' => Menus (their cheapest match)], ...]
+     */
+    private function _poolEligibleChefMenus($categoryId, $customerState)
     {
         $menusByChef = $this->_poolCategoryMenuQuery($categoryId)->get()->groupBy('user_id');
 
@@ -6092,7 +6129,7 @@ Write only the review text:";
             if (!$chef) {
                 continue;
             }
-            if (!$chef->isAvailableForOrder($dateStr, $timeStr)) {
+            if (!$this->_poolStateMatches($chef->state, $customerState)) {
                 continue;
             }
             $eligible[] = ['chef' => $chef, 'menu' => $chefMenus->sortBy('price')->first()];
@@ -6152,7 +6189,12 @@ Write only the review text:";
             return response()->json(['success' => 0, 'error' => 'Please add a payment method before requesting a dish.']);
         }
 
-        $eligible = $this->_poolEligibleChefMenus($request->category_id, $request->request_date, $request->request_time);
+        // Requests are matched within the customer's state.
+        if (trim((string) $user->state) === '') {
+            return response()->json(['success' => 0, 'error' => 'Please add your delivery address (including state) before requesting a dish.']);
+        }
+
+        $eligible = $this->_poolEligibleChefMenus($request->category_id, $user->state);
         if (empty($eligible)) {
             return response()->json(['success' => 0, 'error' => 'No chefs are available for that category and time. Try another time or browse chefs directly.']);
         }
@@ -6245,7 +6287,8 @@ Write only the review text:";
 
         $result = [];
         foreach ($open as $pool) {
-            // Chef must have a live menu item in the category and be available.
+            // Chef must have a live menu item in the category and be in the
+            // customer's state (no availability filter — chefs self-select).
             $menu = $this->_poolCategoryMenuQuery($pool->category_id)
                 ->where('user_id', $chef->id)
                 ->orderBy('price')
@@ -6253,10 +6296,10 @@ Write only the review text:";
             if (!$menu) {
                 continue;
             }
-            if (!$chef->isAvailableForOrder($pool->request_date, $pool->request_time)) {
+            $customer = app(Listener::class)->find($pool->customer_user_id);
+            if (!$this->_poolStateMatches($chef->state, $customer->state ?? null)) {
                 continue;
             }
-            $customer = app(Listener::class)->find($pool->customer_user_id);
             $category = app(Categories::class)->find($pool->category_id);
 
             $result[] = [
@@ -6306,7 +6349,9 @@ Write only the review text:";
             ->where('user_id', $chef->id)
             ->orderBy('price')
             ->first();
-        if (!$menu || $chef->verified != 1 || $chef->is_paused == 1 || $chef->is_pending == 1) {
+        $poolCustomer = app(Listener::class)->find($pool->customer_user_id);
+        if (!$menu || $chef->verified != 1 || $chef->is_paused == 1 || $chef->is_pending == 1
+            || !$this->_poolStateMatches($chef->state, $poolCustomer->state ?? null)) {
             return response()->json(['success' => 0, 'error' => 'You are not eligible for this request.']);
         }
 
@@ -6323,7 +6368,7 @@ Write only the review text:";
             ]);
 
         if (!$won) {
-            return response()->json(['success' => 0, 'error' => 'Too late — another chef already accepted this request.', 'already_claimed' => 1]);
+            return response()->json(['success' => 0, 'error' => "Another chef got this one first — nice hustle though! Speed wins these, so keep notifications on for the next request. 💪", 'already_claimed' => 1]);
         }
 
         $customer = app(Listener::class)->find($pool->customer_user_id);
@@ -6377,6 +6422,36 @@ Write only the review text:";
             'order_id' => $order->id,
             'total_price' => $menu->price * $pool->portions,
         ]]);
+    }
+
+    /** POST pool/cancel_request — customer retracts their own open request. */
+    public function cancelPoolRequest(Request $request)
+    {
+        if ($this->_checktaistApiKey($request->header('apiKey')) === false)
+            return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
+        else if ($this->_checktaistApiKey($request->header('apiKey')) === -1)
+            return response()->json(['success' => 0, 'error' => "Token has been expired."]);
+
+        $user = $this->_authUser();
+        $poolId = (int) $request->pool_request_id;
+
+        // Atomic, ownership-scoped, and only while still open — a request a
+        // chef is claiming this instant can't be yanked away (the claim's
+        // own conditional UPDATE decides who wins the row).
+        $cancelled = PoolRequests::where('id', $poolId)
+            ->where('customer_user_id', $user->id)
+            ->where('status', 'open')
+            ->update(['status' => 'cancelled', 'updated_at' => time()]);
+
+        if (!$cancelled) {
+            $pool = PoolRequests::where('id', $poolId)->where('customer_user_id', $user->id)->first();
+            $reason = $pool && $pool->status === 'claimed'
+                ? 'A chef already accepted this request — it is now a confirmed order.'
+                : 'This request can no longer be cancelled.';
+            return response()->json(['success' => 0, 'error' => $reason]);
+        }
+
+        return response()->json(['success' => 1]);
     }
 
     /** GET pool/my_requests — the customer's own requests, newest first. */

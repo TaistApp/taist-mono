@@ -18,7 +18,7 @@ import StyledTextInput from '../../../components/styledTextInput';
 import Container from '../../../layout/Container';
 import { useAppDispatch, useAppSelector } from '../../../hooks/useRedux';
 import { hideLoading, showLoading } from '../../../reducers/loadingSlice';
-import { CreatePoolRequestAPI, GetMyPoolRequestsAPI } from '../../../services/api';
+import { CancelPoolRequestAPI, CreatePoolRequestAPI, GetMyPoolRequestsAPI } from '../../../services/api';
 import { ShowErrorToast, ShowSuccessToast } from '../../../utils/toast';
 import { navigate } from '../../../utils/navigation';
 import CustomCalendar from '../../chef/orders/components/customCalendar';
@@ -80,6 +80,16 @@ const RequestDish = () => {
       loadMyRequests();
     }, []),
   );
+
+  const handleCancelRequest = async (poolRequestId: number) => {
+    const resp = await CancelPoolRequestAPI({ pool_request_id: poolRequestId });
+    if (resp.success == 1) {
+      ShowSuccessToast('Request cancelled');
+    } else {
+      ShowErrorToast(resp.error ?? 'Could not cancel this request');
+    }
+    loadMyRequests();
+  };
 
   const handleSubmit = async () => {
     if (!categoryId) {
@@ -156,6 +166,15 @@ const RequestDish = () => {
                       {r.status === 'claimed' && r.chef_first_name ? ` Chef ${r.chef_first_name} is cooking.` : ''}
                     </Text>
                   </View>
+                  {r.status === 'open' && (
+                    <TouchableOpacity
+                      testID={`requestDish.cancel.${r.id}`}
+                      style={styles.cancelBtn}
+                      onPress={() => handleCancelRequest(r.id)}
+                    >
+                      <Text style={styles.cancelBtnText}>Cancel</Text>
+                    </TouchableOpacity>
+                  )}
                 </TouchableOpacity>
               ))}
             </View>

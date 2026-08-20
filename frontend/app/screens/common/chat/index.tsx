@@ -14,6 +14,7 @@ import { hideLoading, showLoading } from '../../../reducers/loadingSlice';
 import {
   CreateConverstationAPI,
   GetConversationsByOrderAPI,
+  GetUserById,
   UpdateConverstationAPI,
 } from '../../../services/api';
 import { IMessage, IOrder, IUser } from '../../../types/index';
@@ -29,7 +30,7 @@ const Chat = () => {
     ? JSON.parse(params.orderInfo)
     : (params.orderInfo as IOrder);
 
-  const otherUserInfo: IUser = typeof params.userInfo === 'string'
+  const paramUserInfo: IUser = typeof params.userInfo === 'string'
     ? JSON.parse(params.userInfo)
     : (params.userInfo as IUser);
 
@@ -37,6 +38,18 @@ const Chat = () => {
   const refScrollView = useRef<ScrollView>(null);
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<Array<IMessage>>([]);
+  // Entry points differ in how much they know about the other person (the
+  // inbox row, the order detail screen, a push notification). Keep it in state
+  // so a thin payload can be filled in from the API instead of leaving the
+  // header blank.
+  const [otherUserInfo, setOtherUserInfo] = useState<IUser>(paramUserInfo ?? {});
+
+  // Customers see chefs as "Firstname L."; chefs see the customer's first name.
+  const headerTitle = formatDisplayName(
+    otherUserInfo?.first_name,
+    otherUserInfo?.last_name,
+    Number(self?.user_type) === 1,
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -50,7 +63,16 @@ const Chat = () => {
   useEffect(() => {
     refScrollView.current?.scrollToEnd();
     loadData();
+    hydrateOtherUser();
   }, []);
+
+  const hydrateOtherUser = async () => {
+    if (otherUserInfo?.first_name || !otherUserInfo?.id) return;
+    const resp = await GetUserById(otherUserInfo.id.toString());
+    if (resp.success == 1 && resp.data) {
+      setOtherUserInfo(prev => ({ ...prev, ...resp.data }));
+    }
+  };
 
   const loadData = async () => {
     dispatch(showLoading());
@@ -94,7 +116,7 @@ const Chat = () => {
     <SafeAreaView style={styles.main}>
       <Container
         backMode
-        title={`${formatDisplayName(otherUserInfo.first_name, otherUserInfo.last_name, self.user_type === 1)} `}
+        title={headerTitle}
         rightContent={
           otherUserInfo?.photo ? (
             <StyledProfileImage

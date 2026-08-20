@@ -112,9 +112,9 @@ class OrderSmsService
                 return ['success' => false, 'error' => 'Order data not found'];
             }
 
-            $message = "Sorry, Chef {$data['chef_name']} is unable to fulfill your order ORDER#" .
-                       sprintf('%07d', $orderId) . ". You will receive a full refund within 5-7 business days. " .
-                       "Browse other chefs in the app!";
+            $message = "Taist: We're sorry - this chef wasn't able to complete your request (ORDER#" .
+                       sprintf('%07d', $orderId) . "). You will receive a full refund within 5-7 business days. " .
+                       "Open Taist to order from similar chefs.";
 
             return $this->twilioService->sendOrderNotification(
                 $data['customer_user_id'],

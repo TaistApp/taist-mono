@@ -21,7 +21,7 @@ class NewMenuItemNotification extends Notification
 
     public function via($notifiable)
     {
-        return ['database', \App\Notifications\Channels\FirebaseChannel::class];
+        return [\App\Notifications\Channels\AppDatabaseChannel::class, \App\Notifications\Channels\FirebaseChannel::class];
     }
 
     public function toDatabase($notifiable)

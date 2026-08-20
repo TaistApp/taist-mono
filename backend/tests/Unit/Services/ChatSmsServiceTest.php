@@ -84,7 +84,8 @@ class ChatSmsServiceTest extends TestCase
         $this->assertStringContainsString('/open/inbox.', $sentSms['message']);
         $this->assertStringContainsString('Reply in the app only', $sentSms['message']);
         $this->assertEquals('chat_message_alert', $sentSms['metadata']['type']);
-        $this->assertTrue(Cache::has('chat_sms_alert:9001:10:20'));
+        // Throttle is keyed per recipient, so the other party is never silenced.
+        $this->assertTrue(Cache::has('chat_sms_alert:9001:20'));
     }
 
     public function test_send_new_message_alert_throttles_within_window()
@@ -123,7 +124,56 @@ class ChatSmsServiceTest extends TestCase
         $service->sendNewMessageAlert(31, 42, 8008);
         $service->sendNewMessageAlert(31, 42, 8008);
 
-        $this->assertTrue(Cache::has('chat_sms_alert:8008:31:42'));
+        $this->assertTrue(Cache::has('chat_sms_alert:8008:42'));
+    }
+
+    /**
+     * A reply inside the throttle window used to be silenced because both
+     * directions shared one cache key — each person now has their own.
+     */
+    public function test_reply_within_the_window_still_alerts_the_other_party()
+    {
+        putenv('CHAT_SMS_ENABLED=true');
+        putenv('CHAT_SMS_THROTTLE_MINUTES=5');
+        putenv('APP_URL=https://taist.app');
+
+        DB::table('tbl_users')->insert([
+            [
+                'id' => 71,
+                'first_name' => 'Cara',
+                'last_name' => 'Customer',
+                'user_type' => 1,
+                'phone' => '+15555550071',
+                'created_at' => now()->toDateTimeString(),
+                'updated_at' => now()->toDateTimeString(),
+            ],
+            [
+                'id' => 72,
+                'first_name' => 'Chi',
+                'last_name' => 'Chef',
+                'user_type' => 2,
+                'phone' => '+15555550072',
+                'created_at' => now()->toDateTimeString(),
+                'updated_at' => now()->toDateTimeString(),
+            ],
+        ]);
+
+        $recipients = [];
+        $twilio = Mockery::mock(TwilioService::class);
+        $twilio->shouldReceive('sendSMS')
+            ->twice()
+            ->andReturnUsing(function ($phone, $message, $metadata) use (&$recipients) {
+                $recipients[] = $phone;
+                return ['success' => true, 'error' => null, 'sid' => 'SM789'];
+            });
+
+        $service = new ChatSmsService($twilio);
+        $service->sendNewMessageAlert(71, 72, 7007); // customer -> chef
+        $service->sendNewMessageAlert(72, 71, 7007); // chef replies -> customer
+
+        $this->assertEquals(['+15555550072', '+15555550071'], $recipients);
+        $this->assertTrue(Cache::has('chat_sms_alert:7007:71'));
+        $this->assertTrue(Cache::has('chat_sms_alert:7007:72'));
     }
 
     public function test_send_new_message_alert_does_not_send_when_feature_disabled()

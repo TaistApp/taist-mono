@@ -384,6 +384,104 @@ class PoolOrderTest extends TestCase
         $this->assertNotNull($mine->json('data.0.order_id'));
     }
 
+    // ---- state fencing ---------------------------------------------------
+
+    public function test_out_of_state_chef_neither_sees_nor_claims(): void
+    {
+        // Marco moves to Illinois — same category menu, wrong state
+        DB::table('tbl_users')->where('id', 3)->update(['state' => 'Illinois']);
+        $this->createRequest()->assertJsonPath('success', 1);
+        $poolId = DB::table('tbl_pool_requests')->first()->id;
+
+        $this->asFreshUser();
+        $feed = $this->getJson('/mapi/pool/open_requests?api_token=tok_chef3', ['apiKey' => self::API_KEY]);
+        $this->assertCount(0, $feed->json('data'), 'IL chef must not see an IN request');
+
+        $this->asFreshUser();
+        $claim = $this->postJson('/mapi/pool/claim_request?api_token=tok_chef3',
+            ['pool_request_id' => $poolId], ['apiKey' => self::API_KEY]);
+        $claim->assertJsonPath('success', 0);
+        $this->assertSame('open', DB::table('tbl_pool_requests')->first()->status);
+
+        // And the fan-out price range only counted the in-state chef
+        $this->assertEquals(100.0, (float) DB::table('tbl_pool_requests')->first()->price_max);
+    }
+
+    public function test_customer_without_state_cannot_create_request(): void
+    {
+        DB::table('tbl_users')->where('id', 1)->update(['state' => null]);
+
+        $resp = $this->createRequest();
+
+        $resp->assertJsonPath('success', 0);
+        $this->assertStringContainsString('state', strtolower($resp->json('error')));
+    }
+
+    // ---- customer cancel -------------------------------------------------
+
+    public function test_customer_can_cancel_own_open_request(): void
+    {
+        $this->createRequest()->assertJsonPath('success', 1);
+        $poolId = DB::table('tbl_pool_requests')->first()->id;
+
+        $cancel = $this->postJson('/mapi/pool/cancel_request?api_token=tok_cust',
+            ['pool_request_id' => $poolId], ['apiKey' => self::API_KEY]);
+
+        $cancel->assertJsonPath('success', 1);
+        $this->assertSame('cancelled', DB::table('tbl_pool_requests')->first()->status);
+
+        // A cancelled request is gone from feeds and unclaimable
+        $this->asFreshUser();
+        $claim = $this->postJson('/mapi/pool/claim_request?api_token=tok_chef2',
+            ['pool_request_id' => $poolId], ['apiKey' => self::API_KEY]);
+        $claim->assertJsonPath('success', 0);
+        $this->assertSame(0, DB::table('tbl_orders')->count());
+    }
+
+    public function test_claimed_request_cannot_be_cancelled(): void
+    {
+        $this->createRequest()->assertJsonPath('success', 1);
+        $poolId = DB::table('tbl_pool_requests')->first()->id;
+        $this->asFreshUser();
+        $this->postJson('/mapi/pool/claim_request?api_token=tok_chef2',
+            ['pool_request_id' => $poolId], ['apiKey' => self::API_KEY])->assertJsonPath('success', 1);
+
+        $this->asFreshUser();
+        $cancel = $this->postJson('/mapi/pool/cancel_request?api_token=tok_cust',
+            ['pool_request_id' => $poolId], ['apiKey' => self::API_KEY]);
+
+        $cancel->assertJsonPath('success', 0);
+        $this->assertStringContainsString('already accepted', $cancel->json('error'));
+        $this->assertSame('claimed', DB::table('tbl_pool_requests')->first()->status);
+    }
+
+    public function test_cannot_cancel_someone_elses_request(): void
+    {
+        $this->createRequest()->assertJsonPath('success', 1);
+        $poolId = DB::table('tbl_pool_requests')->first()->id;
+
+        // chef2's token is a different user — must not be able to cancel
+        $this->asFreshUser();
+        $cancel = $this->postJson('/mapi/pool/cancel_request?api_token=tok_chef2',
+            ['pool_request_id' => $poolId], ['apiKey' => self::API_KEY]);
+
+        $cancel->assertJsonPath('success', 0);
+        $this->assertSame('open', DB::table('tbl_pool_requests')->first()->status);
+    }
+
+    public function test_unavailable_chef_still_sees_request(): void
+    {
+        // Chef 2 has NO availability row at all now — by design the pool
+        // ignores availability; chefs self-select by claiming.
+        DB::table('tbl_availabilities')->where('user_id', 2)->delete();
+        $this->createRequest()->assertJsonPath('success', 1);
+
+        $this->asFreshUser();
+        $feed = $this->getJson('/mapi/pool/open_requests?api_token=tok_chef2', ['apiKey' => self::API_KEY]);
+
+        $this->assertCount(1, $feed->json('data'));
+    }
+
     public function test_expiry_command_expires_stale_open_requests(): void
     {
         $this->createRequest()->assertJsonPath('success', 1);

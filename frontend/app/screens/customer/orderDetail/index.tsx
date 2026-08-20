@@ -405,6 +405,36 @@ const OrderDetail = () => {
             </TouchableOpacity>
           )}
 
+          {/* A declined order is otherwise a dead end — give the customer a way
+              straight back to Home to order from similar chefs. */}
+          {orderInfo?.status == 5 && (
+            <TouchableOpacity
+              testID="customerOrderDetail.browseChefsButton"
+              accessible={false}
+              style={{
+                width: '100%',
+                backgroundColor: '#fa4616',
+                borderRadius: 12,
+                padding: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+              onPress={() => navigate.toCustomer.home()}
+            >
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: '700' }}>
+                  Order from similar chefs
+                </Text>
+                <Text style={{ color: '#ffffff', fontSize: 14, opacity: 0.9 }}>
+                  We're sorry - this chef wasn't able to complete your request.
+                  You'll be refunded in full.
+                </Text>
+              </View>
+              <FontAwesomeIcon icon={faAngleRight} size={24} color="#ffffff" />
+            </TouchableOpacity>
+          )}
+
           <Text style={styles.title}>Order Details</Text>
           <View style={styles.card}>
             <View style={[styles.cardMain, { justifyContent: 'space-between' }]}>

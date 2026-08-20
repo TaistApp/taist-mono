@@ -8,6 +8,7 @@ import { hideLoading, showLoading } from '../../../reducers/loadingSlice';
 import { setUnreadCount } from '../../../reducers/notificationSlice';
 import { GetNotifcationDataAPI, GetUnreadCountAPI, MarkNotificationsReadAPI } from '../../../services/api';
 import { navigate } from '../../../utils/navigation';
+import { NotificationTypes } from '../../../utils/notificationRouting';
 import { ShowErrorToast } from '../../../utils/toast';
 import NotificationCard from './components/NotificationCard';
 import { styles } from './styles';
@@ -85,6 +86,20 @@ const Notification = () => {
   };
 
   const pressMethod = (item: any) => {
+    // The declined-order detail screen is a dead end — send the customer to
+    // Home so they can order from similar chefs.
+    if (item?.category === NotificationTypes.orderRejected) {
+      navigate.toCustomer.home();
+      return;
+    }
+
+    // Chat alerts open the conversation list; the row there carries the
+    // details needed to open the thread itself.
+    if (item?.category === NotificationTypes.chatMessage) {
+      navigate.toCommon.inbox();
+      return;
+    }
+
     if (item?.role == 'chef' && !item?.body?.includes('Approved')) {
       navigate.toChef.orderDetail({
         id: item?.navigation_id,
