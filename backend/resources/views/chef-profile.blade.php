@@ -255,7 +255,7 @@
             </div>
         </div>
 
-        <p class="footer">Homemade food from local chefs, delivered to your door.</p>
+        <p class="footer">A personal chef comes to your kitchen, cooks a fresh meal, and cleans up before they leave.</p>
     </div>
 
     <script>
