@@ -24,7 +24,7 @@ class SendProgressionReminders extends Command
      *
      * @var string
      */
-    protected $description = 'Nudge chefs through active orders: 24h out ("ingredients bought?"), 1h before arrival ("On My Way"), and 10 min before estimated completion ("mark complete + dish photo")';
+    protected $description = 'Nudge chefs through active orders: 24h out ("ingredients bought?"), 1h before arrival ("On My Way"), partway through the cook ("finish in the app before you leave"), and 10 min before estimated completion ("mark complete + dish photo")';
 
     /**
      * Execute the console command.
@@ -79,18 +79,35 @@ class SendProgressionReminders extends Command
             $sent += $this->pushToChef($order, 'omw_reminder', 'Time to head out 🚗', $body, 'omw_reminder_sent_at', $now);
         }
 
-        // Completion nudges: on-my-way orders within 10 min of estimated
-        // completion (early, in case the chef beats the estimate).
-        $onMyWay = Orders::where('status', 7)
+        // Mid-cook and completion nudges share the same pool: orders that are
+        // underway (Accepted or OnMyWay) and arrived within the lookback.
+        // Chefs who never tap "On My Way" cook the whole order from Accepted,
+        // so status 2 has to be in scope or they get no wrap-up reminder.
+        $active = Orders::whereIn('status', Orders::PROGRESSION_ACTIVE_STATUSES)
             ->whereNotNull('order_date')
+            ->whereBetween('order_date', [
+                $now - Orders::PROGRESSION_QUERY_LOOKBACK_SECONDS,
+                $now,
+            ])
             ->get();
 
-        foreach ($onMyWay as $order) {
+        foreach ($active as $order) {
             $estimated = (int) (Menus::where('id', $order->menu_id)->value('estimated_time') ?? 60);
+            $customerName = $this->customerFirstName($order);
+
+            // Mid-cook: fires once, partway through the cook, while the chef
+            // is still in the kitchen — the completion nudge alone was
+            // landing too late for chefs already packing up.
+            if ($order->shouldSendMidcookReminder($estimated, $now)) {
+                $body = "While you're cooking for {$customerName}: don't forget to snap a photo of the dish and mark the order complete in the app before you leave!";
+
+                $sent += $this->pushToChef($order, 'midcook_reminder', "Don't forget to finish in the app 📸", $body, 'midcook_reminder_sent_at', $now);
+                continue;
+            }
+
             if (!$order->shouldSendCompletionReminder($estimated, $now)) {
                 continue;
             }
-            $customerName = $this->customerFirstName($order);
             $body = "All done cooking for {$customerName}? Mark the order complete — and snap a photo of the dish before you leave!";
 
             $sent += $this->pushToChef($order, 'completion_reminder', 'Wrap up your order 📸', $body, 'completion_reminder_sent_at', $now);

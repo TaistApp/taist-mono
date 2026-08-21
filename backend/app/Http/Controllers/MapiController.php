@@ -3110,6 +3110,8 @@ Write only the review text:";
             'address' => $request->address,
             'parking_type' => $request->parking_type,
             'parking_instructions' => $request->parking_instructions,
+            'request_shoe_coverings' => $request->boolean('request_shoe_coverings'),
+            'request_containers' => $request->boolean('request_containers'),
             'order_date' => $request->order_date,
             'order_date_new' => $orderDateString ?: date('Y-m-d', $orderTimestamp),
             'order_time' => $orderTimeString ?: date('H:i', $orderTimestamp),
@@ -3219,6 +3221,12 @@ Write only the review text:";
                     $msg .= " — {$request->parking_instructions}";
                 }
                 $msg .= "</p>";
+            }
+            $chefRequests = [];
+            if ($request->boolean('request_shoe_coverings')) $chefRequests[] = 'Wear shoe coverings';
+            if ($request->boolean('request_containers')) $chefRequests[] = 'Bring containers';
+            if ($chefRequests) {
+                $msg .= "<p><b>Chef Requests:</b> " . implode(', ', $chefRequests) . "</p>";
             }
 
             $msg .= "<br><p>View in <a href='" . $this->_adminUrl() . "'>Taist Admin Panel</a></p>";
@@ -3925,6 +3933,9 @@ Write only the review text:";
         if (isset($request->state)) $ary['state'] = $request->state;
         if ($request->has('parking_type')) $ary['parking_type'] = $request->parking_type;
         if ($request->has('parking_instructions')) $ary['parking_instructions'] = $request->parking_instructions;
+        // has() rather than isset(): turning a request back off must persist.
+        if ($request->has('request_shoe_coverings')) $ary['request_shoe_coverings'] = $request->boolean('request_shoe_coverings');
+        if ($request->has('request_containers')) $ary['request_containers'] = $request->boolean('request_containers');
         
         // Check if zip code changed and if user entered service area
         if (isset($request->zip)) {
@@ -6384,6 +6395,8 @@ Write only the review text:";
             'address' => trim(($customer->address ?? '') . (($customer->address2 ?? '') ? ', ' . $customer->address2 : '')),
             'parking_type' => $customer->parking_type ?? null,
             'parking_instructions' => $customer->parking_instructions ?? null,
+            'request_shoe_coverings' => (bool) ($customer->request_shoe_coverings ?? false),
+            'request_containers' => (bool) ($customer->request_containers ?? false),
             'order_date' => $pool->request_timestamp,
             'order_date_new' => $pool->request_date,
             'order_time' => $pool->request_time,

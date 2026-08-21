@@ -50,6 +50,7 @@ import {
 } from '../../../services/api';
 import { OrderStatus } from '../../../types/status';
 import { GetOrderString } from '../../../utils/functions';
+import { toBool } from '../../../utils/bool';
 import { goBack, navigate } from '../../../utils/navigation';
 import { ShowErrorToast, ShowSuccessToast } from '../../../utils/toast';
 import { getFormattedDateTime, getFormattedDateTimeInTimezone } from '../../../utils/validations';
@@ -361,6 +362,28 @@ const OrderDetail = () => {
                       {orderInfo.parking_instructions}
                     </Text>
                   ) : null}
+                </View>
+              </View>
+            </View>
+          )}
+
+          {(toBool(orderInfo?.request_shoe_coverings) || toBool(orderInfo?.request_containers)) && (
+            <View style={[styles.card, { backgroundColor: '#FFF7ED', borderWidth: 1, borderColor: '#FDBA74' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Text style={{ fontSize: 20 }}>🧾</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.text, { fontWeight: '700', marginBottom: 2 }]}>
+                    Customer Requests
+                  </Text>
+                  {toBool(orderInfo?.request_shoe_coverings) && (
+                    <Text style={styles.text}>👟 Wear shoe coverings</Text>
+                  )}
+                  {toBool(orderInfo?.request_containers) && (
+                    <Text style={styles.text}>🥡 Bring containers</Text>
+                  )}
+                  <Text style={[styles.text, { color: AppColors.textSecondary, marginTop: 4 }]}>
+                    Pack these before you head out.
+                  </Text>
                 </View>
               </View>
             </View>

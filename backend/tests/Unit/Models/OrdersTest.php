@@ -15,6 +15,31 @@ use App\Models\Orders;
 class OrdersTest extends TestCase
 {
     // ==========================================
+    // Chef request fields (shoe coverings / containers)
+    // ==========================================
+
+    public function test_chef_request_fields_are_mass_assignable()
+    {
+        $order = new Orders([
+            'request_shoe_coverings' => true,
+            'request_containers' => false,
+        ]);
+
+        $this->assertTrue((bool) $order->request_shoe_coverings);
+        $this->assertFalse((bool) $order->request_containers);
+    }
+
+    public function test_chef_request_fields_default_to_unset_when_not_provided()
+    {
+        // Control: an order placed without touching the toggles carries
+        // neither request, so the chef's order detail shows no requests card.
+        $order = new Orders(['status' => 1]);
+
+        $this->assertFalse((bool) $order->request_shoe_coverings);
+        $this->assertFalse((bool) $order->request_containers);
+    }
+
+    // ==========================================
     // isExpired() Tests
     // ==========================================
 
@@ -1045,12 +1070,23 @@ class OrdersTest extends TestCase
         $this->assertFalse($stale->shouldSendCompletionReminder(60, $now));
     }
 
-    public function test_completion_reminder_only_for_on_my_way_and_throttled_between_repeats()
+    public function test_completion_reminder_also_fires_for_accepted_orders()
     {
         $now = 1_800_000_000;
 
+        // Plenty of chefs never tap "On My Way" and cook the whole order from
+        // Accepted — they still need the wrap-up nudge.
         $accepted = new Orders(['status' => 2, 'order_date' => $now - 70 * 60]);
-        $this->assertFalse($accepted->shouldSendCompletionReminder(60, $now));
+        $this->assertTrue($accepted->shouldSendCompletionReminder(60, $now));
+
+        // Control: a status that isn't underway stays quiet.
+        $requested = new Orders(['status' => 1, 'order_date' => $now - 70 * 60]);
+        $this->assertFalse($requested->shouldSendCompletionReminder(60, $now));
+    }
+
+    public function test_completion_reminder_throttled_between_repeats()
+    {
+        $now = 1_800_000_000;
 
         $sentJustNow = new Orders([
             'status' => 7,
@@ -1058,6 +1094,78 @@ class OrdersTest extends TestCase
             'completion_reminder_sent_at' => (string)($now - 60),
         ]);
         $this->assertFalse($sentJustNow->shouldSendCompletionReminder(60, $now), 'quiet inside the 10-min repeat interval');
+    }
+
+    // ==========================================
+    // Mid-cook "finish in the app" nudge
+    // ==========================================
+
+    public function test_midcook_reminder_due_halfway_through_the_cook()
+    {
+        $now = 1_800_000_000;
+        $order = new Orders(['status' => 7, 'order_date' => $now]);
+
+        // 90-min dish → halfway is 45 min in (at the clamp ceiling)
+        $this->assertEquals($now + 45 * 60, $order->midcookReminderDueAt(90));
+        // 60-min dish → halfway is 30 min in
+        $this->assertEquals($now + 30 * 60, $order->midcookReminderDueAt(60));
+    }
+
+    public function test_midcook_reminder_offset_is_clamped_for_very_short_and_long_cooks()
+    {
+        $now = 1_800_000_000;
+        $order = new Orders(['status' => 7, 'order_date' => $now]);
+
+        // 10-min dish → halfway (5 min) is too soon; floor at 15 min
+        $this->assertEquals($now + 15 * 60, $order->midcookReminderDueAt(10));
+        // 4-hour dish → halfway (2h) is too late; ceiling at 45 min
+        $this->assertEquals($now + 45 * 60, $order->midcookReminderDueAt(240));
+    }
+
+    public function test_midcook_reminder_fires_while_the_chef_is_still_cooking()
+    {
+        $now = 1_800_000_000;
+
+        // Arrived 30 min ago, 60-min dish — due right now
+        $order = new Orders(['status' => 7, 'order_date' => $now - 30 * 60]);
+        $this->assertTrue($order->shouldSendMidcookReminder(60, $now));
+
+        // Same for a chef who never tapped "On My Way"
+        $accepted = new Orders(['status' => 2, 'order_date' => $now - 30 * 60]);
+        $this->assertTrue($accepted->shouldSendMidcookReminder(60, $now));
+    }
+
+    public function test_midcook_reminder_quiet_before_due_and_outside_the_window()
+    {
+        $now = 1_800_000_000;
+
+        // Only 10 min in on a 60-min dish — still unpacking
+        $tooEarly = new Orders(['status' => 7, 'order_date' => $now - 10 * 60]);
+        $this->assertFalse($tooEarly->shouldSendMidcookReminder(60, $now));
+
+        // 60 min in — past the 15-min window, the completion nudge covers it
+        $tooLate = new Orders(['status' => 7, 'order_date' => $now - 60 * 60]);
+        $this->assertFalse($tooLate->shouldSendMidcookReminder(60, $now));
+    }
+
+    public function test_midcook_reminder_is_single_shot_and_skips_inactive_orders()
+    {
+        $now = 1_800_000_000;
+
+        $alreadySent = new Orders([
+            'status' => 7,
+            'order_date' => $now - 30 * 60,
+            'midcook_reminder_sent_at' => (string)($now - 300),
+        ]);
+        $this->assertFalse($alreadySent->shouldSendMidcookReminder(60, $now), 'never repeats');
+
+        // Control: already complete, nothing to nudge about
+        $completed = new Orders(['status' => 3, 'order_date' => $now - 30 * 60]);
+        $this->assertFalse($completed->shouldSendMidcookReminder(60, $now));
+
+        // Control: no arrival time means no cook window to reason about
+        $noDate = new Orders(['status' => 7, 'order_date' => 0]);
+        $this->assertFalse($noDate->shouldSendMidcookReminder(60, $now));
     }
 
     public function test_completion_reminder_repeats_every_10_min_until_completed()
