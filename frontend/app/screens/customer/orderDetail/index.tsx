@@ -46,6 +46,7 @@ import {
 } from '../../../services/api';
 import { OrderStatus } from '../../../types/status';
 import { GetOrderString, getImageURL } from '../../../utils/functions';
+import { toBool } from '../../../utils/bool';
 import { navigate, setActiveOrderDetailId } from '../../../utils/navigation';
 import { ShowErrorToast, ShowSuccessToast } from '../../../utils/toast';
 import {
@@ -531,6 +532,16 @@ const OrderDetail = () => {
             {(orderInfo?.parking_type || orderInfo?.parking_instructions) && (
               <Text style={styles.text}>
                 {`Arrival & Parking: ${getParkingLabel(orderInfo.parking_type)}${orderInfo.parking_instructions ? ` · ${orderInfo.parking_instructions}` : ''}`}
+              </Text>
+            )}
+            {(toBool(orderInfo?.request_shoe_coverings) || toBool(orderInfo?.request_containers)) && (
+              <Text style={styles.text}>
+                {`Chef Requests: ${[
+                  toBool(orderInfo?.request_shoe_coverings) && 'Shoe coverings',
+                  toBool(orderInfo?.request_containers) && 'Bring containers',
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}`}
               </Text>
             )}
             <View style={styles.line} />

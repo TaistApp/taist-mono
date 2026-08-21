@@ -16,6 +16,14 @@ class Orders extends Model
     public const REMINDER_ELIGIBLE_STATUSES = [2, 7]; // Accepted, OnTheWay
 
     /**
+     * Statuses that count as "the order is underway" for the mid-cook and
+     * completion nudges. OnTheWay (7) is the happy path, but plenty of chefs
+     * never tap "On My Way" and cook the whole order from Accepted (2) —
+     * excluding it meant those chefs got no reminder to finish in the app.
+     */
+    public const PROGRESSION_ACTIVE_STATUSES = [2, 7]; // Accepted, OnTheWay
+
+    /**
      * Platform commission taken from each order (Stripe application fee).
      */
     public const PLATFORM_COMMISSION = 0.30;
@@ -32,6 +40,8 @@ class Orders extends Model
         'address',
         'parking_type',
         'parking_instructions',
+        'request_shoe_coverings',
+        'request_containers',
         'order_date',
         'status',
         'notes',
@@ -42,6 +52,7 @@ class Orders extends Model
         'omw_reminder_sent_at',
         'completion_reminder_sent_at',
         'ingredients_reminder_sent_at',
+        'midcook_reminder_sent_at',
         // Discount tracking fields
         'discount_code_id',
         'discount_code',
@@ -263,6 +274,35 @@ class Orders extends Model
     public const COMPLETION_REMINDER_EARLY_SECONDS = 600;
 
     /**
+     * The mid-cook nudge fires at this fraction of the menu's estimated cook
+     * time, so the chef hears "photo + mark complete" while they're still in
+     * the kitchen rather than once they've packed up and left.
+     */
+    public const MIDCOOK_REMINDER_FRACTION = 0.5;
+
+    /**
+     * Floor and ceiling on how far after arrival the mid-cook nudge can land.
+     * Short cooks still get a few minutes of head start; long ones don't wait
+     * an hour for the reminder.
+     */
+    public const MIDCOOK_REMINDER_MIN_SECONDS = 900;
+    public const MIDCOOK_REMINDER_MAX_SECONDS = 2700;
+
+    /**
+     * How long the mid-cook nudge stays eligible after its trigger moment.
+     * Tighter than the general progression grace so a chef who is already
+     * near the finish gets the completion nudge instead of a stale mid-cook.
+     */
+    public const MIDCOOK_REMINDER_WINDOW_SECONDS = 900;
+
+    /**
+     * How far back the scheduler scans for orders that may be mid-cook or due
+     * for completion. The model predicates do the exact windowing; this just
+     * keeps the query bounded now that Accepted (2) orders are in scope too.
+     */
+    public const PROGRESSION_QUERY_LOOKBACK_SECONDS = 86400;
+
+    /**
      * OMW/completion nudges repeat on this interval until the chef acts
      * (status advances) or the window closes. Compared against a floor 30s
      * lower so 5-minute scheduler jitter can't skip a whole cycle.
@@ -329,8 +369,53 @@ class Orders extends Model
     }
 
     /**
+     * When the mid-cook nudge is due: partway into the menu's estimated cook
+     * time, clamped so it never lands in the first 15 minutes (chef is still
+     * unpacking) or later than 45 minutes after arrival.
+     *
+     * @param int $estimatedMinutes The menu item's estimated_time in minutes
+     * @return int Unix timestamp
+     */
+    public function midcookReminderDueAt($estimatedMinutes)
+    {
+        $offset = (int) round(max(0, (int) $estimatedMinutes) * 60 * self::MIDCOOK_REMINDER_FRACTION);
+        $offset = max(self::MIDCOOK_REMINDER_MIN_SECONDS, min(self::MIDCOOK_REMINDER_MAX_SECONDS, $offset));
+
+        return (int) $this->order_date + $offset;
+    }
+
+    /**
+     * Whether to nudge the chef mid-cook that finishing the order in the app
+     * (photo + mark complete) is part of the job, before they leave the
+     * house. Fires once, for an order that's underway (Accepted or OnMyWay —
+     * chefs don't always tap "On My Way"), inside a 15-minute window so a
+     * scheduler backlog can't fire it hours late.
+     *
+     * @param int $estimatedMinutes The menu item's estimated_time in minutes
+     * @param int|null $now Unix timestamp to evaluate against (defaults to now)
+     * @return bool
+     */
+    public function shouldSendMidcookReminder($estimatedMinutes, ?int $now = null)
+    {
+        $now = $now ?? time();
+        $arrival = (int) $this->order_date;
+
+        if (!in_array((int) $this->status, self::PROGRESSION_ACTIVE_STATUSES, true) || !$arrival) {
+            return false;
+        }
+        // Single-shot: the completion nudge takes over from here and repeats.
+        if (!empty($this->midcook_reminder_sent_at)) {
+            return false;
+        }
+
+        $dueAt = $this->midcookReminderDueAt($estimatedMinutes);
+
+        return $now >= $dueAt && $now <= $dueAt + self::MIDCOOK_REMINDER_WINDOW_SECONDS;
+    }
+
+    /**
      * Whether to nudge the chef to complete the order (and snap a dish photo
-     * before leaving): order is OnMyWay and we're within 10 minutes of the
+     * before leaving): order is underway and we're within 10 minutes of the
      * estimated done time (arrival + the menu item's estimated cook time) —
      * early, in case the chef finishes quicker than the estimate. Stops
      * after the grace window so ancient stuck orders stay quiet.
@@ -344,11 +429,11 @@ class Orders extends Model
         $now = $now ?? time();
         $arrival = (int) $this->order_date;
 
-        if ((int) $this->status !== 7 || !$arrival) {
+        if (!in_array((int) $this->status, self::PROGRESSION_ACTIVE_STATUSES, true) || !$arrival) {
             return false;
         }
         // Repeats every 10 min until the chef marks Complete (status leaves
-        // 7) or the window closes.
+        // the active set) or the window closes.
         $lastSent = (int) ($this->completion_reminder_sent_at ?? 0);
         if ($lastSent && ($now - $lastSent) < self::PROGRESSION_REPEAT_JITTER_FLOOR) {
             return false;

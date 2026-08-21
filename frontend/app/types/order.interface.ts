@@ -9,6 +9,8 @@ export default interface OrderInterface {
   address?: string;
   parking_type?: string;
   parking_instructions?: string;
+  request_shoe_coverings?: boolean | number;
+  request_containers?: boolean | number;
   order_date?: number;
   order_date_string?: string; // YYYY-MM-DD format (timezone-safe)
   order_time?: string;
