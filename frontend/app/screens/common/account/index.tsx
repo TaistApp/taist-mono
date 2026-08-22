@@ -427,7 +427,10 @@ const Account = () => {
         name: "photo.jpg",
       };
     }
-    params.is_pending = 1;
+    // is_pending is the chef-application flag — only chefs await approval.
+    // Setting it for every role here is what left pre-Dec-2025 customers with a
+    // stale is_pending=1 on their account.
+    params.is_pending = userInfo.user_type === 2 ? 1 : 0;
 
     dispatch(showLoading());
     const resp_register = await RegisterAPI(params, dispatch);
