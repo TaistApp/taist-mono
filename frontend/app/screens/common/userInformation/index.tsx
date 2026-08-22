@@ -201,7 +201,9 @@ const UserInformation = ({navigation, route}: any) => {
         name: 'photo.jpg',
       };
     }
-    params.is_pending = 1;
+    // Only chef applications are pending approval; customers are active on
+    // signup. (Note this screen posts `userInfo`, not `params`, below.)
+    params.is_pending = userInfo.user_type === 2 ? 1 : 0;
 
     dispatch(showLoading());
     const resp = await RegisterAPI(userInfo, dispatch);

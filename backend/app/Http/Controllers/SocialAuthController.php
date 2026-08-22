@@ -155,12 +155,10 @@ class SocialAuthController extends Controller
         if ($user->verified != 1) {
             return response()->json(['success' => 0, 'error' => 'You need to verify the account first.']);
         }
-        // Pending chefs (is_pending=1, user_type=2) may log in to finish onboarding —
-        // same exception as MapiController::login(). Rejected/banned are blocked by
-        // the verified check above.
-        if ($user->is_pending == 1 && $user->user_type != 2) {
-            return response()->json(['success' => 0, 'error' => 'Your account is currently deactivated. Please email contact@taist.app.']);
-        }
+        // NOTE: no is_pending gate here — it is the chef application flag, and
+        // pre-Dec-2025 customer signups set it to 1 for every role, which locked
+        // legitimate customers out. Same reasoning as MapiController::login().
+        // Rejected/banned accounts are blocked by the verified check above.
 
         // Re-fetch so the response includes the latest fields.
         $user = Listener::find($user->id);
