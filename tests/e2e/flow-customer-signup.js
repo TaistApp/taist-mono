@@ -165,6 +165,39 @@ async function run() {
     results.errors.push(e.message);
   }
 
+  // ── 7. Legacy customer with the stale chef-application flag ────
+  // Signups before Dec 2025 sent is_pending=1 for every role, so early
+  // customers sit at user_type=1, is_pending=1. A login gate on that flag
+  // locked all of them out with "Your account is currently deactivated".
+  // is_pending is chef-only — it must never block a customer.
+  try {
+    const legacyCustomer = {
+      ...h.testCustomer(),
+      email: h.testEmail('legacy-customer'),
+      is_pending: 1,
+    };
+    h.logInfo(`Registering legacy-style customer (is_pending=1): ${legacyCustomer.email}`);
+    const api = new ApiClient();
+    const reg = await api.post('register', legacyCustomer);
+    h.assertSuccess(reg, 'Legacy customer register');
+
+    const res = await api.post('login', {
+      email: legacyCustomer.email,
+      password: legacyCustomer.password,
+    });
+
+    h.assert(
+      res.body.success === 1,
+      `Customer with is_pending=1 must log in — got: ${res.body.error ?? 'no error'}`,
+    );
+    h.logPass('Customer with stale is_pending=1 can log in');
+    results.passed++;
+  } catch (e) {
+    h.logFail(`Legacy customer login: ${e.message}`);
+    results.failed++;
+    results.errors.push(e.message);
+  }
+
   return { ...results, userId, apiToken };
 }
 
