@@ -766,14 +766,13 @@ class MapiController extends Controller
             if ($user['verified'] != 1) {
                 return response()->json(['success' => 0, 'error' => 'You need to verify the account first.']);
             }
-            // Chefs register with is_pending=1 and must be able to log in to complete
-            // onboarding (menu, availability, Stripe, background check) — chef home
-            // shows the checklist and pending chefs can't receive orders. Only
-            // non-chefs are blocked here; rejected/banned chefs are already blocked
-            // by the verified check above (verified=2/3).
-            if ($user['is_pending'] == 1 && $user['user_type'] != 2) {
-                return response()->json(['success' => 0, 'error' => 'Your account is currently deactivated. Please email contact@taist.app.']);
-            }
+            // NOTE: is_pending is the CHEF application flag — it never means
+            // "deactivated customer". Customer signups before Dec 2025 went
+            // through the old Account screen, which set is_pending=1 for every
+            // role, so a large cohort of legitimate customers carries a stale 1.
+            // Gating login on it locked all of them out ("account is currently
+            // deactivated"). Customer/chef deactivation is expressed through
+            // `verified` (2 = rejected, 3 = banned), already checked above.
             $api_token = $this->_generateToken();
             app(Listener::class)->where(['id' => $user->id])->update(['api_token' => $api_token]);
             $user = app(Listener::class)->where(['id' => $user->id])->first();
