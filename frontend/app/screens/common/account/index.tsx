@@ -51,6 +51,7 @@ import StyledTextInput from "../../../components/styledTextInput";
 import OTPInput from "../../../components/OTPInput";
 import KeyboardAwareScrollView from "../../../components/KeyboardAwareScrollView";
 import ParkingPicker from "../../../components/ParkingPicker";
+import ChefRequestToggles from "../../../components/ChefRequestToggles";
 import Container from "../../../layout/Container";
 import { hideLoading, showLoading } from "../../../reducers/loadingSlice";
 import {
@@ -61,6 +62,7 @@ import {
   ConfirmPhoneCodeAPI,
 } from "../../../services/api";
 import { checkLocalPath, getImageURL } from "../../../utils/functions";
+import { toBool } from "../../../utils/bool";
 import { ShowErrorToast, ShowSuccessToast } from "../../../utils/toast";
 import { getFormattedDate } from "../../../utils/validations";
 import { AppColors } from "../../../../constants/theme";
@@ -716,6 +718,21 @@ const Account = () => {
                 }
                 onInstructionsChange={(val) =>
                   setUserInfo({ ...userInfo, parking_instructions: val })
+                }
+              />
+            </View>
+          )}
+
+          {userInfo.user_type === 1 && (
+            <View style={{ width: "100%", marginTop: 15 }}>
+              <ChefRequestToggles
+                shoeCoverings={toBool(userInfo.request_shoe_coverings)}
+                containers={toBool(userInfo.request_containers)}
+                onShoeCoveringsChange={(val) =>
+                  setUserInfo({ ...userInfo, request_shoe_coverings: val })
+                }
+                onContainersChange={(val) =>
+                  setUserInfo({ ...userInfo, request_containers: val })
                 }
               />
             </View>

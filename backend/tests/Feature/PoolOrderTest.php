@@ -51,6 +51,8 @@ class PoolOrderTest extends TestCase
             $table->string('zip')->nullable();
             $table->string('parking_type')->nullable();
             $table->string('parking_instructions')->nullable();
+            $table->boolean('request_shoe_coverings')->default(false);
+            $table->boolean('request_containers')->default(false);
             $table->tinyInteger('user_type')->default(1);
             $table->tinyInteger('verified')->default(1);
             $table->tinyInteger('is_pending')->default(0);
@@ -114,6 +116,8 @@ class PoolOrderTest extends TestCase
             $table->string('address')->nullable();
             $table->string('parking_type')->nullable();
             $table->string('parking_instructions')->nullable();
+            $table->boolean('request_shoe_coverings')->default(false);
+            $table->boolean('request_containers')->default(false);
             $table->integer('order_date')->nullable();
             $table->string('order_date_new')->nullable();
             $table->string('order_time')->nullable();
@@ -331,6 +335,27 @@ class PoolOrderTest extends TestCase
         $pool = DB::table('tbl_pool_requests')->first();
         $this->assertSame('claimed', $pool->status);
         $this->assertSame((int) $order->id, (int) $pool->order_id);
+    }
+
+    public function test_claim_carries_the_customers_chef_requests_onto_the_order(): void
+    {
+        DB::table('tbl_users')->where('id', 1)->update([
+            'request_shoe_coverings' => true,
+            'request_containers' => false,
+        ]);
+
+        $this->createRequest()->assertJsonPath('success', 1);
+        $poolId = DB::table('tbl_pool_requests')->first()->id;
+
+        $this->asFreshUser();
+        $this->postJson('/mapi/pool/claim_request?api_token=tok_chef2',
+            ['pool_request_id' => $poolId], ['apiKey' => self::API_KEY])
+            ->assertJsonPath('success', 1);
+
+        $order = DB::table('tbl_orders')->first();
+        $this->assertTrue((bool) $order->request_shoe_coverings, 'saved default carried onto the order');
+        // Control: the request the customer did NOT ask for stays off.
+        $this->assertFalse((bool) $order->request_containers);
     }
 
     public function test_second_claim_loses_the_race(): void

@@ -44,6 +44,7 @@ import {
   ValidateDiscountCodeAPI,
 } from '../../../services/api';
 import { cleanText, Delay } from '../../../utils/functions';
+import { toBool } from '../../../utils/bool';
 import { goBack, navigate } from '../../../utils/navigation';
 import { ShowErrorToast, ShowSuccessToast } from '../../../utils/toast';
 import { getFormattedDateTime } from '../../../utils/validations';
@@ -54,6 +55,7 @@ import { getApplianceById } from '../../../constants/appliances';
 import { getParkingLabel } from '../../../constants/parkingTypes';
 import FadingScrollView from '../../../components/FadingScrollView';
 import ParkingPicker from '../../../components/ParkingPicker';
+import ChefRequestToggles from '../../../components/ChefRequestToggles';
 import Card from '../../../components/Card';
 
 const Checkout = () => {
@@ -85,6 +87,11 @@ const Checkout = () => {
   const [parkingType, setParkingType] = useState<string | undefined>(cleanText(self.parking_type) || undefined);
   const [parkingInstructions, setParkingInstructions] = useState<string>(cleanText(self.parking_instructions));
   const [editingParking, setEditingParking] = useState(false);
+
+  // Chef requests — same pattern as parking: default from the profile,
+  // overridable for this order, saved back on success.
+  const [shoeCoverings, setShoeCoverings] = useState<boolean>(toBool(self.request_shoe_coverings));
+  const [containers, setContainers] = useState<boolean>(toBool(self.request_containers));
 
   // Ref to track current timeslot request and prevent race conditions
   const currentTimeslotRequestRef = useRef<string | null>(null);
@@ -516,6 +523,8 @@ const Checkout = () => {
         address: self.address,
         parking_type: parkingType,
         parking_instructions: parkingInstructions || undefined,
+        request_shoe_coverings: shoeCoverings,
+        request_containers: containers,
         order_date: order_datetime,
         order_date_string,
         order_time_string,
@@ -546,13 +555,17 @@ const Checkout = () => {
       // starts pre-filled with what the customer entered this time.
       if (
         (parkingType ?? '') !== cleanText(self.parking_type) ||
-        (parkingInstructions ?? '') !== cleanText(self.parking_instructions)
+        (parkingInstructions ?? '') !== cleanText(self.parking_instructions) ||
+        shoeCoverings !== toBool(self.request_shoe_coverings) ||
+        containers !== toBool(self.request_containers)
       ) {
         UpdateUserAPI(
           {
             ...self,
             parking_type: parkingType,
             parking_instructions: parkingInstructions,
+            request_shoe_coverings: shoeCoverings,
+            request_containers: containers,
           },
           dispatch,
         ).catch(() => {});
@@ -825,6 +838,16 @@ const Checkout = () => {
                 </Text>
               )}
             </View>
+          </Card>
+          <Card>
+            <Text style={styles.checkoutSubheading}>Chef Requests</Text>
+            <ChefRequestToggles
+              shoeCoverings={shoeCoverings}
+              containers={containers}
+              onShoeCoveringsChange={setShoeCoverings}
+              onContainersChange={setContainers}
+              compact
+            />
           </Card>
           <Card>
             <Text style={styles.checkoutSubheading}>Payment Information</Text>

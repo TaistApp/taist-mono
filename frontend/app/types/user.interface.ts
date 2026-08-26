@@ -13,6 +13,9 @@ export default interface UserInterface {
   zip?: string;
   parking_type?: string;
   parking_instructions?: string;
+  // Default chef requests, pre-filled at checkout and overridable per order.
+  request_shoe_coverings?: boolean | number;
+  request_containers?: boolean | number;
   latitude?: number;
   longitude?: number;
   user_type?: number;
