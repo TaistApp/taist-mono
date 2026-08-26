@@ -989,6 +989,11 @@ export const UpdateOrderStatusAPI = async (params: IOrder, dispatch?: any) => {
   return response;
 };
 
+export const CreateSetupIntentAPI = async (params?: any, dispatch?: any) => {
+  var response = await POSTAPICALL("create_setup_intent", params ?? {});
+  return response;
+};
+
 export const AddPaymentMethodAPI = async (params: any, dispatch?: any) => {
   var response = await POSTAPICALL("add_payment_method", params);
   if (response.success == 1 && dispatch) {

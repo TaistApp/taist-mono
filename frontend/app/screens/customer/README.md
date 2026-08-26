@@ -81,7 +81,7 @@ Complete the order and payment.
 **Components:**
 - `customCalendar.tsx` - Delivery date picker with "Today" button
 - `orderItem.tsx` - Cart item display showing customizations and special instructions
-- `creditCard.tsx` - Payment form
+- Card entry uses Stripe's native Payment Sheet (`useAddCardSheet`), not an in-app form
 
 ### orders/
 View and manage customer orders.

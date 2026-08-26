@@ -31,9 +31,6 @@ Component for selecting photos from the device gallery or camera. Handles permis
 ### styledProfileImage
 Component for displaying user profile images with fallback avatars.
 
-### styledStripeCardField
-Stripe credit card input field component. Handles secure card data entry for payments.
-
 ### styledSwitch
 Custom toggle switch component for settings and preferences.
 

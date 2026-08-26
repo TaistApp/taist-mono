@@ -160,6 +160,7 @@ Route::group(['middleware' => ['auth:mapi']], function () {
 	Route::post('update_order_status/{id}', 'MapiController@updateOrderStatus');
 	Route::post('background_check/{id}', 'MapiController@backgroundCheck');
 
+	Route::post('create_setup_intent', 'MapiController@createSetupIntent');
 	Route::post('add_payment_method', 'MapiController@addPaymentMethod');
 	Route::post('get_payment_methods', 'MapiController@getPaymentMethods');
 	Route::post('delete_payment_method', 'MapiController@deletePaymentMethod');
