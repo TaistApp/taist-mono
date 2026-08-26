@@ -18,7 +18,6 @@ export { default as Customer_Home } from './customer/home/HomeScreen';
 // export {default as Customer_ChefDetail} from './Customer/ChefDetail';
 // export {default as Customer_AddToOrder} from './Customer/AddToOrder';
 // export {default as Customer_Checkout} from './Customer/Checkout';
-// export {default as Customer_CreditCard} from './Customer/Checkout/creditCard';
 
 // export {default as Customer_Orders} from './Customer/Orders';
 // export {default as Customer_OrderDetail} from './Customer/OrderDetail';

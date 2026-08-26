@@ -25,8 +25,8 @@ import {
 
 // Hooks
 import { useAppDispatch, useAppSelector } from '../../../hooks/useRedux';
+import { useAddCardSheet } from '../../../hooks/useAddCardSheet';
 
-import { useStripe } from '@stripe/stripe-react-native';
 import moment, { Moment } from 'moment';
 import StyledSwitch from '../../../components/styledSwitch';
 import { AddressCollectionModal } from '../../../components/AddressCollectionModal';
@@ -35,7 +35,6 @@ import Container from '../../../layout/Container';
 import { removeCustomerOrders, setSelectedDate } from '../../../reducers/customerSlice';
 import { hideLoading, showLoading } from '../../../reducers/loadingSlice';
 import {
-  AddPaymentMethodAPI,
   CreateOrderAPI,
   CreatePaymentIntentAPI,
   GetAvailableTimeslotsAPI,
@@ -62,7 +61,7 @@ const Checkout = () => {
   const self = useAppSelector(x => x.user.user);
   const menus = useAppSelector(x => x.table.menus);
   const dispatch = useAppDispatch();
-  const {initPaymentSheet, presentPaymentSheet, createToken} = useStripe();
+  const {presentAddCardSheet} = useAddCardSheet();
 
   const params = useLocalSearchParams();
   const orders: Array<IOrder> = params.orders ? JSON.parse(params.orders as string) : [];
@@ -80,6 +79,7 @@ const Checkout = () => {
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [isSavingAddress, setIsSavingAddress] = useState(false);
   const [isLoadingTimes, setIsLoadingTimes] = useState(true);
+  const [isAddingCard, setIsAddingCard] = useState(false);
 
   // Arrival & Parking state — pre-filled from account, overridable per order.
   // cleanText guards against the literal "null"/"undefined" strings the API can
@@ -348,45 +348,21 @@ const Checkout = () => {
     onChangeDay(day);
   };
 
-  const handleCreditCard = () => {
-    console.log('handleCreditCard: Navigating to credit card screen with callback');
-    navigate.toCustomer.creditCard(handleAddPaymentCard);
-  };
-
-  const handleAddPaymentCard = async (details: any) => {
-    console.log('handleAddPaymentCard called with details:', details);
-    if (details.complete !== true) {
-      ShowErrorToast('Please input the card information correctly');
-      return;
-    }
-    console.log('Creating payment token...');
-    dispatch(showLoading());
-    const resp_card = await createToken({
-      type: 'Card',
-      name: `${self.first_name} ${self.last_name}`,
-      currency: 'usd',
-    });
-    if (resp_card.error) {
-      dispatch(hideLoading());
-      ShowErrorToast(resp_card.error.message);
-      return;
-    }
-
-    console.log('Adding payment method via API...');
-    const resp = await AddPaymentMethodAPI({
-      ...details,
-      token: resp_card.token.card?.id,
-      payment_token: resp_card.token.id,
-    });
-    dispatch(hideLoading());
-    if (resp.success == 1) {
-      console.log('Payment method added successfully');
-      const data = resp.data.find((x: IPayment) => x.active == 1);
-      onChangePaymentMethod(data);
-      ShowSuccessToast('Added Successfully!');
-    } else {
-      console.log('Payment method failed:', resp.error ?? resp.message);
-      ShowErrorToast(resp.error ?? resp.message);
+  const handleCreditCard = async () => {
+    if (isAddingCard) return;
+    setIsAddingCard(true);
+    try {
+      const result = await presentAddCardSheet(self);
+      if (result.status === 'added') {
+        if (result.paymentMethod) {
+          onChangePaymentMethod(result.paymentMethod);
+        }
+        ShowSuccessToast('Card saved');
+      } else if (result.status === 'failed') {
+        ShowErrorToast(result.message);
+      }
+    } finally {
+      setIsAddingCard(false);
     }
   };
 
@@ -854,6 +830,7 @@ const Checkout = () => {
             <TouchableOpacity
               testID="checkout.paymentMethodSelector"
               accessible={false}
+              disabled={isAddingCard}
               onPress={handleCreditCard}
               style={styles.checkoutPaymentItemWrapper}>
               <View>
@@ -861,47 +838,25 @@ const Checkout = () => {
                   Payment Method
                 </Text>
                 <Text style={styles.checkoutSummaryItemAddon}>
-                  {paymentMethod
-                    ? `${paymentMethod?.card_type ?? ''} ending in ${
-                        paymentMethod?.last4 ?? ''
+                  {paymentMethod?.last4
+                    ? `${paymentMethod.card_type ?? 'Card'} ending in ${
+                        paymentMethod.last4
                       }`
                     : `Add payment method`}
                 </Text>
               </View>
               <View>
-                <FontAwesomeIcon
-                  icon={faAngleRight}
-                  size={20}
-                  color="#666666"
-                />
+                {isAddingCard ? (
+                  <ActivityIndicator size="small" color={AppColors.primary} />
+                ) : (
+                  <FontAwesomeIcon
+                    icon={faAngleRight}
+                    size={20}
+                    color="#666666"
+                  />
+                )}
               </View>
             </TouchableOpacity>
-            {/* <StyledStripeCardField
-              content={
-                <View style={styles.checkoutPaymentItemWrapper}>
-                  <View>
-                    <Text style={styles.checkoutSummaryItemTitle}>
-                      Payment Method{' '}
-                    </Text>
-                    <Text style={styles.checkoutSummaryItemAddon}>
-                      {paymentMethod
-                        ? `${paymentMethod?.card_type ?? ''} ending in ${
-                            paymentMethod?.last4 ?? ''
-                          } `
-                        : `Add payment method `}
-                    </Text>
-                  </View>
-                  <View>
-                    <FontAwesomeIcon
-                      icon={faAngleRight}
-                      size={20}
-                      color="#ffffff"
-                    />
-                  </View>
-                </View>
-              }
-              onAddCard={handleAddPaymentCard}
-            /> */}
           </Card>
           <Card>
             <View style={styles.switchWrapper}>
