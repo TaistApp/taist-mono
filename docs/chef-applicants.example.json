@@ -1,0 +1,8 @@
+{
+  "_comment": "Copy to backend/storage/app/chef-applicants.json and fill in the real batch. That path is gitignored so applicant PII never enters git history. 'email' may be null for phone-only applicants; the command reports those for manual outreach.",
+  "batch": "indeed-central-indiana-1",
+  "recipients": [
+    { "name": "FirstName", "email": "applicant@example.com", "phone": "(317) 555-0100" },
+    { "name": "PhoneOnly", "email": null,                    "phone": "(317) 555-0101" }
+  ]
+}

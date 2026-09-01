@@ -185,6 +185,17 @@ class MapiController extends Controller
         return $this->_appBaseUrl() . '/assets/images/logo-2.png';
     }
 
+    /**
+     * Signature logo block. Width and height are set as HTML attributes as well as
+     * CSS because Outlook ignores CSS-only sizing and would otherwise render the
+     * asset at its full 300x150 intrinsic size.
+     */
+    private function _logoHtml()
+    {
+        return "<p style='margin-top:18px;'><img alt='Taist logo' src='" . $this->_logoUrl()
+            . "' width='120' height='60' style='width:120px;height:60px;border:0;outline:none;text-decoration:none;display:block;' /></p>";
+    }
+
     private function _adminUrl()
     {
         return $this->_appBaseUrl() . '/admin';
@@ -649,7 +660,7 @@ class MapiController extends Controller
             $msg .= "<p><b>" . $code . "</b> is a verification code to reset your password.</p>";
             $msg .= "<p>Thank You! <div>- The Taist Team</div></p>";
             $msg .= "<p><i>If you didn’t make this request, or if you’re having trouble signing in, contact us via contact@taist.app</i></p>";
-            $msg .= "<p><img alt='Taist logo' src='" . $this->_logoUrl() . "' /></p>";
+            $msg .= $this->_logoHtml();
             $email = $user->email;
             $b = $this->_sendEmail($email, "Taist - Password Reset", $msg);
 
@@ -3229,7 +3240,7 @@ Write only the review text:";
             }
 
             $msg .= "<br><p>View in <a href='" . $this->_adminUrl() . "'>Taist Admin Panel</a></p>";
-            $msg .= "<p><img alt='Taist logo' src='" . $this->_logoUrl() . "' /></p>";
+            $msg .= $this->_logoHtml();
 
             $this->_sendEmail("contact@taist.app", "Taist - New Order Request ({$orderId})", $msg);
         } catch (Exception $e) {
@@ -4792,7 +4803,7 @@ Write only the review text:";
                 $msg .= "<p>Special Instructions: <b>" . $order->notes . "</b></p>";
             }
             $msg .= "<br><p>Thank You! <div>- The Taist Team</div></p>";
-            $msg .= "<p><img alt='Taist logo' src='" . $this->_logoUrl() . "' /></p>";
+            $msg .= $this->_logoHtml();
 
             $emailResponse = $this->_sendEmail($user->email, "Taist - Order Receipt", $msg);
 
@@ -5042,7 +5053,7 @@ Write only the review text:";
                 $msg .= "<p><b>Note:</b> this order was filed in the SafeScreener SANDBOX (SAFESCREENER_MODE is not 'prod'), so the report link above will not work.</p>";
             }
             $msg .= "<p>Thank You! <div>- The Taist Team</div></p>";
-            $msg .= "<p><img alt='Taist logo' src='" . $this->_logoUrl() . "' /></p>";
+            $msg .= $this->_logoHtml();
 
             $emailResponse = $this->_sendEmail("contact@taist.app", "Taist - Background Check Submitted by Pending Chef", $msg);
 
