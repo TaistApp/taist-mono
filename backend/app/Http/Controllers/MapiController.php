@@ -4880,6 +4880,66 @@ Write only the review text:";
         return !empty($applicantGuid) && !empty($orderGuid);
     }
 
+    /**
+     * Turn a SafeScreener error payload into something honest to show the chef.
+     *
+     * SafeScreener fails for two very different reasons and they must not share
+     * a message. A per-field validation error IS the chef's to fix, so we show
+     * their words. Anything else — NOT_AUTHORIZED from a bad token or an
+     * un-whitelisted egress IP, a 500, a package misconfiguration — is OUR
+     * problem: it hits every chef identically and no amount of re-typing the
+     * form will ever clear it. Telling those chefs to "fill the form correctly"
+     * is what let a NOT_AUTHORIZED outage strand two real chefs for a week
+     * (2026-08-29 → 2026-09-03) with nobody realising the app was lying to them.
+     *
+     * Returns ['message' => chef-facing text, 'isOurFault' => bool].
+     */
+    public static function describeBackgroundCheckError($response): array
+    {
+        $response = (array) $response;
+
+        $fieldErrors = [];
+        if (!empty($response['fields'])) {
+            foreach ((array) $response['fields'] as $messages) {
+                $messages = array_filter(array_map('strval', (array) $messages));
+                if (!empty($messages)) $fieldErrors[] = implode(' ', $messages);
+            }
+        }
+
+        if (!empty($fieldErrors)) {
+            return ['message' => implode(' ', $fieldErrors), 'isOurFault' => false];
+        }
+
+        return [
+            'message' => "We couldn't submit your background check — this is a problem on our end, "
+                . "not with anything you entered. The Taist team has been notified and will follow "
+                . "up with you shortly. There's no need to re-enter your details.",
+            'isOurFault' => true,
+        ];
+    }
+
+    /**
+     * Tell the team the moment SafeScreener stops accepting submissions. Without
+     * this the failure is invisible: the chef sees a dead end and gives up, and
+     * the only trace is a Log line nobody is watching.
+     */
+    private function alertBackgroundCheckFailure($user, $stage, $response): void
+    {
+        Log::error('Background check ' . $stage . ' failed: ' . json_encode($response));
+
+        $msg = "";
+        $msg .= "<p>Hi Taist Admin,</p>";
+        $msg .= "<p>A pending chef could <b>not</b> submit their background check. SafeScreener rejected the <b>" . e($stage) . "</b> call, so no order was filed.</p>";
+        $msg .= "<p><b>Chef:</b> " . e(trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? ''))) . " (id " . e($user->id ?? '') . ", " . e($user->email ?? '') . ")</p>";
+        $msg .= "<p><b>SafeScreener mode:</b> " . e($this->backgroundCheckMode()) . "</p>";
+        $msg .= "<p><b>SafeScreener response:</b><br><code>" . e(json_encode($response)) . "</code></p>";
+        $msg .= "<p>A <code>NOT_AUTHORIZED</code> response means our SafeScreener token is wrong or our outbound IP is not whitelisted — it affects every chef, so fix it before asking them to retry.</p>";
+        $msg .= "<p>Thank You! <div>- The Taist Team</div></p>";
+        $msg .= $this->_logoHtml();
+
+        $this->_sendEmail("contact@taist.app", "Taist - ACTION NEEDED: Background check submission failed", $msg);
+    }
+
     private function sendBackgroundCheckRequest($uri, $postData, $method = 'POST')
     {
         $password = env('SAFESCREENER_PASSWORD');
@@ -4997,21 +5057,14 @@ Write only the review text:";
                 $candidate_id = $response['applicantGuid'];
             }
             if (array_key_exists('code', $response)) {
-                Log::info('Background check API error: ' . json_encode($response));
-
-                $errorMsg = "There is an issue with the submitted data format. Please fill the form correctly.";
-                if (!empty($response['fields']) && is_array((array)$response['fields'])) {
-                    $fieldErrors = [];
-                    foreach ((array)$response['fields'] as $field => $messages) {
-                        $messages = (array)$messages;
-                        $fieldErrors[] = implode(' ', $messages);
-                    }
-                    if (!empty($fieldErrors)) {
-                        $errorMsg = implode(' ', $fieldErrors);
-                    }
+                $described = self::describeBackgroundCheckError($response);
+                if ($described['isOurFault']) {
+                    $this->alertBackgroundCheckFailure($user, 'applicant', $response);
+                } else {
+                    Log::info('Background check API error: ' . json_encode($response));
                 }
 
-                return response()->json(['success' => 0, 'error' => $errorMsg]);
+                return response()->json(['success' => 0, 'error' => $described['message']]);
             }
         }
 
@@ -5029,8 +5082,8 @@ Write only the review text:";
             //$order_status = $this->sendBackgroundCheckRequest($api_key.'/orders/'.$response['orderGuid'].'/status', [], 'GET');
 
             if (empty($response['orderGuid'])) {
-                Log::error('Background check order creation failed: ' . json_encode($response));
-                return response()->json(['success' => 0, 'error' => "We couldn't submit your background check. Please try again in a few minutes."]);
+                $this->alertBackgroundCheckFailure($user, 'order', $response);
+                return response()->json(['success' => 0, 'error' => self::describeBackgroundCheckError($response)['message']]);
             }
 
             app(Listener::class)->where('id', $id)->update(['order_guid' => $response['orderGuid']]);
@@ -5048,8 +5101,10 @@ Write only the review text:";
 
             return response()->json(['success' => 1, 'message' => "Hang tight! Taist is reviewing your account and will let you know when you are approved to start cooking."]);
         } else {
-            Log::info('Background check: no candidate_id, response: ' . json_encode($response));
-            return response()->json(['success' => 0, 'error' => "There is an issue with the submitted data format. Please try again later."]);
+            // No applicantGuid and no 'code' — SafeScreener returned nothing we
+            // understand (network failure, HTML error page, empty body).
+            $this->alertBackgroundCheckFailure($user, 'applicant', $response);
+            return response()->json(['success' => 0, 'error' => self::describeBackgroundCheckError($response)['message']]);
         }
     }
 
