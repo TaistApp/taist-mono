@@ -51,6 +51,13 @@ export const styles = StyleSheet.create({
 		fontSize: 16,
 		textAlign: 'center'
 	},
+	helperText: {
+		fontSize: 14,
+		lineHeight: 20,
+		textAlign: 'center',
+		color: AppColors.textSecondary,
+		marginTop: 12,
+	},
     formFields: {
 		marginTop: 20,
 	},
