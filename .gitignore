@@ -93,3 +93,6 @@ google-play-service-account.json
 
 # E2E test credentials
 tests/e2e/.env.e2e
+
+# Chef applicant outreach (contains applicant PII, never commit)
+docs/chef-outreach-log.md

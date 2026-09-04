@@ -171,13 +171,6 @@ export const navigate = {
         selectedDate: params.selectedDate || ''
       }
     } as any),
-    creditCard: (handleAddPaymentCard?: (details: any) => Promise<void>) => {
-      // Store the callback globally since Expo Router can't pass functions as params
-      if (handleAddPaymentCard) {
-        (global as any).handleAddPaymentCardCallback = handleAddPaymentCard;
-      }
-      router.push('/screens/customer/(tabs)/(home)/checkout/creditCard' as any);
-    },
     earnByCooking: () => router.push('/screens/customer/earnByCooking' as any),
     referrals: (params?: { type?: 'general' | 'chef'; chefId?: number; chefName?: string }) => router.push({
       pathname: '/screens/customer/referrals',

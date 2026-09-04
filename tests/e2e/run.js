@@ -3,10 +3,12 @@
 /**
  * Taist E2E Test Runner
  *
- * Runs all 3 baseline flows against the staging API:
+ * Runs all baseline flows against the staging API:
  *   1. Customer Signup
  *   2. Chef Signup
  *   3. Full Order (Customer → Chef → Completion → Review)
+ *   4. Navigation Guards
+ *   5. Password Reset
  *
  * Usage:
  *   node tests/e2e/run.js                   # Run all flows
@@ -14,6 +16,7 @@
  *   node tests/e2e/run.js --flow=chef       # Run only chef signup
  *   node tests/e2e/run.js --flow=order      # Run only order flow (needs prior setup)
  *   node tests/e2e/run.js --flow=nav        # Run only navigation guards (static, no API)
+ *   node tests/e2e/run.js --flow=reset      # Run only the password reset flow
  */
 
 const config = require('./config');
@@ -22,6 +25,7 @@ const customerFlow = require('./flow-customer-signup');
 const chefFlow = require('./flow-chef-signup');
 const orderFlow = require('./flow-order');
 const navigationGuards = require('./flow-navigation-guards');
+const passwordResetFlow = require('./flow-password-reset');
 
 async function main() {
   const args = process.argv.slice(2);
@@ -110,6 +114,21 @@ async function main() {
       console.error(e.stack);
       totals.failed++;
       totals.errors.push(`Flow 4 crash: ${e.message}`);
+    }
+  }
+
+  // ── Flow 5: Password Reset ─────────────────────────────────────
+  if (!flowArg || flowArg === 'reset' || flowArg === 'all') {
+    try {
+      const result = await passwordResetFlow.run();
+      totals.passed += result.passed;
+      totals.failed += result.failed;
+      totals.errors.push(...(result.errors || []));
+    } catch (e) {
+      h.logFail(`Flow 5 crashed: ${e.message}`);
+      console.error(e.stack);
+      totals.failed++;
+      totals.errors.push(`Flow 5 crash: ${e.message}`);
     }
   }
 

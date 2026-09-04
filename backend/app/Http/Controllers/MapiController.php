@@ -185,6 +185,17 @@ class MapiController extends Controller
         return $this->_appBaseUrl() . '/assets/images/logo-2.png';
     }
 
+    /**
+     * Signature logo block. Width and height are set as HTML attributes as well as
+     * CSS because Outlook ignores CSS-only sizing and would otherwise render the
+     * asset at its full 300x150 intrinsic size.
+     */
+    private function _logoHtml()
+    {
+        return "<p style='margin-top:18px;'><img alt='Taist logo' src='" . $this->_logoUrl()
+            . "' width='120' height='60' style='width:120px;height:60px;border:0;outline:none;text-decoration:none;display:block;' /></p>";
+    }
+
     private function _adminUrl()
     {
         return $this->_appBaseUrl() . '/admin';
@@ -649,7 +660,7 @@ class MapiController extends Controller
             $msg .= "<p><b>" . $code . "</b> is a verification code to reset your password.</p>";
             $msg .= "<p>Thank You! <div>- The Taist Team</div></p>";
             $msg .= "<p><i>If you didn’t make this request, or if you’re having trouble signing in, contact us via contact@taist.app</i></p>";
-            $msg .= "<p><img alt='Taist logo' src='" . $this->_logoUrl() . "' /></p>";
+            $msg .= $this->_logoHtml();
             $email = $user->email;
             $b = $this->_sendEmail($email, "Taist - Password Reset", $msg);
 
@@ -3229,7 +3240,7 @@ Write only the review text:";
             }
 
             $msg .= "<br><p>View in <a href='" . $this->_adminUrl() . "'>Taist Admin Panel</a></p>";
-            $msg .= "<p><img alt='Taist logo' src='" . $this->_logoUrl() . "' /></p>";
+            $msg .= $this->_logoHtml();
 
             $this->_sendEmail("contact@taist.app", "Taist - New Order Request ({$orderId})", $msg);
         } catch (Exception $e) {
@@ -4792,7 +4803,7 @@ Write only the review text:";
                 $msg .= "<p>Special Instructions: <b>" . $order->notes . "</b></p>";
             }
             $msg .= "<br><p>Thank You! <div>- The Taist Team</div></p>";
-            $msg .= "<p><img alt='Taist logo' src='" . $this->_logoUrl() . "' /></p>";
+            $msg .= $this->_logoHtml();
 
             $emailResponse = $this->_sendEmail($user->email, "Taist - Order Receipt", $msg);
 
@@ -5095,7 +5106,7 @@ Write only the review text:";
                 $msg .= "<p><b>Note:</b> this order was filed in the SafeScreener SANDBOX (SAFESCREENER_MODE is not 'prod'), so the report link above will not work.</p>";
             }
             $msg .= "<p>Thank You! <div>- The Taist Team</div></p>";
-            $msg .= "<p><img alt='Taist logo' src='" . $this->_logoUrl() . "' /></p>";
+            $msg .= $this->_logoHtml();
 
             $emailResponse = $this->_sendEmail("contact@taist.app", "Taist - Background Check Submitted by Pending Chef", $msg);
 
@@ -5122,6 +5133,75 @@ Write only the review text:";
     }
 
     /** Payment */
+
+    /**
+     * Create a SetupIntent so the app can collect a card in Stripe's native
+     * Payment Sheet. The sheet confirms the intent and attaches the resulting
+     * PaymentMethod to the customer; the app then posts the intent id back to
+     * add_payment_method so we can record it. Card data never touches us.
+     */
+    public function createSetupIntent(Request $request)
+    {
+        if ($this->_checktaistApiKey($request->header('apiKey')) === false)
+            return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
+        else if ($this->_checktaistApiKey($request->header('apiKey')) === -1)
+            return response()->json(['success' => 0, 'error' => "Token has been expired."]);
+
+        $errorMsg = "";
+        $user = $this->_authUser();
+        $return = null;
+
+        try {
+            require_once('../stripe-php/init.php');
+            $stripe = new \Stripe\StripeClient(env('STRIPE_SECRET'));
+
+            $customers = $stripe->customers->all(['email' => $user->email]);
+            $customer = null;
+            if (count($customers['data'])) {
+                $customer = $customers['data'][0];
+            }
+            if (!$customer) {
+                $customer = $stripe->customers->create([
+                    'email' => $user->email,
+                    'name' => "Customer user - " . $user->email,
+                    'description' => "Customer user - " . $user->email
+                ]);
+            }
+
+            // off_session so the saved card can be charged when the order is
+            // placed, which is how create_payment_intent bills it.
+            $intent = $stripe->setupIntents->create([
+                'customer' => $customer['id'],
+                'payment_method_types' => ['card'],
+                'usage' => 'off_session',
+            ]);
+
+            $return = [
+                'setup_intent_id' => $intent['id'],
+                'client_secret' => $intent['client_secret'],
+                'customer_id' => $customer['id'],
+            ];
+        } catch (\Stripe\Exception\CardException $e) {
+            $errorMsg = $e->getError()->message;
+        } catch (\Stripe\Exception\RateLimitException $e) {
+            $errorMsg = $e->getError()->message;
+        } catch (\Stripe\Exception\InvalidRequestException $e) {
+            $errorMsg = $e->getError()->message;
+        } catch (\Stripe\Exception\AuthenticationException $e) {
+            $errorMsg = $e->getError()->message;
+        } catch (\Stripe\Exception\ApiConnectionException $e) {
+            $errorMsg = $e->getError()->message;
+        } catch (\Stripe\Exception\ApiErrorException $e) {
+            $errorMsg = $e->getError()->message;
+        } catch (Exception $e) {
+            $errorMsg = "Unknown error : " . $e->getMessage();
+        }
+
+        if ($errorMsg != "") {
+            return response()->json(['success' => 0, 'error' => $errorMsg]);
+        }
+        return response()->json(['success' => 1, 'data' => $return]);
+    }
 
     public function addPaymentMethod(Request $request)
     {
@@ -5164,25 +5244,43 @@ Write only the review text:";
             $token = $b['id'];
             */
 
-            $c = null;
-            if (isset($data['payment_token'])) {
+            $insert = array();
+            $insert['user_id'] = $user->id;
+            $insert['stripe_cus_id'] = $customer['id'];
+            $insert['created_at'] = now();
+            $insert['updated_at'] = now();
+
+            if (isset($data['setup_intent_id'])) {
+                // Payment Sheet flow: the app confirmed a SetupIntent in the
+                // native Stripe sheet and sends us its id. Read the card off
+                // Stripe rather than trusting client-supplied brand/last4.
+                $intent = $stripe->setupIntents->retrieve($data['setup_intent_id']);
+                if ($intent['customer'] !== $customer['id']) {
+                    return response()->json(['success' => 0, 'error' => 'That card belongs to a different account.']);
+                }
+                if ($intent['status'] !== 'succeeded' || empty($intent['payment_method'])) {
+                    return response()->json(['success' => 0, 'error' => 'The card was not confirmed. Please try again.']);
+                }
+                $pm = $stripe->paymentMethods->retrieve($intent['payment_method']);
+                $insert['last4'] = $pm['card']['last4'];
+                $insert['card_token'] = $pm['id'];
+                $insert['card_type'] = $pm['card']['brand'];
+                $insert['zip'] = $pm['billing_details']['address']['postal_code'] ?? '';
+            } elseif (isset($data['payment_token'])) {
+                // Legacy CardField flow, still used by app builds shipped
+                // before the Payment Sheet. Attaches a tokenised card source.
                 $c = $stripe->customers->createSource(
                     $customer['id'],
                     ['source' => $data['payment_token']]
                 );
+                $insert['last4'] = $data['last4'];
+                $insert['card_token'] = $c ? $c['id'] : $data['token'];
+                $insert['card_type'] = $data['brand'];
+                $insert['zip'] = $data['postalCode'] ?? '';
             } else {
                 return response()->json(['success' => 0, 'error' => 'No token info.']);
             }
 
-            $insert = array();
-            $insert['user_id'] = $user->id;
-            $insert['stripe_cus_id'] = $customer['id'];
-            $insert['last4'] = $data['last4'];
-            $insert['card_token'] = $c ? $c['id'] : $data['token'];
-            $insert['card_type'] = $data['brand'];
-            $insert['zip'] = $data['postalCode'];
-            $insert['created_at'] = now();
-            $insert['updated_at'] = now();
             app(PaymentMethodListener::class)->where(['user_id' => $user->id, 'active' => 1])->update(['active' => 0]);
             app(PaymentMethodListener::class)->insert($insert);
             $return = app(PaymentMethodListener::class)->where(['user_id' => $user->id])->get();
@@ -5278,11 +5376,17 @@ Write only the review text:";
             }
             if ($customer) {
                 $pdata = app(PaymentMethodListener::class)->where(['user_id' => $user->id, 'id' => $request->id])->first();
-                $stripe->customers->deleteSource(
-                    $customer['id'],
-                    $pdata->card_token,
-                    []
-                );
+                // Cards saved through the Payment Sheet are PaymentMethods
+                // (pm_*) and must be detached; older rows are card sources.
+                if ($pdata && str_starts_with((string) $pdata->card_token, 'pm_')) {
+                    $stripe->paymentMethods->detach($pdata->card_token);
+                } else {
+                    $stripe->customers->deleteSource(
+                        $customer['id'],
+                        $pdata->card_token,
+                        []
+                    );
+                }
                 app(PaymentMethodListener::class)->where(['user_id' => $user->id, 'id' => $request->id])->delete();
             } else {
                 $errorMsg = "Invalid Stripe Customer.";
