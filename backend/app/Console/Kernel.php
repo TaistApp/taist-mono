@@ -94,6 +94,17 @@ class Kernel extends ConsoleKernel
                  ->daily()
                  ->at('03:00')
                  ->withoutOverlapping();
+
+        // Daily canary for the Google Geocoding API. Geocoding failures are
+        // silent by design (users just see "Location not available"), so
+        // without this a dead key, lapsed GCP billing, or a tripped quota can
+        // run for months unnoticed — as it did in June 2026. Emails
+        // contact@taist.app on failure. 13:00 UTC = morning ET.
+        $schedule->command('geocode:health')
+                 ->daily()
+                 ->at('13:00')
+                 ->withoutOverlapping()
+                 ->appendOutputTo('/proc/1/fd/1');
     }
 
     /**

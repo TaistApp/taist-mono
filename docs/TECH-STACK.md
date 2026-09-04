@@ -397,7 +397,8 @@ Mobile API covers: auth, allergens, appliances, availability, categories, conver
 - **Backend:** API for geocoding chef/customer addresses (`_geocodeZipCode` in `MapiController`)
 - **Frontend:** `expo-maps` with Google Maps provider
 - **Config:** `GOOGLE_MAPS_API_KEY` (set in Railway production + staging)
-- **Account:** `contact@taist.app` — GCP project **"My First Project"** (`project-98b5e874-18d7-4834-948`), key restricted to the Geocoding API. This is a **separate** project from Firebase (`taist-mobile-app`). The previous key lived in an external project (`calm-analogy-375222`) that Taist could not access; when it went invalid, geocoding silently fell back to Chicago coords. ⚠️ Billing is on a free trial — must be converted to a paid account by ~Sep 1 2026 or geocoding lapses.
+- **Account:** `contact@taist.app` — GCP project **"My First Project"** (`project-98b5e874-18d7-4834-948`), key restricted to the Geocoding API. This is a **separate** project from Firebase (`taist-mobile-app`). The previous key lived in an external project (`calm-analogy-375222`) that Taist could not access; when it went invalid, geocoding silently fell back to Chicago coords. Billing was converted from the free trial to a **paid account on 2026-09-04** (trial would have suspended the project on Sep 21 2026, taking geocoding and the in-app map with it). Guardrails: $5/month budget alert, and the Geocoding API `v3 requests per day` quota capped at 1,000. Note the cap is a hard stop — if it is ever hit, geocoding returns null and users see "Location not available".
+- **Monitoring:** `php artisan geocode:health` geocodes a known ZIP (46038, Fishers IN) and fails if the answer is missing, denied, quota-blocked, or more than 30 miles off. Runs daily at 13:00 UTC via the scheduler and emails `contact@taist.app` on failure (production only; set `GEOCODE_HEALTH_ALERTS=true` to enable elsewhere). Use `--no-email` for a manual check.
 - **Console:** https://console.cloud.google.com/apis/credentials
 
 ### SafeScreener — Background Checks
@@ -429,7 +430,7 @@ Mobile API covers: auth, allergens, appliances, availability, categories, conver
 | Stripe            | Dayne/Daryl                             | Account prefix: `51KWXqK...`                 |
 | Twilio            | Dayne/Daryl                             | SID: `ACdb49fd...`, Phone: +1 (317) 854-6026 |
 | Firebase / GCP    | Dayne/Daryl                             | Project: `taist-mobile-app`                  |
-| Google Maps       | `contact@taist.app`                     | GCP project `project-98b5e874…` ("My First Project"), Geocoding API; trial billing — convert by ~Sep 1 2026 |
+| Google Maps       | `contact@taist.app`                     | GCP project `project-98b5e874…` ("My First Project"), Geocoding API; paid billing since 2026-09-04 |
 | Resend            | contact@taist.app                       | Email delivery                               |
 | OpenAI            | contact@taist.app                       | AI features                                  |
 | SafeScreener      | Dayne/Daryl                             | Background checks — currently sandbox mode   |
