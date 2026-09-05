@@ -163,9 +163,23 @@ async function run(customerCtx, chefCtx) {
           h.logWarn(`Payment completion: ${completeRes.body.error}`);
         }
       } else {
-        // Common reason: chef hasn't completed Stripe onboarding in test mode
+        // A failed charge no longer leaves a live order behind: the backend
+        // cancels it (status 4, cancellation_type payment_failed) so a chef
+        // can't accept and cook for a booking nobody paid for. Assert that
+        // rather than marching the rest of the lifecycle through a dead order.
         h.logWarn(`Payment intent: ${res.body.error}`);
-        h.logInfo('This is expected if chef Stripe onboarding is incomplete in test mode');
+
+        const orderRes = await customerApi.get(`get_order_data/${orderId}`);
+        const status = orderRes.body?.data?.status;
+        h.assert(
+          String(status) === '4',
+          `An order whose payment failed must be cancelled (4), got: ${status}`
+        );
+        h.logPass('Unpaid order was cancelled — chef is not left holding it');
+        results.passed++;
+
+        h.logInfo('Skipping the rest of the order lifecycle — the order is cancelled.');
+        return results;
       }
     } catch (e) {
       h.logWarn(`Payment flow: ${e.message} (may need manual Stripe setup)`);
