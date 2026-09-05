@@ -54,10 +54,37 @@ class PurgeWaitlistSpam extends Command
             fn ($row) => $row->user_type . '|' . $this->normalizeEmail((string) $row->email)
         );
 
+        // The bot signed each address up twice — once as a consumer, once as a
+        // chef — under a different invented name each time. A real person who
+        // joins both lists gives the same name both times, so one mailbox
+        // wearing two identities across user types is the highest-confidence
+        // tell in this data, and it needs no guess about what a name looks like.
+        $crossTypeAliases = $candidates
+            ->groupBy(fn ($row) => $this->normalizeEmail((string) $row->email))
+            ->filter(function ($rows) {
+                $types = $rows->map(fn ($r) => (int) $r->user_type)->unique();
+                $names = $rows->map(fn ($r) => strtolower(trim((string) $r->first_name)))->unique();
+
+                return $types->count() > 1 && $names->count() > 1;
+            })
+            ->keys()
+            ->flip();
+
         $flagged = [];
 
         foreach ($groups as $groupKey => $group) {
             $normalized = substr($groupKey, strpos($groupKey, '|') + 1);
+
+            if ($crossTypeAliases->has($normalized)) {
+                foreach ($group as $row) {
+                    $flagged[] = [
+                        'row' => $row,
+                        'normalized' => $normalized,
+                        'reason' => 'consumer and chef signups under different names',
+                    ];
+                }
+                continue;
+            }
             $distinctNames = $group->map(fn ($r) => strtolower(trim((string) $r->first_name)))
                 ->unique()
                 ->count();
@@ -177,27 +204,34 @@ class PurgeWaitlistSpam extends Command
         }
 
         $lower = strtolower($name);
-        $vowels = preg_match_all('/[aeiou]/', $lower);
 
-        // No vowel at all, counting y — "Spyt", "Mrps", "Wdkr".
-        if (preg_match_all('/[aeiouy]/', $lower) === 0) {
+        // y counts as a vowel everywhere here. Excluding it from the ratio
+        // below flagged Anthony (2/7 = 0.29), Kathryn (0.14) and Sydney (0.17)
+        // as bot output — real names that a --force run would have deleted.
+        $vowels = preg_match_all('/[aeiouy]/', $lower);
+
+        // No vowel at all — "Spyt", "Mrps", "Wdkr".
+        if ($vowels === 0) {
             return true;
         }
 
-        // Vowel-starved. Only judged on names long enough for the ratio to mean
-        // something: plenty of real short names sit at 0.25 ("John", "Mark"),
-        // and deleting a real signup costs far more than missing a bot one.
-        if (strlen($lower) >= 6 && ($vowels / strlen($lower)) < 0.32) {
+        // Vowel-starved. Judged only on names long enough for the ratio to mean
+        // something. The bar sits below the sparsest real names (Kathryn 0.29)
+        // and above the densest bot output seen in the wild (~0.17), because
+        // deleting a real signup costs far more than missing a bot one.
+        if (strlen($lower) >= 6 && ($vowels / strlen($lower)) < 0.25) {
             return true;
         }
 
-        // A run of four or more consonants.
+        // A run of four or more consonants, y excluded so Kathryn survives.
         if (preg_match('/[bcdfghjklmnpqrstvwxz]{4,}/', $lower)) {
             return true;
         }
 
-        // Real names put a vowel near the front.
-        if (!preg_match('/[aeiouy]/', substr($lower, 0, 3))) {
+        // Real names put a vowel in the opening. The window is four characters,
+        // not three: Chris, Chloe, Christine and Schuyler all open with three
+        // consonants and are perfectly ordinary names.
+        if (!preg_match('/[aeiouy]/', substr($lower, 0, 4))) {
             return true;
         }
 
