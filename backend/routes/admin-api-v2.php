@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 
-// Public routes (no auth required)
+// Public routes (no admin session; waitlist + newsletter carry a shared secret)
 Route::post('login', 'AdminApiV2Controller@login');
 Route::post('waitlist', 'AdminApiV2Controller@waitlistStore');
 Route::get('newsletter-recipients', 'AdminApiV2Controller@newsletterRecipients');
