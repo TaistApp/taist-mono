@@ -1473,9 +1473,44 @@ class AdminApiV2Controller extends Controller
     /**
      * Public webhook endpoint — receives waitlist submissions from Make / website.
      * Deduplicates on email + user_type.
+     *
+     * This route sits outside the auth:adminapi group so the marketing site can
+     * post to it directly, which for a stretch of mid-2026 meant anyone on the
+     * internet could write rows. A subscription-bombing bot used exactly that to
+     * enter strangers' real email addresses, and those people then received Taist
+     * welcome mail. Callers now prove themselves with a shared secret sent in the
+     * X-Waitlist-Key header.
+     *
+     * Enforcement is deliberately conditional on the secret being configured.
+     * The marketing site likewise omits the header until its own copy of the key
+     * is set, so this can deploy before the value exists on Railway and Vercel
+     * without silently dropping real signups in the window between. The hole is
+     * only actually closed once WAITLIST_API_KEY is set on both — until then this
+     * logs every unauthenticated write so the gap is visible rather than assumed.
      */
     public function waitlistStore(Request $request)
     {
+        $expected = (string) config('app.waitlist_api_key');
+
+        if ($expected !== '') {
+            $provided = (string) $request->header('X-Waitlist-Key');
+
+            // hash_equals keeps the comparison timing-independent; the endpoint
+            // is public, so an attacker can otherwise measure their way in.
+            if ($provided === '' || !hash_equals($expected, $provided)) {
+                Log::warning('Rejected waitlist write with a missing or bad shared secret.', [
+                    'ip' => $request->ip(),
+                    'had_header' => $provided !== '',
+                ]);
+
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+        } else {
+            Log::warning('Waitlist write accepted without a shared secret — WAITLIST_API_KEY is unset, so this route is open.', [
+                'ip' => $request->ip(),
+            ]);
+        }
+
         $request->validate([
             'email' => 'required|email|max:255',
             'firstName' => 'required|string|max:50',
