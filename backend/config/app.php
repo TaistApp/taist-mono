@@ -136,6 +136,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Waitlist API Key
+    |--------------------------------------------------------------------------
+    |
+    | Shared secret the marketing site sends with public waitlist signups.
+    | The POST route sits outside the admin auth group, so this is what
+    | keeps it from being writable by anyone on the internet.
+    |
+    */
+
+    'waitlist_api_key' => env('WAITLIST_API_KEY'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Autoloaded Service Providers
     |--------------------------------------------------------------------------
     |
