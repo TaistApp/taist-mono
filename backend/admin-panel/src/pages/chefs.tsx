@@ -30,6 +30,7 @@ interface Chef {
   status: string;
   verified: number;
   is_pending: number;
+  quiz_completed: number;
   phone: string;
   birthday: number;
   address: string;
@@ -62,6 +63,8 @@ interface Pending {
   state: string;
   zip: string;
   bio: string;
+  verified: number;
+  quiz_completed: number;
   photo: string;
   created_at: number;
   availability: Record<string, string | null>;
@@ -77,6 +80,7 @@ export interface ChefRow {
   last_name: string;
   status: string;
   verified: number;
+  quiz_completed?: number;
   phone: string;
   birthday: number;
   address: string;
@@ -106,6 +110,7 @@ export interface ChefRow {
 const statusColors: Record<string, string> = {
   Active: "bg-emerald-500/15 text-emerald-700 border-emerald-500/20",
   Pending: "bg-amber-500/15 text-amber-700 border-amber-500/20",
+  "Not Verified": "bg-orange-500/15 text-orange-700 border-orange-500/20",
   Paused: "bg-blue-500/15 text-blue-700 border-blue-500/20",
   Rejected: "bg-red-500/15 text-red-700 border-red-500/20",
   Banned: "bg-gray-500/15 text-gray-700 border-gray-500/20",
@@ -188,6 +193,23 @@ const baseColumns: ColumnDef<ChefRow>[] = [
         </Badge>
       );
     },
+  },
+  {
+    id: "quiz_completed",
+    accessorFn: (row) => (row.quiz_completed === 1 ? "Passed" : "Not taken"),
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Safety Quiz" />
+    ),
+    cell: ({ row }) =>
+      row.original.quiz_completed === 1 ? (
+        <span className="whitespace-nowrap text-xs text-emerald-700">
+          Passed
+        </span>
+      ) : (
+        <span className="whitespace-nowrap text-xs text-gray-400">
+          Not taken
+        </span>
+      ),
   },
   {
     accessorKey: "phone",
@@ -399,8 +421,9 @@ export default function ChefsPage() {
     email: p.email,
     first_name: p.first_name,
     last_name: p.last_name,
-    status: "Pending",
-    verified: 0,
+    status: p.verified === 0 ? "Not Verified" : "Pending",
+    verified: p.verified,
+    quiz_completed: p.quiz_completed,
     phone: p.phone,
     birthday: p.birthday,
     address: p.address,
@@ -441,6 +464,7 @@ export default function ChefsPage() {
       options: [
         { label: "Active", value: "Active" },
         { label: "Pending", value: "Pending" },
+        { label: "Not Verified", value: "Not Verified" },
         { label: "Paused", value: "Paused" },
         { label: "Rejected", value: "Rejected" },
         { label: "Banned", value: "Banned" },
@@ -544,6 +568,7 @@ export default function ChefsPage() {
       State: c.state,
       Zip: c.zip,
       Status: c.status,
+      "Safety Quiz": c.quiz_completed === 1 ? "Passed" : "Not taken",
       "Created At": formatTimestamp(c.created_at),
     }));
     const ws = XLSX.utils.json_to_sheet(exportData);

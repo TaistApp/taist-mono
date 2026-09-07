@@ -208,6 +208,44 @@ class AdminApiV2Controller extends Controller
     /**
      * All chefs with availability, overrides, and live menus.
      */
+    /**
+     * Badge label for a chef row.
+     *
+     * `verified = 0` used to be folded into "Pending", which hid the single
+     * most important fact about such an account: `login` rejects it outright
+     * with "You need to verify the account first", and the app clears stored
+     * credentials on a failed auto-login — so the chef is silently signed out
+     * and cannot get back in. That is a very different situation from a chef
+     * who is simply waiting on admin approval (`is_pending = 1`), so the two
+     * now carry distinct labels.
+     *
+     * Ordering is otherwise unchanged: paused wins over everything, and
+     * Rejected/Banned still only surface once `is_pending` is cleared.
+     */
+    public static function chefStatusLabel($isPaused, $isPending, $verified): string
+    {
+        if ($isPaused == 1) {
+            return 'Paused';
+        }
+        if ($verified == 0) {
+            return 'Not Verified';
+        }
+        if ($isPending == 1) {
+            return 'Pending';
+        }
+        if ($verified == 1) {
+            return 'Active';
+        }
+        if ($verified == 2) {
+            return 'Rejected';
+        }
+        if ($verified == 3) {
+            return 'Banned';
+        }
+
+        return 'Unknown';
+    }
+
     public function chefs()
     {
         $tz = new \DateTimeZone('America/Los_Angeles');
@@ -259,20 +297,7 @@ class AdminApiV2Controller extends Controller
                 ];
             });
 
-            // Determine status string
-            if ($chef->is_paused == 1) {
-                $status = 'Paused';
-            } elseif ($chef->is_pending == 1 || $chef->verified == 0) {
-                $status = 'Pending';
-            } elseif ($chef->verified == 1) {
-                $status = 'Active';
-            } elseif ($chef->verified == 2) {
-                $status = 'Rejected';
-            } elseif ($chef->verified == 3) {
-                $status = 'Banned';
-            } else {
-                $status = 'Unknown';
-            }
+            $status = self::chefStatusLabel($chef->is_paused, $chef->is_pending, $chef->verified);
 
             return [
                 'id' => $chef->id,
@@ -283,6 +308,9 @@ class AdminApiV2Controller extends Controller
                 'verified' => $chef->verified,
                 'is_pending' => $chef->is_pending,
                 'is_paused' => $chef->is_paused,
+                // Surfaced so the panel can tell a chef stuck re-taking the
+                // safety quiz from one who simply has not started onboarding.
+                'quiz_completed' => (int) $chef->quiz_completed,
                 'phone' => $chef->phone,
                 'birthday' => $chef->birthday,
                 'address' => $chef->address,
@@ -313,7 +341,7 @@ class AdminApiV2Controller extends Controller
             ->select([
                 'u.id', 'u.email', 'u.first_name', 'u.last_name', 'u.phone',
                 'u.birthday', 'u.address', 'u.city', 'u.state', 'u.zip',
-                'u.verified', 'u.is_pending', 'u.photo', 'u.created_at',
+                'u.verified', 'u.is_pending', 'u.quiz_completed', 'u.photo', 'u.created_at',
                 'a.bio',
                 'a.monday_start', 'a.monday_end',
                 'a.tuesday_start', 'a.tuesday_end',
@@ -354,6 +382,8 @@ class AdminApiV2Controller extends Controller
                 'state' => $p->state,
                 'zip' => $p->zip,
                 'bio' => $p->bio,
+                'verified' => $p->verified,
+                'quiz_completed' => (int) $p->quiz_completed,
                 'photo' => $p->photo,
                 'created_at' => strtotime($p->created_at),
                 'availability' => $availability,
