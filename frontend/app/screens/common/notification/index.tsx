@@ -113,7 +113,7 @@ const Notification = () => {
 
   return (
     <SafeAreaView style={styles.main}>
-      <Container backMode title="Notifications">
+      <Container backMode title="Taist">
         <SectionList
           sections={sections}
           keyExtractor={item => item?.id?.toString()}

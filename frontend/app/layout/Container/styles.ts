@@ -33,7 +33,19 @@ export const styles = StyleSheet.create({
   rightActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
     zIndex: 1,
+  },
+  unreadDot: {
+    position: 'absolute',
+    top: -3,
+    right: -3,
+    width: 10,
+    height: 10,
+    backgroundColor: '#FA4616',
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
   },
   logoContainer: {
     position: 'absolute',
@@ -43,9 +55,8 @@ export const styles = StyleSheet.create({
     left: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    // Leave room for the back button and the right-hand actions so a long
-    // title is truncated rather than sliding under them.
-    paddingHorizontal: 56,
+    // paddingHorizontal is supplied by Container from the measured width of
+    // the action row, so the logo/title can never slide under the buttons.
     // The overlay spans the whole header, so it must not intercept taps meant
     // for the buttons underneath (the Android toggle/logo overlap this
     // replaces was previously worked around with zIndex: -1, which also
@@ -53,7 +64,8 @@ export const styles = StyleSheet.create({
     zIndex: 0,
   },
   logo: {
-    width: 80,
+    width: '100%',
+    maxWidth: 80,
     height: 40,
   },
   drawerWrapper: {

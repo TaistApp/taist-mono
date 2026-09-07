@@ -7,8 +7,8 @@ import { Alert, Animated, Modal, StyleSheet, Text, TouchableOpacity, View } from
 import { useAppDispatch, useAppSelector } from '../../hooks/useRedux';
 import { GetChefOrdersAPI, HTML_URL, PauseAccountAPI, RemoveUserAPI } from '../../services/api';
 import { store } from '../../store';
+import { performLogout } from '../../utils/logout';
 import { navigate } from '../../utils/navigation';
-import { ClearStorage } from '../../utils/storage';
 import { ShowErrorToast, ShowSuccessToast } from '../../utils/toast';
 
 interface DrawerModalProps {
@@ -124,9 +124,7 @@ const DrawerModal: React.FC<DrawerModalProps> = ({ visible, onClose }) => {
   const handleLogOut = () => {
     handleClose();
     setTimeout(() => {
-      ClearStorage();
-      store.dispatch({ type: 'USER_LOGOUT' });
-      navigate.toCommon.splash();
+      performLogout();
     }, 150);
   };
 
@@ -172,8 +170,7 @@ const DrawerModal: React.FC<DrawerModalProps> = ({ visible, onClose }) => {
       ShowErrorToast(resp.error || resp.message);
       return;
     }
-    ClearStorage();
-    navigate.toCommon.splash();
+    await performLogout();
   };
 
   const showPauseAccountPopup = () => {

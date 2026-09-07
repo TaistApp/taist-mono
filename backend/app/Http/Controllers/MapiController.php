@@ -6445,6 +6445,56 @@ Write only the review text:";
         return response()->json(['success' => 1, 'data' => ['enabled' => $this->_poolOrdersEnabled()]]);
     }
 
+    /**
+     * GET pool/quote — what a request would cost before anything is sent.
+     *
+     * The customer has to see the chef price range and know their card is on
+     * file BEFORE they commit; previously both only surfaced as errors or a
+     * toast after the request had already fanned out to chefs.
+     */
+    public function getPoolQuote(Request $request)
+    {
+        if ($this->_checktaistApiKey($request->header('apiKey')) === false)
+            return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
+        else if ($this->_checktaistApiKey($request->header('apiKey')) === -1)
+            return response()->json(['success' => 0, 'error' => "Token has been expired."]);
+
+        if (!$this->_poolOrdersEnabled()) {
+            return response()->json(['success' => 0, 'error' => 'Dish requests are not available right now.']);
+        }
+
+        $user = $this->_authUser();
+
+        $validator = Validator::make($request->all(), [
+            'category_id' => 'required|integer',
+            'portions' => 'required|integer|min:1|max:10',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['success' => 0, 'error' => $validator->errors()->all()[0]]);
+        }
+
+        $pdata = app(PaymentMethodListener::class)->where(['user_id' => $user->id, 'active' => 1])->first();
+        $hasPaymentMethod = (bool) ($pdata && $pdata->card_token);
+
+        $portions = (int) $request->portions;
+        $eligible = trim((string) $user->state) === ''
+            ? []
+            : $this->_poolEligibleChefMenus($request->category_id, $user->state);
+
+        $prices = array_map(function ($e) use ($portions) {
+            return $e['menu']->price * $portions;
+        }, $eligible);
+
+        return response()->json(['success' => 1, 'data' => [
+            'chef_count' => count($eligible),
+            'portions' => $portions,
+            'price_min' => empty($prices) ? null : min($prices),
+            'price_max' => empty($prices) ? null : max($prices),
+            'has_payment_method' => $hasPaymentMethod,
+            'has_address' => trim((string) $user->state) !== '',
+        ]]);
+    }
+
     /** POST pool/create_request — customer opens a dish request to the pool. */
     public function createPoolRequest(Request $request)
     {
