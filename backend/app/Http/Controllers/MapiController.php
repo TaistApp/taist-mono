@@ -5602,6 +5602,81 @@ Write only the review text:";
         return response()->json(['success' => 0, 'error' => 'Failed to create Stripe account link']);
     }
 
+    /**
+     * Decide what a confirmed PaymentIntent's status means for the order.
+     *
+     * `confirm => true` is not the same as "charged". A card can come back
+     * needing a 3-D Secure challenge (`requires_action`), or with the payment
+     * method rejected outright (`requires_payment_method`), and Stripe returns
+     * those as a 200 with a status rather than as an exception. Treating any
+     * of them as success is what puts a chef on the road for an order nobody
+     * ever paid for, so only a status that actually commits the funds counts.
+     *
+     * Returns ['funded' => bool, 'message' => customer-facing text].
+     */
+    public static function describePaymentIntentOutcome($status): array
+    {
+        switch ($status) {
+            case 'succeeded':
+                return ['funded' => true, 'message' => ''];
+
+            case 'processing':
+                // The money is committed and settling; Stripe finishes on its
+                // own, so the order stands.
+                return ['funded' => true, 'message' => ''];
+
+            case 'requires_action':
+            case 'requires_confirmation':
+                return [
+                    'funded' => false,
+                    'message' => "Your bank wants to verify this payment before it goes through. Please add a different card and try again.",
+                ];
+
+            case 'requires_payment_method':
+                return [
+                    'funded' => false,
+                    'message' => "That card was declined. Please add a different payment method and try again.",
+                ];
+
+            default:
+                // requires_capture, canceled, and anything Stripe adds later:
+                // the funds are not ours, so the order is not paid.
+                return [
+                    'funded' => false,
+                    'message' => "We couldn't charge your card, so your order wasn't placed. Please try again.",
+                ];
+        }
+    }
+
+    /**
+     * Cancel an order whose payment never went through.
+     *
+     * create_order notifies the chef by push and SMS before payment is even
+     * attempted, so an order left at Requested after a failed charge is one a
+     * chef can accept and cook for free. Only call this when the customer is
+     * known not to have been charged.
+     */
+    private function _voidUnpaidOrder($orderId, $reason)
+    {
+        $order = app(Orders::class)->where('id', $orderId)->first();
+        if (!$order || $order->status != 1) {
+            return;
+        }
+
+        $order->update([
+            'status' => 4, // Cancelled
+            'cancelled_by_role' => 'system',
+            'cancellation_reason' => 'Payment failed: ' . $reason,
+            'cancellation_type' => 'payment_failed',
+            'cancelled_at' => now(),
+        ]);
+
+        Log::warning('[PAYMENT] order cancelled because the charge did not go through', [
+            'order_id' => $orderId,
+            'reason' => $reason,
+        ]);
+    }
+
     public function createPaymentIntent(Request $request)
     {
         Log::info('[PAYMENT] create_payment_intent called', [
@@ -5617,6 +5692,11 @@ Write only the review text:";
 
         $user = $this->_authUser();
         $errorMsg = "";
+        // True only while the charge call is outstanding — if it throws in
+        // there we cannot tell whether the customer's card was hit.
+        $chargeInFlight = false;
+        // Set when Stripe told us the charge definitively did not happen.
+        $chargeDeclined = false;
 
         try {
             require_once('../stripe-php/init.php');
@@ -5628,6 +5708,7 @@ Write only the review text:";
             $customer = $customers['data'][0] ?? null;
 
             if (!$customer) {
+                $this->_voidUnpaidOrder($request->order_id, 'Invalid Stripe customer');
                 return response()->json(['success' => 0, 'error' => "Invalid Stripe customer."]);
             }
 
@@ -5641,11 +5722,13 @@ Write only the review text:";
             $chefData = app(PaymentMethodListener::class)->where(['user_id' => $order->chef_user_id])->first();
 
             if (!$chefData || !$chefData->stripe_account_id) {
+                $this->_voidUnpaidOrder($request->order_id, "The chef hasn't set up payouts");
                 return response()->json(['success' => 0, 'error' => "The chef didn't set up the payment."]);
             }
 
             // Validate customer payment method
             if (!$pdata || !$pdata->card_token) {
+                $this->_voidUnpaidOrder($request->order_id, 'No payment method on file');
                 return response()->json(['success' => 0, 'error' => "No valid payment method found for the customer."]);
             }
 
@@ -5661,12 +5744,14 @@ Write only the review text:";
                 $paymentMethod->card->exp_month < now()->month &&
                 $paymentMethod->card->exp_year <= now()->year
             ) {
+                $this->_voidUnpaidOrder($request->order_id, 'The card has expired');
                 return response()->json(['success' => 0, 'error' => "The card has expired."]);
             }
 
             // Create payment intent. The customer is charged the discounted
             // total, but the chef's payout stays at 70% of the pre-discount
             // subtotal — discount codes come out of the platform commission.
+            $chargeInFlight = true;
             $piToken = $stripe->paymentIntents->create([
                 'amount' => $order->chargeAmountCents(),
                 'currency' => 'usd',
@@ -5680,33 +5765,77 @@ Write only the review text:";
                     'destination' => $chefData->stripe_account_id,
                 ],
             ]);
+            $chargeInFlight = false;
+
+            // A 200 from Stripe is not a payment. Anything short of a status
+            // that commits the funds leaves the order unpaid, so it must not
+            // keep a payment_token and must not stay on the chef's list.
+            $outcome = self::describePaymentIntentOutcome($piToken->status);
+            if (!$outcome['funded']) {
+                Log::warning('[PAYMENT] payment intent did not fund the order', [
+                    'order_id' => $request->order_id,
+                    'payment_intent' => $piToken->id,
+                    'status' => $piToken->status,
+                ]);
+                $this->_voidUnpaidOrder($request->order_id, 'Stripe returned ' . $piToken->status);
+
+                return response()->json([
+                    'success' => 0,
+                    'error' => $outcome['message'],
+                    // Handed back so a future app version can finish a 3-D
+                    // Secure challenge with handleNextAction instead of
+                    // making the customer start over.
+                    'data' => [
+                        'status' => $piToken->status,
+                        'client_secret' => $piToken->client_secret,
+                    ],
+                ]);
+            }
 
             // Save payment intent ID to the order
             app(Orders::class)->where('id', $request->order_id)->update(['payment_token' => $piToken['id']]);
 
             return response()->json(['success' => 1, 'data' => $piToken]);
         } catch (\Stripe\Exception\CardException $e) {
-            Log::info('thiisss' . $e);
+            // Stripe rejected the card outright — nothing was charged.
             $errorMsg = $e->getError()->message;
+            $chargeDeclined = true;
+            Log::warning('[PAYMENT] card declined', ['order_id' => $request->order_id, 'error' => $errorMsg]);
         } catch (\Stripe\Exception\RateLimitException $e) {
-            Log::info('thiisss1' . $e);
             $errorMsg = $e->getError()->message;
+            Log::error('[PAYMENT] rate limited by Stripe', ['order_id' => $request->order_id, 'error' => $errorMsg]);
         } catch (\Stripe\Exception\InvalidRequestException $e) {
-            Log::info('thiisss2' . $e);
             $errorMsg = $e->getError()->message;
+            Log::error('[PAYMENT] invalid request to Stripe', ['order_id' => $request->order_id, 'error' => $errorMsg]);
         } catch (\Stripe\Exception\AuthenticationException $e) {
-            Log::info('thiisss3' . $e);
             $errorMsg = $e->getError()->message;
+            Log::error('[PAYMENT] Stripe authentication failed', ['order_id' => $request->order_id, 'error' => $errorMsg]);
         } catch (\Stripe\Exception\ApiConnectionException $e) {
-            Log::info('thiisss4' . $e);
             $errorMsg = $e->getError()->message;
+            Log::error('[PAYMENT] lost the connection to Stripe', ['order_id' => $request->order_id, 'error' => $errorMsg]);
         } catch (\Stripe\Exception\ApiErrorException $e) {
-            Log::info('thiisss5' . $e);
             $errorMsg = $e->getError()->message;
+            Log::error('[PAYMENT] Stripe API error', ['order_id' => $request->order_id, 'error' => $errorMsg]);
         } catch (Exception $e) {
             $errorMsg = "Unknow error : " . $e->getMessage();
+            Log::error('[PAYMENT] unexpected error while charging', ['order_id' => $request->order_id, 'error' => $e->getMessage()]);
         }
+
         if ($errorMsg != "") {
+            // Cancel the order only when we know the customer's card was not
+            // hit: either we never reached the charge, or Stripe declined it.
+            // A connection that dropped mid-charge is ambiguous — cancelling
+            // there could void an order the customer has already paid for, so
+            // that one is left for a human to reconcile.
+            if (!$chargeInFlight || $chargeDeclined) {
+                $this->_voidUnpaidOrder($request->order_id, $errorMsg);
+            } else {
+                Log::error('[PAYMENT] charge outcome unknown, order left for manual reconciliation', [
+                    'order_id' => $request->order_id,
+                    'error' => $errorMsg,
+                ]);
+            }
+
             return response()->json(['success' => 0, 'error' => $errorMsg]);
         }
 
