@@ -5412,6 +5412,44 @@ Write only the review text:";
         return response()->json(['success' => 1]);
     }
 
+    /**
+     * Apply a non-essential account update without ever failing onboarding.
+     *
+     * The chef's real goal is the account link. If Stripe refuses the
+     * housekeeping update — most commonly with "This application does not have
+     * the required permissions for the parameter 'individual'", because Stripe
+     * owns requirement collection on Express-style accounts — retry once with
+     * the identity fields removed, then give up quietly and let Stripe collect
+     * whatever is missing in its own hosted flow.
+     */
+    private function _updateStripeAccountBestEffort($stripe, string $accountId, array $params): void
+    {
+        try {
+            $stripe->accounts->update($accountId, $params);
+            return;
+        } catch (\Exception $e) {
+            Log::warning('Stripe account update failed; continuing to onboarding link', [
+                'account_id' => $accountId,
+                'fields' => array_keys($params),
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        if (!isset($params['individual'])) {
+            return;
+        }
+
+        unset($params['individual']);
+        try {
+            $stripe->accounts->update($accountId, $params);
+        } catch (\Exception $e) {
+            Log::warning('Stripe account update failed again without identity fields', [
+                'account_id' => $accountId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
     public function addStripeAccount(Request $request)
     {
 
@@ -5462,18 +5500,21 @@ Write only the review text:";
                         ],
                     ],
                 ];
-                // Forward the SSN on the existing account too. Without this, a
-                // chef who already had a Stripe account (e.g. a retry, or an
-                // account created before the SSN pre-fill) would never have
-                // individual.id_number set, so Stripe leaves Personal Details
-                // "Invalid" — in production, not just test mode. Only set it
-                // when Stripe hasn't already captured an id_number, otherwise
-                // updating a verified account throws and breaks the flow.
+                // Forward the SSN on the existing account too, but ONLY when
+                // Stripe lets the platform write identity fields. Our accounts
+                // are created with controller.stripe_dashboard.type=express,
+                // which makes Stripe the owner of requirement collection
+                // (controller.requirement_collection === 'stripe'). Stripe
+                // accepts an `individual` pre-fill at account CREATION but
+                // rejects it on a later update with "This application does not
+                // have the required permissions for the parameter 'individual'
+                // on account acct_…" — which is a hard failure that used to
+                // stop the chef reaching Stripe at all. Where we can't write
+                // it, Stripe collects the SSN in its own hosted flow instead.
                 if (!empty($ssn)) {
                     try {
                         $existingAccount = $stripe->accounts->retrieve($accountId, []);
-                        $idAlreadyProvided = $existingAccount->individual->id_number_provided ?? false;
-                        if (!$idAlreadyProvided) {
+                        if (\App\Helpers\AppHelper::stripeAllowsIdentityPrefill($existingAccount)) {
                             $updateParams['individual'] = ['id_number' => $ssn];
                         }
                     } catch (\Exception $e) {
@@ -5481,7 +5522,14 @@ Write only the review text:";
                         // rather than risk a hard failure on the account update.
                     }
                 }
-                $stripe->accounts->update($accountId, $updateParams);
+
+                // This update is housekeeping (business URL, statement
+                // descriptor, maybe the SSN). None of it is worth blocking
+                // onboarding for: the account link below is the thing the chef
+                // actually needs. Retry once without `individual` in case a
+                // controller shape we didn't anticipate still rejects it, then
+                // carry on regardless.
+                $this->_updateStripeAccountBestEffort($stripe, $accountId, $updateParams);
             } else {
                 // Create new Stripe account
                 $account = $stripe->accounts->create([
@@ -5592,13 +5640,29 @@ Write only the review text:";
             $errorMsg = $e->getError()->message;
         } catch (\Stripe\Exception\ApiErrorException $e) {
             $errorMsg = $e->getError()->message;
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
+            // \Throwable, not Exception: a TypeError here used to escape as a
+            // 500, which the app can only report as "Some problems occurred" —
+            // leaving nothing in the logs to diagnose.
             $errorMsg = "Unknow error : " . $e->getMessage();
         }
         if ($errorMsg != "") {
+            // Chef Stripe onboarding failures were invisible server-side: the
+            // message went straight to the app and nothing was logged, so a
+            // report of "it just says try again" had no trail to follow.
+            Log::error('Stripe onboarding failed', [
+                'user_id' => $user->id ?? null,
+                'account_id' => $accountId ?: null,
+                'had_existing_account' => !empty($existingPayment->stripe_account_id ?? null),
+                'error' => $errorMsg,
+            ]);
             return response()->json(['success' => 0, 'error' => $errorMsg]);
         }
 
+        Log::error('Stripe onboarding produced no account link', [
+            'user_id' => $user->id ?? null,
+            'account_id' => $accountId ?: null,
+        ]);
         return response()->json(['success' => 0, 'error' => 'Failed to create Stripe account link']);
     }
 
