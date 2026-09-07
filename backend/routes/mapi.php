@@ -92,6 +92,7 @@ Route::group(['middleware' => ['auth:mapi']], function () {
 
 	// Pool ordering ("request a dish") — first chef to accept wins
 	Route::get('pool/config', 'MapiController@getPoolConfig');
+	Route::get('pool/quote', 'MapiController@getPoolQuote');
 	Route::post('pool/create_request', 'MapiController@createPoolRequest');
 	Route::get('pool/open_requests', 'MapiController@getOpenPoolRequests');
 	Route::post('pool/claim_request', 'MapiController@claimPoolRequest');

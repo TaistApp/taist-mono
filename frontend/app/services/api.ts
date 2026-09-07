@@ -1249,6 +1249,14 @@ export const GetPoolConfigAPI = async () => {
   return await GETAPICALL("pool/config", {});
 };
 
+/** Price range + readiness check shown before the request is sent. */
+export const GetPoolQuoteAPI = async (params: {
+  category_id: number;
+  portions: number;
+}) => {
+  return await GETAPICALL("pool/quote", params);
+};
+
 export const CreatePoolRequestAPI = async (params: {
   category_id: number;
   portions: number;

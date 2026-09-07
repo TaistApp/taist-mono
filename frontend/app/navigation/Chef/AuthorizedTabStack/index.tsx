@@ -19,8 +19,8 @@ import {
 } from '@react-navigation/drawer';
 import { RemoveUserAPI } from '../../../services/api';
 import { store } from '../../../store/index';
+import { performLogout } from '../../../utils/logout';
 import { navigate } from '../../../utils/navigation';
-import { ClearStorage } from '../../../utils/storage';
 import { ShowErrorToast } from '../../../utils/toast';
 
 const Drawer = createDrawerNavigator();
@@ -82,10 +82,7 @@ const DrawerContent = (props: DrawerContentComponentProps) => {
   };
 
   const handleLogOut = () => {
-    ClearStorage();
-    store.dispatch({ type: 'USER_LOGOUT' });
-    // Use Expo Router for navigation
-    navigate.toCommon.splash();
+    performLogout();
   };
 
   const showDeleteAccountPopup = () => {
@@ -114,9 +111,7 @@ const DrawerContent = (props: DrawerContentComponentProps) => {
       ShowErrorToast(resp.error || resp.message);
       return;
     }
-    ClearStorage();
-    // Use Expo Router for navigation
-    navigate.toCommon.splash();
+    await performLogout();
   };
 
   return (
