@@ -94,6 +94,32 @@ class AppHelper
     }
 
     /**
+     * May the platform write `individual` on an existing connected account?
+     *
+     * Taist creates accounts with controller.stripe_dashboard.type = express,
+     * which sets controller.requirement_collection = 'stripe'. Stripe accepts
+     * an `individual` pre-fill when such an account is CREATED, but rejects it
+     * on any later update with "This application does not have the required
+     * permissions for the parameter 'individual' on account acct_…". Sending it
+     * anyway used to abort chef onboarding entirely.
+     *
+     * There is also no point re-sending an id_number Stripe already holds:
+     * updating identity on a verified account throws too.
+     *
+     * @param object|null $account A retrieved \Stripe\Account.
+     */
+    public static function stripeAllowsIdentityPrefill($account): bool
+    {
+        if (empty($account)) {
+            return false;
+        }
+        if (($account->individual->id_number_provided ?? false)) {
+            return false;
+        }
+        return (($account->controller->requirement_collection ?? null) !== 'stripe');
+    }
+
+    /**
      * Decide which SSN to forward to Stripe's individual.id_number.
      *
      * In Stripe TEST mode a real-format SSN can never pass identity

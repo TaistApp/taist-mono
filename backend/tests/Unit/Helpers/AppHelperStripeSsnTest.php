@@ -62,4 +62,56 @@ class AppHelperStripeSsnTest extends TestCase
         $this->assertNull(AppHelper::resolveStripeSsn('sk_live_abc123', null));
         $this->assertNull(AppHelper::resolveStripeSsn('sk_live_abc123', ''));
     }
+
+    // ---- identity pre-fill permission ------------------------------------
+
+    private function account(array $attrs)
+    {
+        return json_decode(json_encode($attrs));
+    }
+
+    /**
+     * Our connected accounts are created with
+     * controller.stripe_dashboard.type = express, so Stripe owns requirement
+     * collection and rejects an `individual` update with "This application does
+     * not have the required permissions for the parameter 'individual'". That
+     * error aborted chef onboarding, so the pre-fill has to be skipped and the
+     * SSN left for Stripe's own hosted flow to collect.
+     */
+    public function test_identity_prefill_is_skipped_when_stripe_owns_requirements(): void
+    {
+        $account = $this->account([
+            'controller' => ['requirement_collection' => 'stripe'],
+            'individual' => ['id_number_provided' => false],
+        ]);
+
+        $this->assertFalse(AppHelper::stripeAllowsIdentityPrefill($account));
+    }
+
+    public function test_identity_prefill_is_skipped_when_stripe_already_has_the_number(): void
+    {
+        $account = $this->account([
+            'controller' => ['requirement_collection' => 'application'],
+            'individual' => ['id_number_provided' => true],
+        ]);
+
+        $this->assertFalse(AppHelper::stripeAllowsIdentityPrefill($account));
+    }
+
+    public function test_identity_prefill_is_skipped_when_the_account_is_unknown(): void
+    {
+        $this->assertFalse(AppHelper::stripeAllowsIdentityPrefill(null));
+    }
+
+    // Control: a platform-owned account with no id_number yet is exactly the
+    // case the pre-fill exists for.
+    public function test_identity_prefill_is_allowed_on_a_platform_owned_account(): void
+    {
+        $account = $this->account([
+            'controller' => ['requirement_collection' => 'application'],
+            'individual' => ['id_number_provided' => false],
+        ]);
+
+        $this->assertTrue(AppHelper::stripeAllowsIdentityPrefill($account));
+    }
 }
