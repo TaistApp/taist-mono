@@ -219,6 +219,9 @@ const Forgot = () => {
               value={password}
               textContentType="oneTimeCode"
               secureTextEntry={!visiblePassword}
+              autoCapitalize="none"
+              autoCorrect={false}
+              spellCheck={false}
               color="#1a1a1a"
               returnKeyType="next"
               onSubmitEditing={() => {
@@ -244,6 +247,9 @@ const Forgot = () => {
               value={confirmPassword}
               textContentType="oneTimeCode"
               secureTextEntry={!visibleConfirmPassword}
+              autoCapitalize="none"
+              autoCorrect={false}
+              spellCheck={false}
               color="#1a1a1a"
               returnKeyType="done"
               onSubmitEditing={handleReset}

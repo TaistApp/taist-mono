@@ -9,6 +9,7 @@ import { hideLoading, showLoading } from '../../../reducers/loadingSlice';
 import { LoginAPI } from '../../../services/api';
 import { ShowErrorToast } from '../../../utils/toast';
 import { emailValidation, passwordValidation } from '../../../utils/validations';
+import { isChefUser } from '../../../utils/userRole';
 import { styles } from './styles';
 
 const Login = () => {
@@ -46,11 +47,13 @@ const Login = () => {
         return;
       }
 
-      // Navigate to appropriate home screen based on user type
-      if (resp.data?.user?.user_type == 1) {
-        navigate.toAuthorizedStacks.customerAuthorized();
-      } else {
+      // Navigate to appropriate home screen based on user type. Chef only on
+      // an explicit chef signal — never as the fallback for an unexpected
+      // value.
+      if (isChefUser(resp.data?.user)) {
         navigate.toAuthorizedStacks.chefAuthorized();
+      } else {
+        navigate.toAuthorizedStacks.customerAuthorized();
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -126,6 +129,12 @@ const Login = () => {
             value={password}
             textContentType="password"
             secureTextEntry={!visiblePassword}
+            // iOS capitalizes the first letter of a plain TextInput. The eye
+            // toggle un-masks this field, so "taist" was silently saved and
+            // sent as "Taist" depending on whether the user peeked at it.
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
             color="#1a1a1a"
             returnKeyType="done"
             onSubmitEditing={handleLogin}
