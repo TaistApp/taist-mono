@@ -4886,6 +4886,9 @@ Write only the review text:";
      * the order — previously the applicant check alone dead-ended the chef on
      * "You have already applied" forever, with no way to finish step 4.
      */
+    /** Max background-check submissions per chef per hour (billable calls). */
+    public const BACKGROUND_CHECK_MAX_ATTEMPTS = 5;
+
     public static function backgroundCheckAlreadyComplete($applicantGuid, $orderGuid): bool
     {
         return !empty($applicantGuid) && !empty($orderGuid);
@@ -4993,13 +4996,32 @@ Write only the review text:";
 
     public function backgroundCheck(Request $request, $id = "")
     {
-
-        Log::info('thisss', $request->toArray());
+        // Never log the raw request here: it carries the chef's SSN, and this
+        // previously dumped it in plaintext into the production logs.
+        Log::info('Background check submission received', ['user_id' => $id]);
 
         if ($this->_checktaistApiKey($request->header('apiKey')) === false)
             return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
         else if ($this->_checktaistApiKey($request->header('apiKey')) === -1)
             return response()->json(['success' => 0, 'error' => "Token has been expired."]);
+
+        // Every submission files a BILLABLE order with SafeScreener, so this
+        // endpoint must only ever act on the authenticated chef's own record.
+        // Without this, any signed-up account could order checks against
+        // arbitrary user ids and run up charges on our account.
+        if ($resp = $this->_denyIfNotSelf($id)) return $resp;
+
+        // Second line of defence on the same billing risk: cap submissions even
+        // for the caller's own account, so a stuck client or a scripted retry
+        // loop can't hammer SafeScreener.
+        $rateKey = 'background-check:' . $id;
+        if (RateLimiter::tooManyAttempts($rateKey, self::BACKGROUND_CHECK_MAX_ATTEMPTS)) {
+            return response()->json([
+                'success' => 0,
+                'error' => "Too many background check attempts. Please wait a few minutes and try again."
+            ]);
+        }
+        RateLimiter::hit($rateKey, 3600);  // 5 submissions per chef per hour
 
         $user = app(Listener::class)->where(['id' => $id])->first();
 
