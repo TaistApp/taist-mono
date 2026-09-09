@@ -321,6 +321,12 @@ const Signup = () => {
                   // Disable iOS strong password autofill — it breaks the layout
                   // (yellow highlight, displaced checkmark). Known RN issue #21911.
                   textContentType="oneTimeCode"
+                  // The eye toggle un-masks this field, and iOS then
+                  // capitalizes the first letter — silently storing a password
+                  // the user never typed.
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  spellCheck={false}
                   autoComplete="off"
                   secureTextEntry={!showPassword}
                   style={styles.input}

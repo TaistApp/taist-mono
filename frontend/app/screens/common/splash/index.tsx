@@ -56,6 +56,7 @@ import {
   SocialLoginAPI,
 } from "../../../services/api";
 import { ClearStorage, ReadLoginData } from "../../../utils/storage";
+import { isChefUser } from "../../../utils/userRole";
 import {
   SocialAuthCancelled,
   SocialAuthPayload,
@@ -150,7 +151,7 @@ const Splash = () => {
       const response = await SocialLoginAPI(payload, dispatch);
       if (response.success === 1) {
         const user = response.data?.user;
-        if (user?.user_type === 2) {
+        if (isChefUser(user)) {
           navigate.toAuthorizedStacks.chefAuthorized();
         } else if (!user?.zip || String(user.zip).trim().length === 0) {
           // Apple/Google never return a ZIP, so a brand-new social customer has
@@ -333,11 +334,14 @@ const Splash = () => {
       }
 
       if (response.success === 1) {
-        const userType = response.data?.user?.user_type;
-        if (userType === 1) {
-          navigate.toCustomer.home();
-        } else {
+        // Chef only on an explicit chef signal. This used to be `=== 1` with
+        // a bare `else` for chef, so any user_type that wasn't literally the
+        // number 1 — a missing field, a null — put a customer on the chef
+        // stack rather than failing visibly.
+        if (isChefUser(response.data?.user)) {
           navigate.toChef.home();
+        } else {
+          navigate.toCustomer.home();
         }
         return true;
       } else {

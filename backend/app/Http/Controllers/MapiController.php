@@ -772,7 +772,23 @@ class MapiController extends Controller
         if ($validator->fails()) {
             return response()->json(['success' => 0, 'error' => $validator->errors()->all()[0]]);
         }
-        $user = app(Listener::class)->where(['email' => $request->email])->first();
+        // `tbl_users` is a legacy table with no UNIQUE index on email — the
+        // `unique:tbl_users` rule on register/social-login is app-level only,
+        // so rows predating it (or written by a script or the admin panel) can
+        // collide. When they do, both this lookup and the auth guard resolve
+        // the SAME lowest-id row: the other account becomes unreachable, its
+        // owner is told "the password is not correct" for a password that IS
+        // correct, and a successful login lands them in the wrong account —
+        // silently, and on whichever stack that row's user_type names.
+        $matches = app(Listener::class)->where(['email' => $request->email])->orderBy('id')->get();
+        if ($matches->count() > 1) {
+            Log::warning('Multiple accounts share a login email; only the lowest id is reachable', [
+                'email' => $request->email,
+                'ids' => $matches->pluck('id')->all(),
+                'user_types' => $matches->pluck('user_type')->all(),
+            ]);
+        }
+        $user = $matches->first();
         if (auth()->guard('listener')->attempt($request->only('email', 'password'))) {
             if ($user['verified'] != 1) {
                 return response()->json(['success' => 0, 'error' => 'You need to verify the account first.']);
