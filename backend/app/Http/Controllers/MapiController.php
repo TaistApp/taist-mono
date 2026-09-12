@@ -759,7 +759,6 @@ class MapiController extends Controller
 
     public function login(Request $request)
     {
-	Log::info('this latt and longg'. json_encode($request->all()));
         if ($this->_checktaistApiKey($request->header('apiKey')) === false)
             return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
 
@@ -3912,7 +3911,6 @@ Write only the review text:";
 
     public function updateUser(Request $request, $id = "")
     {
-	Log::info('update user' . json_encode($request->all()));
         if ($this->_checktaistApiKey($request->header('apiKey')) === false)
             return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
 
@@ -6199,7 +6197,6 @@ Write only the review text:";
     {
 
 
-        Log::info('thissssss' . json_encode($request->all()));
 
         if ($this->_checktaistApiKey($request->header('apiKey')) === false)
             return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
