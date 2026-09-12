@@ -8,7 +8,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faTag, faTimes, faCheck } from '@fortawesome/free-solid-svg-icons';
+import { faTag, faCheck } from '@fortawesome/free-solid-svg-icons';
 
 interface DiscountCodeInputProps {
   code: string;
@@ -74,8 +74,8 @@ const DiscountCodeInput: React.FC<DiscountCodeInputProps> = ({
               {appliedDiscount.code} applied - Save ${appliedDiscount.discount_amount.toFixed(2)}
             </Text>
           </View>
-          <TouchableOpacity onPress={onRemove}>
-            <FontAwesomeIcon icon={faTimes} size={18} color="#EF4444" />
+          <TouchableOpacity testID="discount.remove" onPress={onRemove} hitSlop={8}>
+            <Text style={styles.removeText}>Remove</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -169,6 +169,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#065F46',
     fontWeight: '500',
+  },
+  removeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#065F46',
+    paddingLeft: 10,
   },
   errorText: {
     marginTop: 10,

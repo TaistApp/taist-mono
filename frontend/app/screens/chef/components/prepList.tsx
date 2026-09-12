@@ -17,16 +17,16 @@ export const PREP_SECTIONS: PrepSection[] = [
     ],
   },
   {
-    title: 'All ingredients',
-    note: '(bring extras just in case!)',
-  },
-  {
     title: 'Cleaning supplies',
     items: [
       { emoji: '🧼', text: 'Dish soap' },
       { emoji: '🧽', text: 'Sponge' },
       { text: 'Surface spray & Paper towel' },
     ],
+  },
+  {
+    title: 'All ingredients',
+    note: '(bring extras just in case!)',
   },
 ];
 

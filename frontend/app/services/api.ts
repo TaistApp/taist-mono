@@ -233,16 +233,25 @@ export const LoginAPI = async (params: IUser, dispatch?: any) => {
   }
   dispatch(setUser(response.data.user));
 
-  // These bootstrap fetches are independent — run them concurrently instead of
-  // sequentially so login (and the signup → welcome handoff) lands much faster.
-  const bootstrap: Promise<any>[] = [
+  // Await only what the first screen actually renders: zip codes gate the
+  // customer home's "in your area" check, categories drive its filters.
+  // Everything else used to block here as well, which is what made chef signup
+  // sit on a spinner — register, then login, then four fetches, then two
+  // sequential FCM round-trips, all before navigating. SocialLoginAPI was
+  // already split this way; this brings email login in line with it.
+  await Promise.all([
     GetCategoriesAPI({}, dispatch),
+    GetZipCodes({}, dispatch),
+  ]);
+
+  // Loads in the background after navigation. The screens that read these
+  // (orders, chat, the chef dashboard) re-render when the data lands.
+  const bgFetches: Promise<any>[] = [
     GetAllergensAPI({}, dispatch),
     GetUsersAPI({}, dispatch),
-    GetZipCodes({}, dispatch),
   ];
   if (response.data.user.user_type == 2) {
-    bootstrap.push(
+    bgFetches.push(
       GetChefProfileAPI({ user_id: response.data.user.id }, dispatch),
       GetChefMenusAPI({ user_id: response.data.user.id }, dispatch),
       GetPaymentMethodAPI().then((resp_paymentMethod) => {
@@ -253,13 +262,14 @@ export const LoginAPI = async (params: IUser, dispatch?: any) => {
       }),
     );
   }
-  await Promise.all(bootstrap);
+  Promise.all(bgFetches).catch((e) => console.warn("[login] bg fetch", e));
 
-  const token = await GetFCMToken();
-
-  if (token !== "") {
-    const resp_fcmToken = await UpdateFCMTokenAPI(token);
-  }
+  // Purely a side effect — nothing on screen waits for the push token.
+  GetFCMToken()
+    .then((token) => {
+      if (token !== "") UpdateFCMTokenAPI(token);
+    })
+    .catch(() => {});
 
   Geolocation.getCurrentPosition(
     async (position) => {
