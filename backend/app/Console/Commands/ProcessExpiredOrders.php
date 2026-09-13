@@ -45,10 +45,15 @@ class ProcessExpiredOrders extends Command
 
         $currentTimestamp = time();
 
-        // Find orders with status = 1 (Requested) that have passed their acceptance deadline
+        // Requested orders past their deadline, but only recent ones — see
+        // AppHelper::expirySweepFloor. Without the lower bound the first
+        // correct run would refund a months-old backlog in one go.
+        $floor = \App\Helpers\AppHelper::expirySweepFloor($currentTimestamp);
+
         $expiredOrders = Orders::where('status', 1)
             ->whereNotNull('acceptance_deadline')
             ->where('acceptance_deadline', '<', (string)$currentTimestamp)
+            ->where('acceptance_deadline', '>', (string)$floor)
             ->get();
 
         if ($expiredOrders->isEmpty()) {

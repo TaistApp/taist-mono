@@ -136,6 +136,27 @@ class AppHelper
     public const ACCEPTANCE_MAX_WINDOW = 21600;     // 6 hours
     public const ACCEPTANCE_CUSTOMER_BUFFER = 3600; // 1 hour before the slot
 
+    /**
+     * How far back the expiry sweep will reach.
+     *
+     * The sweep spent months crashing before it could cancel anything with a
+     * payment token, so the first correct run would otherwise act on the whole
+     * backlog at once — in production that is 12 orders from March to August,
+     * each with a real payment intent. Refunding those automatically, months
+     * late, is not a decision a cron job should make; and where Stripe refuses
+     * an uncaptured intent the order stays Requested and retries every five
+     * minutes forever. Bounding the window keeps the sweep to orders a chef
+     * plausibly just missed, and lets any historical backlog be handled
+     * deliberately.
+     */
+    public const EXPIRY_SWEEP_LOOKBACK = 7 * 24 * 3600;
+
+    /** Oldest acceptance_deadline the sweep should still act on. */
+    public static function expirySweepFloor(int $now): int
+    {
+        return $now - self::EXPIRY_SWEEP_LOOKBACK;
+    }
+
     public static function acceptanceDeadlineFor(int $createdAt, ?int $orderTimestamp): int
     {
         $floor = $createdAt + self::ACCEPTANCE_MIN_WINDOW;

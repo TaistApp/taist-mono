@@ -61,4 +61,39 @@ class AcceptanceDeadlineTest extends TestCase
             $this->assertGreaterThanOrEqual(30.0, $this->windowMinutes($lead), "lead {$lead}s");
         }
     }
+
+    // ---- expiry sweep window -------------------------------------------
+
+    /**
+     * The sweep crashed for months before it could cancel anything holding a
+     * payment token, so the first correct run would otherwise refund a whole
+     * backlog at once — in production, 12 orders from March to August, each
+     * with a live payment intent.
+     */
+    public function test_sweep_ignores_a_months_old_backlog(): void
+    {
+        $now = self::NOW;
+        $floor = AppHelper::expirySweepFloor($now);
+
+        $thirtyThreeDaysAgo = $now - (33 * 24 * 3600);
+
+        $this->assertLessThan($floor, $thirtyThreeDaysAgo, 'old backlog must fall outside the window');
+    }
+
+    public function test_sweep_still_catches_an_order_a_chef_just_missed(): void
+    {
+        $now = self::NOW;
+        $floor = AppHelper::expirySweepFloor($now);
+
+        foreach ([600, 3600, 24 * 3600, 6 * 24 * 3600] as $ago) {
+            $this->assertGreaterThan($floor, $now - $ago, "deadline {$ago}s ago should sweep");
+        }
+    }
+
+    // Control: the boundary is exactly seven days, not open-ended.
+    public function test_sweep_window_is_seven_days(): void
+    {
+        $this->assertSame(7 * 24 * 3600, AppHelper::EXPIRY_SWEEP_LOOKBACK);
+        $this->assertSame(self::NOW - (7 * 24 * 3600), AppHelper::expirySweepFloor(self::NOW));
+    }
 }
