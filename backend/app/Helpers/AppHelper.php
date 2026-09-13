@@ -120,6 +120,38 @@ class AppHelper
     }
 
     /**
+     * How long a chef has to accept an order before it is auto-cancelled.
+     *
+     * This was a flat 30 minutes from creation, which is punishing for an
+     * order placed well ahead: a customer ordering for 2pm at 11:30am had
+     * their order cancelled and refunded at noon, two hours before the chef
+     * was ever needed. The window now scales with how far out the slot is.
+     *
+     * The hour immediately before the slot is reserved for the customer, so a
+     * cancellation still leaves them time to book someone else. The 6-hour cap
+     * stops a request for next week sitting unanswered for days, and the
+     * 30-minute floor guarantees a chef always gets a usable window.
+     */
+    public const ACCEPTANCE_MIN_WINDOW = 1800;      // 30 minutes
+    public const ACCEPTANCE_MAX_WINDOW = 21600;     // 6 hours
+    public const ACCEPTANCE_CUSTOMER_BUFFER = 3600; // 1 hour before the slot
+
+    public static function acceptanceDeadlineFor(int $createdAt, ?int $orderTimestamp): int
+    {
+        $floor = $createdAt + self::ACCEPTANCE_MIN_WINDOW;
+        $cap = $createdAt + self::ACCEPTANCE_MAX_WINDOW;
+
+        // No usable slot time (legacy or malformed): fall back to the floor.
+        if (!$orderTimestamp || $orderTimestamp <= 0) {
+            return $floor;
+        }
+
+        $beforeSlot = $orderTimestamp - self::ACCEPTANCE_CUSTOMER_BUFFER;
+
+        return max($floor, min($cap, $beforeSlot));
+    }
+
+    /**
      * Decide which SSN to forward to Stripe's individual.id_number.
      *
      * In Stripe TEST mode a real-format SSN can never pass identity

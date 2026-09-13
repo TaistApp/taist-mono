@@ -22,7 +22,7 @@ class ProcessExpiredOrders extends Command
      *
      * @var string
      */
-    protected $description = 'Process orders that have exceeded the 30-minute chef acceptance deadline and issue automatic refunds';
+    protected $description = 'Cancel and refund orders whose chef acceptance deadline has passed';
 
     /**
      * Create a new command instance.
@@ -66,7 +66,12 @@ class ProcessExpiredOrders extends Command
                 $this->processExpiredOrder($order);
                 $processedCount++;
                 $this->info("Order #{$order->id} processed successfully");
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
+                // \Throwable, not Exception: the Stripe include above used to
+                // fatal under artisan, and a fatal is an Error rather than an
+                // Exception — so it escaped this catch, killed the whole sweep,
+                // and went to /dev/null. One bad order must never take the run
+                // down silently again.
                 $failedCount++;
                 $this->error("Failed to process order #{$order->id}: " . $e->getMessage());
                 Log::error("ProcessExpiredOrders: Failed to process order #{$order->id}", [
@@ -98,7 +103,7 @@ class ProcessExpiredOrders extends Command
             $order->update([
                 'status' => 4, // Cancelled
                 'cancelled_by_role' => 'system',
-                'cancellation_reason' => 'Chef did not accept order within 30 minutes',
+                'cancellation_reason' => 'Chef did not accept the order in time',
                 'cancellation_type' => 'system_timeout',
                 'cancelled_at' => now(),
                 'updated_at' => (string)time(),
@@ -107,10 +112,16 @@ class ProcessExpiredOrders extends Command
             return;
         }
 
-        // Initialize Stripe
-        include $_SERVER['DOCUMENT_ROOT'] . '/include/config.php';
-        require_once('../stripe-php/init.php');
-        $stripe = new \Stripe\StripeClient($stripe_key);
+        // Initialize Stripe. This previously used the web-request pattern —
+        // include $_SERVER['DOCUMENT_ROOT'].'/include/config.php' plus a
+        // relative '../stripe-php/init.php'. Under artisan there is no
+        // DOCUMENT_ROOT and the relative path resolves against the CLI working
+        // directory, so require_once fatalled and the command died before ever
+        // updating the order. Only orders WITHOUT a payment token (which
+        // return early above) were being cancelled, which is why this looked
+        // like it worked. Matches FixOrderPaymentTokens, the sibling command.
+        require_once(base_path('stripe-php/init.php'));
+        $stripe = new \Stripe\StripeClient(env('STRIPE_SECRET'));
 
         // Process full refund (100%)
         $refund = $stripe->refunds->create([
@@ -124,7 +135,7 @@ class ProcessExpiredOrders extends Command
         $order->update([
             'status' => 4, // Cancelled
             'cancelled_by_role' => 'system',
-            'cancellation_reason' => 'Chef did not accept order within 30 minutes',
+            'cancellation_reason' => 'Chef did not accept the order in time',
             'cancellation_type' => 'system_timeout',
             'cancelled_at' => now(),
             'refund_amount' => $order->total_price,

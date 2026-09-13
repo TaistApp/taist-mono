@@ -3147,8 +3147,13 @@ Write only the review text:";
             'discount_code' => $discountCode,
             'discount_amount' => $discountAmount,
             'subtotal_before_discount' => $subtotalBeforeDiscount,
-            // Chef acceptance deadline - 30 minutes (1800 seconds) from order creation
-            'acceptance_deadline' => (string)($currentTimestamp + 1800),
+            // Chef acceptance deadline — scales with how far out the slot is,
+            // so an order placed hours ahead isn't cancelled 30 minutes later.
+            // See AppHelper::acceptanceDeadlineFor.
+            'acceptance_deadline' => (string)\App\Helpers\AppHelper::acceptanceDeadlineFor(
+                $currentTimestamp,
+                $orderTimestamp
+            ),
             'created_at' => $currentTimestamp,
             'updated_at' => now(),
         ];
