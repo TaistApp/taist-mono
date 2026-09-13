@@ -31,7 +31,7 @@ import { GetChefOrdersAPI, GetChefProfileAPI, GetOpenPoolRequestsAPI, GetPayment
 import { getImageURL, formatDisplayName } from '../../../utils/functions';
 import { ShowErrorToast, ShowSuccessToast } from '../../../utils/toast';
 import { getDateStartTime } from '../../../utils/validations';
-import { findTodaysFirstActiveOrder, orderMatchesTab } from '../../../utils/orderPartition';
+import { countMissedChefOrders, findTodaysFirstActiveOrder, orderMatchesTab } from '../../../utils/orderPartition';
 import ChefOrderCard from './components/chefOrderCard';
 import SettingItem from './components/settingItem';
 import StripeOnboardingDialog from './components/stripeOnboardingDialog';
@@ -162,6 +162,10 @@ useFocusEffect(
     setShowPushModal(false);
     await StoreDataToStorage(PUSH_PROMPT_KEYS.chef, true);
   };
+
+  // Cancelled and missed orders leave both home tabs, so without this the
+  // chef just watches them vanish (see countMissedChefOrders).
+  const missedCount = useMemo(() => countMissedChefOrders(orders), [orders]);
 
   // An approved chef is only visible in customer search on days with hours
   // set — a chef with no availability row is invisible despite being Active.
@@ -545,6 +549,29 @@ useFocusEffect(
                   </Text>
                   <Text style={{ fontSize: 13, color: '#666666' }}>
                     First chef to accept wins the order — tap to view
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {missedCount > 0 && (
+                <TouchableOpacity
+                  testID="chefHome.missedOrdersBanner"
+                  style={{
+                    backgroundColor: '#F3F4F6',
+                    borderWidth: 1,
+                    borderColor: '#D1D5DB',
+                    borderRadius: 12,
+                    padding: 15,
+                    width: '100%',
+                    gap: 2,
+                  }}
+                  onPress={() => navigate.toChef.orders()}
+                >
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: '#000000' }}>
+                    {`${missedCount} recent order${missedCount === 1 ? '' : 's'} not shown here`}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: '#666666' }}>
+                    Cancelled and missed orders live in the Orders tab — tap to view
                   </Text>
                 </TouchableOpacity>
               )}

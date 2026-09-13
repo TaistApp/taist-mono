@@ -67,3 +67,33 @@ export const findTodaysFirstActiveOrder = (
   todays.sort((a, b) => (a.order_date ?? 0) - (b.order_date ?? 0));
   return todays[0];
 };
+
+/**
+ * How far back a cancelled or missed order still counts as worth surfacing.
+ */
+export const MISSED_ORDER_WINDOW_SEC = 7 * 24 * 60 * 60;
+
+/**
+ * Orders the chef dashboard cannot show.
+ *
+ * Chef home has only REQUESTED and ACCEPTED tabs, so an order that is
+ * cancelled — including one auto-cancelled because the acceptance window
+ * lapsed — silently disappears from the screen the chef is watching. Counting
+ * them lets home point at the Orders tab instead of just losing them.
+ *
+ * Completed orders are deliberately excluded: they leave the dashboard too,
+ * but that is expected and would make the banner permanent for a busy chef.
+ */
+export const countMissedChefOrders = (
+  orders: IOrder[],
+  nowSec: number = Math.floor(Date.now() / 1000),
+  windowSec: number = MISSED_ORDER_WINDOW_SEC,
+): number =>
+  orders.filter(order => {
+    const gone = order.status === 4 || isExpiredOrder(order, nowSec);
+    if (!gone) return false;
+
+    // Anchor recency on the slot itself, so old history stays out.
+    const when = Number(order.order_date ?? 0);
+    return !!when && when >= nowSec - windowSec;
+  }).length;
