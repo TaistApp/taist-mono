@@ -132,8 +132,9 @@ class OrderExpiryChefNotificationTest extends TestCase
     }
 
     /**
-     * The window scales with lead time, so the copy must quote the window this
-     * order actually had rather than a hardcoded 30 minutes.
+     * The copy reads the window off the order rather than hardcoding it, so an
+     * order created under a different policy still describes itself correctly.
+     * This fixture deliberately carries a 90-minute deadline.
      */
     public function test_the_message_quotes_this_order_s_real_window(): void
     {
@@ -141,7 +142,7 @@ class OrderExpiryChefNotificationTest extends TestCase
 
         $row = DB::table('notifications')->where('user_id', 2)->first();
 
-        $this->assertStringContainsString('within 90 minutes', $row->body);
+        $this->assertStringContainsString('after 90 minutes', $row->body);
         $this->assertStringNotContainsString('30 minutes', $row->body);
     }
 
