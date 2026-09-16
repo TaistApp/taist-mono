@@ -120,6 +120,59 @@ class AppHelper
     }
 
     /**
+     * How long a chef has to accept an order before it is auto-cancelled.
+     *
+     * This was a flat 30 minutes from creation, which is punishing for an
+     * order placed well ahead: a customer ordering for 2pm at 11:30am had
+     * their order cancelled and refunded at noon, two hours before the chef
+     * was ever needed. The window now scales with how far out the slot is.
+     *
+     * The hour immediately before the slot is reserved for the customer, so a
+     * cancellation still leaves them time to book someone else. The 6-hour cap
+     * stops a request for next week sitting unanswered for days, and the
+     * 30-minute floor guarantees a chef always gets a usable window.
+     */
+    public const ACCEPTANCE_MIN_WINDOW = 1800;      // 30 minutes
+    public const ACCEPTANCE_MAX_WINDOW = 21600;     // 6 hours
+    public const ACCEPTANCE_CUSTOMER_BUFFER = 3600; // 1 hour before the slot
+
+    /**
+     * How far back the expiry sweep will reach.
+     *
+     * The sweep spent months crashing before it could cancel anything with a
+     * payment token, so the first correct run would otherwise act on the whole
+     * backlog at once — in production that is 12 orders from March to August,
+     * each with a real payment intent. Refunding those automatically, months
+     * late, is not a decision a cron job should make; and where Stripe refuses
+     * an uncaptured intent the order stays Requested and retries every five
+     * minutes forever. Bounding the window keeps the sweep to orders a chef
+     * plausibly just missed, and lets any historical backlog be handled
+     * deliberately.
+     */
+    public const EXPIRY_SWEEP_LOOKBACK = 7 * 24 * 3600;
+
+    /** Oldest acceptance_deadline the sweep should still act on. */
+    public static function expirySweepFloor(int $now): int
+    {
+        return $now - self::EXPIRY_SWEEP_LOOKBACK;
+    }
+
+    public static function acceptanceDeadlineFor(int $createdAt, ?int $orderTimestamp): int
+    {
+        $floor = $createdAt + self::ACCEPTANCE_MIN_WINDOW;
+        $cap = $createdAt + self::ACCEPTANCE_MAX_WINDOW;
+
+        // No usable slot time (legacy or malformed): fall back to the floor.
+        if (!$orderTimestamp || $orderTimestamp <= 0) {
+            return $floor;
+        }
+
+        $beforeSlot = $orderTimestamp - self::ACCEPTANCE_CUSTOMER_BUFFER;
+
+        return max($floor, min($cap, $beforeSlot));
+    }
+
+    /**
      * Decide which SSN to forward to Stripe's individual.id_number.
      *
      * In Stripe TEST mode a real-format SSN can never pass identity

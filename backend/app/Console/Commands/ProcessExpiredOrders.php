@@ -22,7 +22,7 @@ class ProcessExpiredOrders extends Command
      *
      * @var string
      */
-    protected $description = 'Process orders that have exceeded the 30-minute chef acceptance deadline and issue automatic refunds';
+    protected $description = 'Cancel and refund orders whose chef acceptance deadline has passed';
 
     /**
      * Create a new command instance.
@@ -45,10 +45,15 @@ class ProcessExpiredOrders extends Command
 
         $currentTimestamp = time();
 
-        // Find orders with status = 1 (Requested) that have passed their acceptance deadline
+        // Requested orders past their deadline, but only recent ones — see
+        // AppHelper::expirySweepFloor. Without the lower bound the first
+        // correct run would refund a months-old backlog in one go.
+        $floor = \App\Helpers\AppHelper::expirySweepFloor($currentTimestamp);
+
         $expiredOrders = Orders::where('status', 1)
             ->whereNotNull('acceptance_deadline')
             ->where('acceptance_deadline', '<', (string)$currentTimestamp)
+            ->where('acceptance_deadline', '>', (string)$floor)
             ->get();
 
         if ($expiredOrders->isEmpty()) {
@@ -66,7 +71,12 @@ class ProcessExpiredOrders extends Command
                 $this->processExpiredOrder($order);
                 $processedCount++;
                 $this->info("Order #{$order->id} processed successfully");
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
+                // \Throwable, not Exception: the Stripe include above used to
+                // fatal under artisan, and a fatal is an Error rather than an
+                // Exception — so it escaped this catch, killed the whole sweep,
+                // and went to /dev/null. One bad order must never take the run
+                // down silently again.
                 $failedCount++;
                 $this->error("Failed to process order #{$order->id}: " . $e->getMessage());
                 Log::error("ProcessExpiredOrders: Failed to process order #{$order->id}", [
@@ -98,19 +108,28 @@ class ProcessExpiredOrders extends Command
             $order->update([
                 'status' => 4, // Cancelled
                 'cancelled_by_role' => 'system',
-                'cancellation_reason' => 'Chef did not accept order within 30 minutes',
+                'cancellation_reason' => 'Chef did not accept the order in time',
                 'cancellation_type' => 'system_timeout',
                 'cancelled_at' => now(),
                 'updated_at' => (string)time(),
             ]);
 
+            $this->notifyCustomer($order);
+            $this->notifyChef($order);
+
             return;
         }
 
-        // Initialize Stripe
-        include $_SERVER['DOCUMENT_ROOT'] . '/include/config.php';
-        require_once('../stripe-php/init.php');
-        $stripe = new \Stripe\StripeClient($stripe_key);
+        // Initialize Stripe. This previously used the web-request pattern —
+        // include $_SERVER['DOCUMENT_ROOT'].'/include/config.php' plus a
+        // relative '../stripe-php/init.php'. Under artisan there is no
+        // DOCUMENT_ROOT and the relative path resolves against the CLI working
+        // directory, so require_once fatalled and the command died before ever
+        // updating the order. Only orders WITHOUT a payment token (which
+        // return early above) were being cancelled, which is why this looked
+        // like it worked. Matches FixOrderPaymentTokens, the sibling command.
+        require_once(base_path('stripe-php/init.php'));
+        $stripe = new \Stripe\StripeClient(env('STRIPE_SECRET'));
 
         // Process full refund (100%)
         $refund = $stripe->refunds->create([
@@ -124,7 +143,7 @@ class ProcessExpiredOrders extends Command
         $order->update([
             'status' => 4, // Cancelled
             'cancelled_by_role' => 'system',
-            'cancellation_reason' => 'Chef did not accept order within 30 minutes',
+            'cancellation_reason' => 'Chef did not accept the order in time',
             'cancellation_type' => 'system_timeout',
             'cancelled_at' => now(),
             'refund_amount' => $order->total_price,
@@ -134,14 +153,94 @@ class ProcessExpiredOrders extends Command
             'updated_at' => (string)time(),
         ]);
 
-        // Send notification to customer
+        // Tell both sides. The chef used to be told nothing at all: their
+        // order simply vanished from a dashboard that has no tab for it.
         $this->notifyCustomer($order);
+        $this->notifyChef($order);
 
         Log::info("Order #{$order->id} expired and refunded successfully", [
             'order_id' => $order->id,
             'refund_amount' => $order->total_price,
             'refund_stripe_id' => $refundStripeId
         ]);
+    }
+
+    /**
+     * Tell the chef their order was auto-cancelled.
+     *
+     * Chef home only has REQUESTED and ACCEPTED tabs, so a cancelled order
+     * leaves the dashboard entirely. Without this the chef has no way to learn
+     * an order ever existed, let alone that it lapsed — which is exactly how a
+     * real order went unnoticed on staging.
+     *
+     * Failures are logged and swallowed: the refund has already happened and
+     * must not be undone by a push problem.
+     */
+    private function notifyChef(Orders $order)
+    {
+        $chef = Listener::find($order->chef_user_id);
+        if (!$chef) {
+            Log::warning("Chef #{$order->chef_user_id} not found for expired order #{$order->id}");
+            return;
+        }
+
+        $customer = Listener::find($order->customer_user_id);
+        $customerName = $customer && trim((string)$customer->first_name) !== ''
+            ? trim($customer->first_name)
+            : 'A customer';
+
+        $when = $order->order_time ? " at {$order->order_time}" : '';
+        $title = "Order cancelled — not accepted in time";
+        $body = "{$customerName}'s order{$when} expired before you accepted it, and has been refunded.";
+
+        // The in-app record is written FIRST and independently of the push.
+        // Push is the unreliable half here (a chef may have no token, or have
+        // never granted permission), and it is the inbox entry that guarantees
+        // the chef can still find out what happened. navigation_id + role
+        // 'chef' is what opens the order when they tap it.
+        try {
+            \App\Notification::create([
+                'title' => $title,
+                'body' => $body,
+                'image' => $customer->photo ?? 'N/A',
+                'fcm_token' => $chef->fcm_token,
+                'user_id' => $chef->id,
+                'navigation_id' => $order->id,
+                'role' => 'chef',
+                'category' => 'order_expired',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error("Failed to record expiry notification for chef #{$chef->id}", [
+                'order_id' => $order->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        if (empty($chef->fcm_token)) {
+            Log::warning("Chef #{$chef->id} has no FCM token; expiry recorded in-app only");
+            return;
+        }
+
+        try {
+            $messaging = app('firebase.messaging');
+            $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token', $chef->fcm_token)
+                ->withNotification(\Kreait\Firebase\Messaging\Notification::create($title, $body))
+                ->withData([
+                    'type' => 'order_expired',
+                    'role' => 'chef',
+                    'order_id' => (string)$order->id,
+                    'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
+                ]);
+            $messaging->send($message);
+
+            Log::info("Expiry notification sent to chef #{$chef->id} for order #{$order->id}");
+        } catch (\Throwable $e) {
+            // The refund already happened; a push problem must not undo it.
+            Log::error("Failed to push expiry notification to chef #{$chef->id}", [
+                'order_id' => $order->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

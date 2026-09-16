@@ -99,9 +99,9 @@
             "resizeMode": "contain"
           },
           "android": {
-            "image": "./app/assets/images/splashIcon.png",
-            "imageWidth": 200,
-            "resizeMode": "contain"
+            "image": "./app/assets/images/splashBlank.png",
+            "resizeMode": "cover",
+            "backgroundColor": "#fa4616"
           }
         }
       ],
