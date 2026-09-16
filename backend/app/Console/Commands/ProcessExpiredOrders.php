@@ -193,15 +193,16 @@ class ProcessExpiredOrders extends Command
         $when = \App\Helpers\AppHelper::formatClockTime($order->order_time);
         $when = $when !== '' ? " at {$when}" : '';
 
-        // State the window this order actually had rather than a fixed number —
-        // it scales with lead time now (see AppHelper::acceptanceDeadlineFor).
+        // Read the window off the order itself rather than hardcoding 30, so a
+        // policy change never leaves the copy lying, and orders created under a
+        // different window still describe themselves correctly.
         $rawCreated = (int) ($order->getAttributes()['created_at'] ?? 0);
         $deadline = (int) $order->acceptance_deadline;
         $windowMins = ($rawCreated > 0 && $deadline > $rawCreated)
             ? (int) round(($deadline - $rawCreated) / 60)
             : null;
         $rule = $windowMins
-            ? "Orders not accepted within {$windowMins} minutes are refunded to the customer."
+            ? "Orders not accepted after {$windowMins} minutes are refunded to the customer."
             : 'Orders not accepted in time are refunded to the customer.';
 
         $title = "Order cancelled — not accepted in time";
