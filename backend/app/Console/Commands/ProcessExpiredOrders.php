@@ -189,9 +189,23 @@ class ProcessExpiredOrders extends Command
             ? trim($customer->first_name)
             : 'A customer';
 
-        $when = $order->order_time ? " at {$order->order_time}" : '';
+        // order_time is stored 24-hour ("14:00"); never show that to a person.
+        $when = \App\Helpers\AppHelper::formatClockTime($order->order_time);
+        $when = $when !== '' ? " at {$when}" : '';
+
+        // State the window this order actually had rather than a fixed number —
+        // it scales with lead time now (see AppHelper::acceptanceDeadlineFor).
+        $rawCreated = (int) ($order->getAttributes()['created_at'] ?? 0);
+        $deadline = (int) $order->acceptance_deadline;
+        $windowMins = ($rawCreated > 0 && $deadline > $rawCreated)
+            ? (int) round(($deadline - $rawCreated) / 60)
+            : null;
+        $rule = $windowMins
+            ? "Orders not accepted within {$windowMins} minutes are refunded to the customer."
+            : 'Orders not accepted in time are refunded to the customer.';
+
         $title = "Order cancelled — not accepted in time";
-        $body = "{$customerName}'s order{$when} expired before you accepted it, and has been refunded.";
+        $body = "{$customerName}'s order{$when} has expired. {$rule}";
 
         // The in-app record is written FIRST and independently of the push.
         // Push is the unreliable half here (a chef may have no token, or have
@@ -263,7 +277,7 @@ class ProcessExpiredOrders extends Command
             $chefName = $chef && trim($chef->first_name) !== '' ? trim($chef->first_name) : 'The chef';
 
             $title = "Order Not Accepted";
-            $body = "{$chefName} is busy right now. try ordering from similar chefs.";
+            $body = "{$chefName} is busy right now. Try ordering from similar chefs.";
 
             // Send Firebase notification — tapping it opens the app on the
             // customer home screen so they can order from similar chefs
