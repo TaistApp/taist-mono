@@ -120,6 +120,28 @@ class AppHelper
     }
 
     /**
+     * A clock time as a person reads it: "14:00" -> "2:00pm".
+     *
+     * Order times are stored as 24-hour "H:i" strings, which is right for
+     * comparisons and wrong for anything a customer or chef sees. Notification
+     * copy must always go through this.
+     */
+    public static function formatClockTime(?string $time): string
+    {
+        $time = trim((string) $time);
+        if ($time === '') {
+            return '';
+        }
+
+        $ts = strtotime($time);
+        if ($ts === false) {
+            return $time; // Unparseable: show it as-is rather than blanking it.
+        }
+
+        return strtolower(date('g:ia', $ts));
+    }
+
+    /**
      * How long a chef has to accept an order before it is auto-cancelled.
      *
      * This was a flat 30 minutes from creation, which is punishing for an

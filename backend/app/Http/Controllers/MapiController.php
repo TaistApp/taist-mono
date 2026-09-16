@@ -3208,8 +3208,13 @@ Write only the review text:";
             $menu = app(Menus::class)->where('id', $request->menu_id)->first();
 
             $orderId = 'ORDER' . sprintf('%07d', $id);
+            // $orderTimeString arrives 24-hour ("14:00"); run it through the
+            // same formatter the notifications use so the email reads the same.
+            $orderTimeFormatted = $orderTimeString
+                ? \App\Helpers\AppHelper::formatClockTime($orderTimeString)
+                : date('g:ia', $orderTimestamp);
             $orderDateFormatted = ($orderDateString ?: date('Y-m-d', $orderTimestamp))
-                . ' at ' . ($orderTimeString ?: date('g:i A', $orderTimestamp));
+                . ' at ' . $orderTimeFormatted;
             $requestTime = date('M j, Y g:i A T');
 
             $msg = "";
