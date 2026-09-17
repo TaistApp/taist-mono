@@ -120,6 +120,65 @@ class AppHelper
     }
 
     /**
+     * A clock time as a person reads it: "14:00" -> "2:00pm".
+     *
+     * Order times are stored as 24-hour "H:i" strings, which is right for
+     * comparisons and wrong for anything a customer or chef sees. Notification
+     * copy must always go through this.
+     */
+    public static function formatClockTime(?string $time): string
+    {
+        $time = trim((string) $time);
+        if ($time === '') {
+            return '';
+        }
+
+        $ts = strtotime($time);
+        if ($ts === false) {
+            return $time; // Unparseable: show it as-is rather than blanking it.
+        }
+
+        return strtolower(date('g:ia', $ts));
+    }
+
+    /**
+     * How long a chef has to accept an order before it is auto-cancelled.
+     *
+     * Flat 30 minutes from creation. Orders carry a hard two-hour minimum lead
+     * time, so this window always closes comfortably before the slot and still
+     * leaves the customer at least 90 minutes to book someone else.
+     *
+     * Stamped at creation, so an order keeps whatever window it was born with.
+     */
+    public const ACCEPTANCE_WINDOW = 1800; // 30 minutes
+
+    public static function acceptanceDeadlineFor(int $createdAt, ?int $orderTimestamp = null): int
+    {
+        return $createdAt + self::ACCEPTANCE_WINDOW;
+    }
+
+    /**
+     * How far back the expiry sweep will reach.
+     *
+     * The sweep spent months crashing before it could cancel anything with a
+     * payment token, so the first correct run would otherwise act on the whole
+     * backlog at once — in production that is 12 orders from March to August,
+     * each with a real payment intent. Refunding those automatically, months
+     * late, is not a decision a cron job should make; and where Stripe refuses
+     * an uncaptured intent the order stays Requested and retries every five
+     * minutes forever. Bounding the window keeps the sweep to orders a chef
+     * plausibly just missed, and lets any historical backlog be handled
+     * deliberately.
+     */
+    public const EXPIRY_SWEEP_LOOKBACK = 7 * 24 * 3600;
+
+    /** Oldest acceptance_deadline the sweep should still act on. */
+    public static function expirySweepFloor(int $now): int
+    {
+        return $now - self::EXPIRY_SWEEP_LOOKBACK;
+    }
+
+    /**
      * Decide which SSN to forward to Stripe's individual.id_number.
      *
      * In Stripe TEST mode a real-format SSN can never pass identity

@@ -1,6 +1,7 @@
 import { router, useSegments } from 'expo-router';
 import { createRef, useEffect } from 'react';
 import { IMenu, IOrder, IUser } from '../types';
+import { USER_TYPE, toUserType } from './userRole';
 
 // Create a navigation ref similar to the CLI project
 export const navigationRef: any = createRef();
@@ -64,18 +65,21 @@ export function useProtectedRoute(isSignedIn: boolean, userType?: number) {
       navigate.toAuthorizedStacks.noAuthorized();
     } else if (isSignedIn) {
       // Only redirect if we're on auth/common screens, not if we're already in the correct user area
+      // `userType` is normalized so a string "1" can't slip past these checks
+      // and leave the user parked on the wrong stack.
+      const role = toUserType(userType);
       if (isAuthGroup && (segmentString === 'common' || segments.length <= 1)) {
-        if (userType === 1) { // Customer
-          navigate.toAuthorizedStacks.customerAuthorized();
-        } else if (userType === 2) { // Chef
+        if (role === USER_TYPE.chef) {
           navigate.toAuthorizedStacks.chefAuthorized();
+        } else if (role === USER_TYPE.customer) {
+          navigate.toAuthorizedStacks.customerAuthorized();
         }
       }
-      
+
       // Make sure customers can't access chef routes and vice versa (but don't interfere with tab navigation)
-      if (userType === 1 && segmentString === 'chef' && !isInChefTabs) {
+      if (role === USER_TYPE.customer && segmentString === 'chef' && !isInChefTabs) {
         navigate.toAuthorizedStacks.customerAuthorized();
-      } else if (userType === 2 && segmentString === 'customer' && !isInCustomerScreens) {
+      } else if (role === USER_TYPE.chef && segmentString === 'customer' && !isInCustomerScreens) {
         navigate.toAuthorizedStacks.chefAuthorized();
       }
     }

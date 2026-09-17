@@ -621,102 +621,6 @@ const Checkout = () => {
           </View>
           <Text style={styles.pageTitle}>Checkout</Text>
           <Card>
-            <Text style={styles.checkoutSubheading}>Order Date & Time</Text>
-            <Text style={styles.checkoutText}>
-              Confirm the time for your chef to arrive.
-            </Text>
-            <Text style={styles.checkoutText}>
-              Completion times may vary depending on your appliances.
-            </Text>
-            {/* Date pills */}
-            <FadingScrollView contentContainerStyle={styles.datePillRow}>
-              {Array.from({ length: 30 }, (_, i) => {
-                const date = moment().add(i, 'days');
-                const dateStr = date.format('YYYY-MM-DD');
-                const isSelected = DAY.format('YYYY-MM-DD') === dateStr;
-                const isWorking = chefWorkingDays.includes(date.weekday());
-                return (
-                  <TouchableOpacity
-                    key={dateStr}
-                    style={[
-                      styles.datePill,
-                      isSelected && styles.datePillSelected,
-                      !isWorking && styles.datePillDisabled,
-                    ]}
-                    onPress={() => handleDayPress(date.clone())}
-                    disabled={!isWorking}
-                  >
-                    <Text
-                      style={[
-                        styles.datePillDay,
-                        isSelected && styles.datePillTextSelected,
-                        !isWorking && styles.datePillTextDisabled,
-                      ]}
-                    >
-                      {i === 0 ? 'Today' : date.format('ddd')}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.datePillNum,
-                        isSelected && styles.datePillTextSelected,
-                        !isWorking && styles.datePillTextDisabled,
-                      ]}
-                    >
-                      {date.format('D')}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </FadingScrollView>
-
-            {/* Time pills */}
-            <Text style={styles.timeLabel}>Confirm time:</Text>
-            {isLoadingTimes ? (
-              <View style={styles.loadingTimesContainer}>
-                <ActivityIndicator size="small" color={AppColors.primary} />
-                <Text style={styles.loadingTimesText}>Loading available times...</Text>
-              </View>
-            ) : times.length === 0 ? (
-              <Text style={styles.noTimesText}>
-                {DAY.isSame(moment(), 'day')
-                  ? '* This chef has no remaining availability today'
-                  : '* This chef is not available on this date'}
-              </Text>
-            ) : (
-              <FadingScrollView
-                ref={timeScrollRef}
-                contentContainerStyle={styles.timePillRow}
-              >
-                {times.map((item, idx) => {
-                  if (isPastTime(item)) return null;
-                  const isSelected = item.id === timeId;
-                  return (
-                    <TouchableOpacity
-                      key={`time_${idx}`}
-                      style={[styles.timePill, isSelected && styles.timePillSelected]}
-                      onPress={() => onChangeTimeId(item.id)}
-                      onLayout={(e) => {
-                        timePillOffsetsRef.current[item.id] = e.nativeEvent.layout.x;
-                      }}
-                    >
-                      <Text
-                        style={[
-                          styles.timePillText,
-                          isSelected && styles.timePillTextSelected,
-                        ]}
-                      >
-                        {item.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </FadingScrollView>
-            )}
-            <Text style={styles.estimated}>
-              {`* Estimated completion time is ${getEstimatedTime()}`}
-            </Text>
-          </Card>
-          <Card>
             <Text style={styles.checkoutSubheading}>Order Summary</Text>
             {orders.map((o, idx) => {
               return (
@@ -814,6 +718,102 @@ const Checkout = () => {
                 </Text>
               )}
             </View>
+          </Card>
+          <Card>
+            <Text style={styles.checkoutSubheading}>Order Date & Time</Text>
+            <Text style={styles.checkoutText}>
+              Confirm the time for your chef to arrive.
+            </Text>
+            <Text style={styles.checkoutText}>
+              Completion times may vary depending on your appliances.
+            </Text>
+            {/* Date pills */}
+            <FadingScrollView contentContainerStyle={styles.datePillRow}>
+              {Array.from({ length: 30 }, (_, i) => {
+                const date = moment().add(i, 'days');
+                const dateStr = date.format('YYYY-MM-DD');
+                const isSelected = DAY.format('YYYY-MM-DD') === dateStr;
+                const isWorking = chefWorkingDays.includes(date.weekday());
+                return (
+                  <TouchableOpacity
+                    key={dateStr}
+                    style={[
+                      styles.datePill,
+                      isSelected && styles.datePillSelected,
+                      !isWorking && styles.datePillDisabled,
+                    ]}
+                    onPress={() => handleDayPress(date.clone())}
+                    disabled={!isWorking}
+                  >
+                    <Text
+                      style={[
+                        styles.datePillDay,
+                        isSelected && styles.datePillTextSelected,
+                        !isWorking && styles.datePillTextDisabled,
+                      ]}
+                    >
+                      {i === 0 ? 'Today' : date.format('ddd')}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.datePillNum,
+                        isSelected && styles.datePillTextSelected,
+                        !isWorking && styles.datePillTextDisabled,
+                      ]}
+                    >
+                      {date.format('D')}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </FadingScrollView>
+
+            {/* Time pills */}
+            <Text style={styles.timeLabel}>Confirm time:</Text>
+            {isLoadingTimes ? (
+              <View style={styles.loadingTimesContainer}>
+                <ActivityIndicator size="small" color={AppColors.primary} />
+                <Text style={styles.loadingTimesText}>Loading available times...</Text>
+              </View>
+            ) : times.length === 0 ? (
+              <Text style={styles.noTimesText}>
+                {DAY.isSame(moment(), 'day')
+                  ? '* This chef has no remaining availability today'
+                  : '* This chef is not available on this date'}
+              </Text>
+            ) : (
+              <FadingScrollView
+                ref={timeScrollRef}
+                contentContainerStyle={styles.timePillRow}
+              >
+                {times.map((item, idx) => {
+                  if (isPastTime(item)) return null;
+                  const isSelected = item.id === timeId;
+                  return (
+                    <TouchableOpacity
+                      key={`time_${idx}`}
+                      style={[styles.timePill, isSelected && styles.timePillSelected]}
+                      onPress={() => onChangeTimeId(item.id)}
+                      onLayout={(e) => {
+                        timePillOffsetsRef.current[item.id] = e.nativeEvent.layout.x;
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.timePillText,
+                          isSelected && styles.timePillTextSelected,
+                        ]}
+                      >
+                        {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </FadingScrollView>
+            )}
+            <Text style={styles.estimated}>
+              {`* Estimated completion time is ${getEstimatedTime()}`}
+            </Text>
           </Card>
           <Card>
             <Text style={styles.checkoutSubheading}>Chef Requests</Text>

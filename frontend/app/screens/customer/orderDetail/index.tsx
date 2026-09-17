@@ -33,6 +33,7 @@ import PushPermissionModal from '../../../components/PushPermissionModal';
 import StyledProfileImage from '../../../components/styledProfileImage';
 import { RequestPushPermission } from '../../../firebase';
 import { OptInPushNotificationsAPI } from '../../../services/api';
+import { buildOrderItems } from '../../../utils/orderItems';
 import { ReadDataFromStorage, StoreDataToStorage } from '../../../utils/storage';
 import Container from '../../../layout/Container';
 import { hideLoading, showLoading } from '../../../reducers/loadingSlice';
@@ -332,30 +333,9 @@ const OrderDetail = () => {
     navigate.toCustomer.orders();
   };
 
-  var items: Array<any> = [];
-  items.push({
-    name: menu.title,
-    qty: orderInfo?.amount ?? 0,
-    price: (menu.price ?? 0) * (orderInfo?.amount ?? 0),
-    isCustomization: false,
-  });
-  orderInfo?.addons?.split(',').map((addon, idx) => {
-    const customize = menu.customizations?.find(x => x.id == parseInt(addon));
-    if (customize) {
-      const sameIndex = items.findIndex(x => x.name == customize.name);
-      if (sameIndex == -1) {
-        items.push({
-          name: customize.name,
-          qty: 1,
-          price: customize.upcharge_price ?? 0,
-          isCustomization: true,
-        });
-      } else {
-        items[sameIndex].qty++;
-        items[sameIndex].price += customize.upcharge_price ?? 0;
-      }
-    }
-  });
+  // Shared with the other order screen. Falls back when the menu item has
+  // been deleted since the order was placed — see utils/orderItems.
+  const items = buildOrderItems(orderInfo, menu);
 
   if (isLoading) {
     return (

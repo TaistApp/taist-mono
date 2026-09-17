@@ -31,10 +31,19 @@ import { GetChefOrdersAPI, GetChefProfileAPI, GetOpenPoolRequestsAPI, GetPayment
 import { getImageURL, formatDisplayName } from '../../../utils/functions';
 import { ShowErrorToast, ShowSuccessToast } from '../../../utils/toast';
 import { getDateStartTime } from '../../../utils/validations';
-import { findTodaysFirstActiveOrder, orderMatchesTab } from '../../../utils/orderPartition';
+import { countMissedChefOrders, findTodaysFirstActiveOrder, orderMatchesTab } from '../../../utils/orderPartition';
 import ChefOrderCard from './components/chefOrderCard';
 import SettingItem from './components/settingItem';
 import StripeOnboardingDialog from './components/stripeOnboardingDialog';
+import PushPermissionModal from '../../../components/PushPermissionModal';
+import { RequestPushPermission } from '../../../firebase';
+import { OptInPushNotificationsAPI } from '../../../services/api';
+import { ReadDataFromStorage, StoreDataToStorage } from '../../../utils/storage';
+import {
+  PUSH_PROMPT_DELAY_MS,
+  PUSH_PROMPT_KEYS,
+  shouldShowPushPrompt,
+} from '../../../utils/pushPrompt';
 
 // Once per app launch: on the day of an order, the chef should land directly
 // on their first active order rather than the dashboard. Module-level so
@@ -63,6 +72,8 @@ const Home = () => {
   // Open pool ("request a dish") requests this chef could claim. Stays 0
   // when the server feature flag is off — the API returns [] then.
   const [openPoolCount, setOpenPoolCount] = useState(0);
+  // Chefs were never asked for notification permission — see utils/pushPrompt.
+  const [showPushModal, setShowPushModal] = useState(false);
 
   const tabs = useMemo(
     () => [
@@ -120,8 +131,41 @@ useFocusEffect(
           .then(resp => setOpenPoolCount(resp?.success == 1 ? (resp.data?.length ?? 0) : 0))
           .catch(() => setOpenPoolCount(0));
       }
+      checkPushPrompt();
     }, [notification_id, redirectingToWelcome, self.is_pending, self.id]),
   );
+
+  const checkPushPrompt = async () => {
+    const alreadyShown = await ReadDataFromStorage(PUSH_PROMPT_KEYS.chef);
+    if (
+      !shouldShowPushPrompt({
+        alreadyShown: !!alreadyShown,
+        userId: self?.id,
+        redirecting: redirectingToWelcome,
+      })
+    ) {
+      return;
+    }
+    setTimeout(() => setShowPushModal(true), PUSH_PROMPT_DELAY_MS);
+  };
+
+  const handleAcceptPush = async () => {
+    setShowPushModal(false);
+    await StoreDataToStorage(PUSH_PROMPT_KEYS.chef, true);
+    const granted = await RequestPushPermission();
+    if (granted && self?.id) {
+      await OptInPushNotificationsAPI(self.id);
+    }
+  };
+
+  const handleDeclinePush = async () => {
+    setShowPushModal(false);
+    await StoreDataToStorage(PUSH_PROMPT_KEYS.chef, true);
+  };
+
+  // Cancelled and missed orders leave both home tabs, so without this the
+  // chef just watches them vanish (see countMissedChefOrders).
+  const missedCount = useMemo(() => countMissedChefOrders(orders), [orders]);
 
   // An approved chef is only visible in customer search on days with hours
   // set — a chef with no availability row is invisible despite being Active.
@@ -508,6 +552,29 @@ useFocusEffect(
                   </Text>
                 </TouchableOpacity>
               )}
+
+              {missedCount > 0 && (
+                <TouchableOpacity
+                  testID="chefHome.missedOrdersBanner"
+                  style={{
+                    backgroundColor: '#F3F4F6',
+                    borderWidth: 1,
+                    borderColor: '#D1D5DB',
+                    borderRadius: 12,
+                    padding: 15,
+                    width: '100%',
+                    gap: 2,
+                  }}
+                  onPress={() => navigate.toChef.orders()}
+                >
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: '#000000' }}>
+                    {`${missedCount} recent order${missedCount === 1 ? '' : 's'} not shown here`}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: '#666666' }}>
+                    Cancelled and missed orders live in the Orders tab — tap to view
+                  </Text>
+                </TouchableOpacity>
+              )}
               <View style={styles.tabContainer}>
                 {tabs.map((tab, idx) => {
                   const isActive = tab.id == tabId;
@@ -560,6 +627,14 @@ useFocusEffect(
         hasPendingAccount={
           !!payment?.stripe_account_id && !payment?.verification_complete
         }
+      />
+      <PushPermissionModal
+        visible={showPushModal}
+        title="Turn on notifications"
+        body="We'll let you know the moment your account is approved, and whenever a customer sends you an order."
+        acceptLabel="Turn on notifications"
+        onAccept={handleAcceptPush}
+        onDecline={handleDeclinePush}
       />
     </SafeAreaView>
   );

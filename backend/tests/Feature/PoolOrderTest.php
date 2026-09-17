@@ -248,6 +248,71 @@ class PoolOrderTest extends TestCase
         $this->assertSame(0, DB::table('tbl_pool_requests')->count());
     }
 
+    // ---- quote -----------------------------------------------------------
+
+    /**
+     * The customer has to see the chef price range and know a card is on file
+     * BEFORE the request fans out. Both used to surface only afterwards — as a
+     * success toast, or as a rejection on the submit button.
+     */
+    public function test_quote_previews_the_price_range_before_anything_is_sent(): void
+    {
+        $resp = $this->getJson('/mapi/pool/quote?api_token=tok_cust&category_id=5&portions=2',
+            ['apiKey' => self::API_KEY]);
+
+        $resp->assertStatus(200)->assertJsonPath('success', 1);
+        $this->assertSame(2, $resp->json('data.chef_count'));
+        // 2 portions: Stefanie $100, Marco $130
+        $this->assertEquals(100.0, $resp->json('data.price_min'));
+        $this->assertEquals(130.0, $resp->json('data.price_max'));
+        $this->assertTrue($resp->json('data.has_payment_method'));
+        // A quote must never create anything.
+        $this->assertSame(0, DB::table('tbl_pool_requests')->count());
+    }
+
+    public function test_quote_scales_with_portions(): void
+    {
+        $resp = $this->getJson('/mapi/pool/quote?api_token=tok_cust&category_id=5&portions=4',
+            ['apiKey' => self::API_KEY]);
+
+        $this->assertEquals(200.0, $resp->json('data.price_min'));
+        $this->assertEquals(260.0, $resp->json('data.price_max'));
+    }
+
+    public function test_quote_flags_a_missing_payment_method(): void
+    {
+        DB::table('tbl_payment_method_listener')->where('user_id', 1)->delete();
+
+        $resp = $this->getJson('/mapi/pool/quote?api_token=tok_cust&category_id=5&portions=1',
+            ['apiKey' => self::API_KEY]);
+
+        $resp->assertJsonPath('success', 1);
+        $this->assertFalse($resp->json('data.has_payment_method'));
+        // The range still comes back, so the app can show the price alongside
+        // the prompt to add a card.
+        $this->assertEquals(50.0, $resp->json('data.price_min'));
+    }
+
+    public function test_quote_reports_no_chefs_rather_than_a_price(): void
+    {
+        DB::table('tbl_categories')->insert(['id' => 99, 'name' => 'Sushi', 'status' => 2, 'created_at' => now(), 'updated_at' => now()]);
+
+        $resp = $this->getJson('/mapi/pool/quote?api_token=tok_cust&category_id=99&portions=2',
+            ['apiKey' => self::API_KEY]);
+
+        $resp->assertJsonPath('success', 1);
+        $this->assertSame(0, $resp->json('data.chef_count'));
+        $this->assertNull($resp->json('data.price_min'));
+    }
+
+    public function test_quote_is_gated_off_in_production(): void
+    {
+        $this->app['env'] = 'production';
+
+        $this->getJson('/mapi/pool/quote?api_token=tok_cust&category_id=5&portions=1',
+            ['apiKey' => self::API_KEY])->assertJsonPath('success', 0);
+    }
+
     // ---- create ----------------------------------------------------------
 
     public function test_create_request_returns_price_range_from_eligible_chefs(): void

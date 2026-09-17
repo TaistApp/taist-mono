@@ -6,7 +6,12 @@ import { AppColors } from '../../constants/theme';
 
 interface PushPermissionModalProps {
   visible: boolean;
-  chefFirstName: string;
+  /** Customer framing: names the chef being followed. */
+  chefFirstName?: string;
+  /** Override the copy for surfaces other than the customer order screen. */
+  title?: string;
+  body?: string;
+  acceptLabel?: string;
   onAccept: () => void;
   onDecline: () => void;
 }
@@ -14,9 +19,18 @@ interface PushPermissionModalProps {
 const PushPermissionModal: React.FC<PushPermissionModalProps> = ({
   visible,
   chefFirstName,
+  title,
+  body,
+  acceptLabel,
   onAccept,
   onDecline,
 }) => {
+  // Defaults keep the original customer wording, so that call site is unchanged.
+  const heading = title ?? 'Stay in the loop';
+  const message =
+    body ??
+    `Want to know when Chef ${chefFirstName ?? 'your chef'} adds something to their menu?`;
+
   return (
     <Modal
       visible={visible}
@@ -30,16 +44,20 @@ const PushPermissionModal: React.FC<PushPermissionModalProps> = ({
             <FontAwesomeIcon icon={faBell} size={28} color={AppColors.primary} />
           </View>
 
-          <Text style={styles.title}>Stay in the loop</Text>
-          <Text style={styles.body}>
-            Want to know when Chef {chefFirstName} adds something to their menu?
-          </Text>
+          <Text testID="pushPermission.title" style={styles.title}>{heading}</Text>
+          <Text testID="pushPermission.body" style={styles.body}>{message}</Text>
 
-          <TouchableOpacity style={styles.acceptButton} onPress={onAccept}>
-            <Text style={styles.acceptText}>Yes, notify me</Text>
+          <TouchableOpacity
+            testID="pushPermission.accept"
+            style={styles.acceptButton}
+            onPress={onAccept}>
+            <Text style={styles.acceptText}>{acceptLabel ?? 'Yes, notify me'}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.declineButton} onPress={onDecline}>
+          <TouchableOpacity
+            testID="pushPermission.decline"
+            style={styles.declineButton}
+            onPress={onDecline}>
             <Text style={styles.declineText}>Not now</Text>
           </TouchableOpacity>
         </View>
