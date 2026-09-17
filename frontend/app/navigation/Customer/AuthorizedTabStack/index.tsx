@@ -28,8 +28,8 @@ import {
 import { useEffect } from 'react';
 import { useAppSelector } from '../../../hooks/useRedux';
 import { RemoveUserAPI } from '../../../services/api';
+import { performLogout } from '../../../utils/logout';
 import { navigate } from '../../../utils/navigation';
-import { ClearStorage } from '../../../utils/storage';
 import { ShowErrorToast } from '../../../utils/toast';
 
 const Drawer = createDrawerNavigator();
@@ -90,9 +90,7 @@ const DrawerContent = (props: DrawerContentComponentProps) => {
   };
 
   const handleLogOut = () => {
-    ClearStorage();
-    // Use Expo Router for navigation
-    navigate.toCommon.splash();
+    performLogout();
   };
 
   const showDeleteAccountPopup = () => {
@@ -118,9 +116,7 @@ const DrawerContent = (props: DrawerContentComponentProps) => {
       ShowErrorToast(resp.error || resp.message);
       return;
     }
-    ClearStorage();
-    // Use Expo Router for navigation
-    navigate.toCommon.splash();
+    await performLogout();
   };
 
   return (

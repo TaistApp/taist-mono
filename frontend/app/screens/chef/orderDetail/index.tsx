@@ -49,6 +49,7 @@ import {
   UploadDishPhotoAPI,
 } from '../../../services/api';
 import { OrderStatus } from '../../../types/status';
+import { buildOrderItems } from '../../../utils/orderItems';
 import { GetOrderString } from '../../../utils/functions';
 import { toBool } from '../../../utils/bool';
 import { goBack, navigate } from '../../../utils/navigation';
@@ -273,30 +274,9 @@ const OrderDetail = () => {
   // YYYY-MM-DD strings compare correctly lexicographically.
   const isOrderDay = !!orderDayStr && todayStr >= orderDayStr;
 
-  var items: Array<any> = [];
-  items.push({
-    name: menu.title,
-    qty: orderInfo?.amount ?? 0,
-    price: (menu.price ?? 0) * (orderInfo?.amount ?? 0),
-    isCustomization: false,
-  });
-  orderInfo?.addons?.split(',').map((addon, idx) => {
-    const customize = menu.customizations?.find(x => x.id == parseInt(addon));
-    if (customize) {
-      const sameIndex = items.findIndex(x => x.name == customize.name);
-      if (sameIndex == -1) {
-        items.push({
-          name: customize.name,
-          qty: 1,
-          price: customize.upcharge_price ?? 0,
-          isCustomization: true,
-        });
-      } else {
-        items[sameIndex].qty++;
-        items[sameIndex].price += customize.upcharge_price ?? 0;
-      }
-    }
-  });
+  // Shared with the other order screen. Falls back when the menu item has
+  // been deleted since the order was placed — see utils/orderItems.
+  const items = buildOrderItems(orderInfo, menu);
 
   if (isLoading) {
     return (

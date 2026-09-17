@@ -5,6 +5,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { store } from '../store';
 import { isAuthorizedStackReady } from '../utils/navigation';
 import { setPendingChefId, openChefDeepLink } from '../hooks/useChefDeepLinkHandler';
+import { ShowErrorToast } from '../utils/toast';
 import { AppColors } from '../../constants/theme';
 
 /**
@@ -43,6 +44,18 @@ export default function ChefDeepLinkScreen() {
 
     const user = store.getState().user?.user;
     const isCustomer = user?.user_type === 1;
+
+    // A chef tapping a shared chef link used to land silently back on their own
+    // dashboard: the id was stashed for later, but resumePendingChef only fires
+    // for customers, so it was never consumed and auto-login simply restored
+    // the chef session. Say so instead of appearing to ignore the link.
+    if (user?.id && !isCustomer) {
+      ShowErrorToast(
+        'Chef profiles open in a customer account. Log in as a customer to view this chef.',
+      );
+      router.replace('/' as any);
+      return;
+    }
 
     if (isAuthorizedStackReady() && isCustomer) {
       // Warm link: the customer tab stack is already mounted, open directly.

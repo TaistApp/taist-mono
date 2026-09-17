@@ -759,7 +759,6 @@ class MapiController extends Controller
 
     public function login(Request $request)
     {
-	Log::info('this latt and longg'. json_encode($request->all()));
         if ($this->_checktaistApiKey($request->header('apiKey')) === false)
             return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
 
@@ -772,7 +771,23 @@ class MapiController extends Controller
         if ($validator->fails()) {
             return response()->json(['success' => 0, 'error' => $validator->errors()->all()[0]]);
         }
-        $user = app(Listener::class)->where(['email' => $request->email])->first();
+        // `tbl_users` is a legacy table with no UNIQUE index on email — the
+        // `unique:tbl_users` rule on register/social-login is app-level only,
+        // so rows predating it (or written by a script or the admin panel) can
+        // collide. When they do, both this lookup and the auth guard resolve
+        // the SAME lowest-id row: the other account becomes unreachable, its
+        // owner is told "the password is not correct" for a password that IS
+        // correct, and a successful login lands them in the wrong account —
+        // silently, and on whichever stack that row's user_type names.
+        $matches = app(Listener::class)->where(['email' => $request->email])->orderBy('id')->get();
+        if ($matches->count() > 1) {
+            Log::warning('Multiple accounts share a login email; only the lowest id is reachable', [
+                'email' => $request->email,
+                'ids' => $matches->pluck('id')->all(),
+                'user_types' => $matches->pluck('user_type')->all(),
+            ]);
+        }
+        $user = $matches->first();
         if (auth()->guard('listener')->attempt($request->only('email', 'password'))) {
             if ($user['verified'] != 1) {
                 return response()->json(['success' => 0, 'error' => 'You need to verify the account first.']);
@@ -3132,8 +3147,13 @@ Write only the review text:";
             'discount_code' => $discountCode,
             'discount_amount' => $discountAmount,
             'subtotal_before_discount' => $subtotalBeforeDiscount,
-            // Chef acceptance deadline - 30 minutes (1800 seconds) from order creation
-            'acceptance_deadline' => (string)($currentTimestamp + 1800),
+            // Chef acceptance deadline — scales with how far out the slot is,
+            // so an order placed hours ahead isn't cancelled 30 minutes later.
+            // See AppHelper::acceptanceDeadlineFor.
+            'acceptance_deadline' => (string)\App\Helpers\AppHelper::acceptanceDeadlineFor(
+                $currentTimestamp,
+                $orderTimestamp
+            ),
             'created_at' => $currentTimestamp,
             'updated_at' => now(),
         ];
@@ -3188,8 +3208,13 @@ Write only the review text:";
             $menu = app(Menus::class)->where('id', $request->menu_id)->first();
 
             $orderId = 'ORDER' . sprintf('%07d', $id);
+            // $orderTimeString arrives 24-hour ("14:00"); run it through the
+            // same formatter the notifications use so the email reads the same.
+            $orderTimeFormatted = $orderTimeString
+                ? \App\Helpers\AppHelper::formatClockTime($orderTimeString)
+                : date('g:ia', $orderTimestamp);
             $orderDateFormatted = ($orderDateString ?: date('Y-m-d', $orderTimestamp))
-                . ' at ' . ($orderTimeString ?: date('g:i A', $orderTimestamp));
+                . ' at ' . $orderTimeFormatted;
             $requestTime = date('M j, Y g:i A T');
 
             $msg = "";
@@ -3896,7 +3921,6 @@ Write only the review text:";
 
     public function updateUser(Request $request, $id = "")
     {
-	Log::info('update user' . json_encode($request->all()));
         if ($this->_checktaistApiKey($request->header('apiKey')) === false)
             return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
 
@@ -6183,7 +6207,6 @@ Write only the review text:";
     {
 
 
-        Log::info('thissssss' . json_encode($request->all()));
 
         if ($this->_checktaistApiKey($request->header('apiKey')) === false)
             return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
@@ -6529,6 +6552,56 @@ Write only the review text:";
             return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
 
         return response()->json(['success' => 1, 'data' => ['enabled' => $this->_poolOrdersEnabled()]]);
+    }
+
+    /**
+     * GET pool/quote — what a request would cost before anything is sent.
+     *
+     * The customer has to see the chef price range and know their card is on
+     * file BEFORE they commit; previously both only surfaced as errors or a
+     * toast after the request had already fanned out to chefs.
+     */
+    public function getPoolQuote(Request $request)
+    {
+        if ($this->_checktaistApiKey($request->header('apiKey')) === false)
+            return response()->json(['success' => 0, 'error' => "Access denied. Api key is not valid."]);
+        else if ($this->_checktaistApiKey($request->header('apiKey')) === -1)
+            return response()->json(['success' => 0, 'error' => "Token has been expired."]);
+
+        if (!$this->_poolOrdersEnabled()) {
+            return response()->json(['success' => 0, 'error' => 'Dish requests are not available right now.']);
+        }
+
+        $user = $this->_authUser();
+
+        $validator = Validator::make($request->all(), [
+            'category_id' => 'required|integer',
+            'portions' => 'required|integer|min:1|max:10',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['success' => 0, 'error' => $validator->errors()->all()[0]]);
+        }
+
+        $pdata = app(PaymentMethodListener::class)->where(['user_id' => $user->id, 'active' => 1])->first();
+        $hasPaymentMethod = (bool) ($pdata && $pdata->card_token);
+
+        $portions = (int) $request->portions;
+        $eligible = trim((string) $user->state) === ''
+            ? []
+            : $this->_poolEligibleChefMenus($request->category_id, $user->state);
+
+        $prices = array_map(function ($e) use ($portions) {
+            return $e['menu']->price * $portions;
+        }, $eligible);
+
+        return response()->json(['success' => 1, 'data' => [
+            'chef_count' => count($eligible),
+            'portions' => $portions,
+            'price_min' => empty($prices) ? null : min($prices),
+            'price_max' => empty($prices) ? null : max($prices),
+            'has_payment_method' => $hasPaymentMethod,
+            'has_address' => trim((string) $user->state) !== '',
+        ]]);
     }
 
     /** POST pool/create_request — customer opens a dish request to the pool. */

@@ -35,6 +35,19 @@ export const styles = StyleSheet.create({
     height: 70,
     borderRadius: 50,
   },
+  taistAvatar: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    overflow: 'hidden',
+    backgroundColor: AppColors.surfaceVariant,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  taistAvatarImage: {
+    width: 70,
+    height: 70,
+  },
   middleContainer: {
     flex: 1,
     justifyContent: 'center',

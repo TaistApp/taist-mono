@@ -6,27 +6,44 @@ import { navigate } from '@/app/utils/navigation';
 import { useFocusEffect } from '@react-navigation/native';
 import EmptyListView from '../../../components/emptyListView/emptyListView';
 import { useAppDispatch, useAppSelector } from '../../../hooks/useRedux';
+import { useUnreadNotifications } from '../../../hooks/useUnreadNotifications';
 import Container from '../../../layout/Container';
 import { hideLoading, showLoading } from '../../../reducers/loadingSlice';
-import { GetConversationListAPI } from '../../../services/api';
+import { GetConversationListAPI, GetNotifcationDataAPI } from '../../../services/api';
 import { IMessage, IOrder, IUser } from '../../../types/index';
 import InboxRecord from './components/inboxRecord';
+import TaistRecord from './components/taistRecord';
 import { styles } from './styles';
 
 const Inbox = () => {
   const self = useAppSelector(x => x.user.user);
   const users = useAppSelector(x => x.table.users);
   const dispatch = useAppDispatch();
+  const { unreadCount, refresh: refreshUnread } = useUnreadNotifications();
 
   const [items, setItems] = useState<Array<{user: IUser; msg: IMessage}>>([]);
+  // Newest Taist notification, shown as the preview line on the Taist thread.
+  const [latestUpdate, setLatestUpdate] = useState<any>(null);
   const samplePhotoUrl =
     'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80';
 
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, []),
+      loadLatestUpdate();
+      refreshUnread();
+    }, [refreshUnread]),
   );
+
+  // The Taist thread stands in for the old bell icon, so the inbox needs the
+  // newest notification to preview even when there are no chef conversations.
+  const loadLatestUpdate = async () => {
+    if (!self?.id) return;
+    const resp = await GetNotifcationDataAPI({ user_id: self.id });
+    if (resp.success == 1) {
+      setLatestUpdate((resp.data ?? [])[0] ?? null);
+    }
+  };
 
   const loadData = async () => {
     dispatch(showLoading());
@@ -56,6 +73,13 @@ const Inbox = () => {
     <SafeAreaView style={styles.main}>
       <Container backMode title="Inbox">
         <ScrollView contentContainerStyle={styles.pageView}>
+          <TaistRecord
+            testID="chatInbox.taistCard"
+            lastMessage={latestUpdate?.tip ?? latestUpdate?.body}
+            lastMessageAt={latestUpdate?.created_at}
+            unreadCount={unreadCount}
+            onPress={() => navigate.toCommon.notification()}
+          />
           {items.map((item, idx) => {
             return (
               <InboxRecord
@@ -70,7 +94,7 @@ const Inbox = () => {
               />
             );
           })}
-          {items.length == 0 && <EmptyListView text="No Conversations" />}
+          {items.length == 0 && <EmptyListView text="No chef conversations yet" />}
         </ScrollView>
       </Container>
     </SafeAreaView>
