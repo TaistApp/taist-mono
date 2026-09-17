@@ -42,7 +42,7 @@ import {
   UpdateUserAPI,
   ValidateDiscountCodeAPI,
 } from '../../../services/api';
-import { cleanText, Delay } from '../../../utils/functions';
+import { cleanText, Delay, formatStreetAddress } from '../../../utils/functions';
 import { toBool } from '../../../utils/bool';
 import { goBack, navigate } from '../../../utils/navigation';
 import { ShowErrorToast, ShowSuccessToast } from '../../../utils/toast';
@@ -529,19 +529,20 @@ const Checkout = () => {
     if (isCreateSuccess) {
       // Save parking preferences back to the profile so the next order
       // starts pre-filled with what the customer entered this time.
+      // Parking is genuinely reusable, so it is saved back to the profile.
+      // The chef-request toggles deliberately are NOT: they are a per-order
+      // choice, and persisting them meant turning one on for a single order
+      // silently made it the default for every order afterwards. The Account
+      // screen is the only place that sets their default.
       if (
         (parkingType ?? '') !== cleanText(self.parking_type) ||
-        (parkingInstructions ?? '') !== cleanText(self.parking_instructions) ||
-        shoeCoverings !== toBool(self.request_shoe_coverings) ||
-        containers !== toBool(self.request_containers)
+        (parkingInstructions ?? '') !== cleanText(self.parking_instructions)
       ) {
         UpdateUserAPI(
           {
             ...self,
             parking_type: parkingType,
             parking_instructions: parkingInstructions,
-            request_shoe_coverings: shoeCoverings,
-            request_containers: containers,
           },
           dispatch,
         ).catch(() => {});
@@ -654,7 +655,7 @@ const Checkout = () => {
             {isBelowMinimum && (
               <View style={styles.minimumNotice}>
                 <Text style={styles.minimumNoticeText}>
-                  {`This chef has a $${minimumOrderAmount.toFixed(2)} minimum order. Add $${amountNeeded.toFixed(2)} more to place your order.`}
+                  {`This chef has a $${minimumOrderAmount.toFixed(2)} minimum order. Go back and add $${amountNeeded.toFixed(2)} more to place your order.`}
                 </Text>
               </View>
             )}
@@ -682,7 +683,7 @@ const Checkout = () => {
                   {`${self.phone}`}
                 </Text>
                 <Text style={styles.checkoutAddressItemTitle}>
-                  {`${self.address}${self.address2 ? `, ${self.address2}` : ''}`}
+                  {formatStreetAddress(self.address, self.address2)}
                 </Text>
                 <Text style={styles.checkoutAddressItemTitle}>
                   {`${self.city}, ${self.state}, ${self.zip}`}
