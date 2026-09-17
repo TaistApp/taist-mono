@@ -33,6 +33,7 @@ import {
   StoreDataToStorage,
   StoreLoginData,
 } from "../utils/storage";
+import { toFormData } from "../utils/formData";
 
 // Environment-based configuration
 const APP_ENV = Constants.expoConfig?.extra?.APP_ENV || 'production';
@@ -440,7 +441,7 @@ export const RegisterAPI = async (params: IUser, dispatch?: any) => {
   const headers = {
     "Content-Type": "multipart/form-data",
   };
-  const formData = ConvertObjectToFormdata(params);
+  const formData = toFormData(params);
   var response = await POSTAPICALL(`register`, formData, headers);
   if (response.success == 1 && dispatch) {
     dispatch(setUser(response.data));
@@ -851,7 +852,7 @@ export const UpdateUserAPI = async (params: IUser, dispatch?: any) => {
   const headers = {
     "Content-Type": "multipart/form-data",
   };
-  const formData = ConvertObjectToFormdata(params);
+  const formData = toFormData(params);
   var response = await POSTAPICALL(
     `update_user/${params.id}`,
     formData,
@@ -1297,10 +1298,3 @@ export const CancelPoolRequestAPI = async (params: { pool_request_id: number }) 
 
 ///////////////////////////////////////////////////////
 
-const ConvertObjectToFormdata = (obj: any) => {
-  const formData = new FormData();
-  for (var key in obj) {
-    formData.append(key, obj[key]);
-  }
-  return formData;
-};

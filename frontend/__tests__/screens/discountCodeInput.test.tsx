@@ -44,10 +44,13 @@ describe('DiscountCodeInput applied state', () => {
     expect(onRemove).toHaveBeenCalledTimes(1);
   });
 
-  it('shows the saving alongside the code', () => {
+  it('puts the saving on its own line under the code', () => {
     renderInput({ appliedDiscount: applied });
 
-    expect(screen.getByText('TAIST30 applied - Save $15.23')).toBeTruthy();
+    // One combined line wrapped awkwardly against the Remove control.
+    expect(screen.getByText('TAIST30 applied')).toBeTruthy();
+    expect(screen.getByText('Save $15.23')).toBeTruthy();
+    expect(screen.queryByText('TAIST30 applied - Save $15.23')).toBeNull();
   });
 
   // Control: with no code applied the entry field and Apply button still show.

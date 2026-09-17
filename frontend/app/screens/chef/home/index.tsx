@@ -36,12 +36,13 @@ import ChefOrderCard from './components/chefOrderCard';
 import SettingItem from './components/settingItem';
 import StripeOnboardingDialog from './components/stripeOnboardingDialog';
 import PushPermissionModal from '../../../components/PushPermissionModal';
-import { RequestPushPermission } from '../../../firebase';
+import { GetFCMToken, RequestPushPermission } from '../../../firebase';
 import { OptInPushNotificationsAPI } from '../../../services/api';
 import { ReadDataFromStorage, StoreDataToStorage } from '../../../utils/storage';
 import {
   PUSH_PROMPT_DELAY_MS,
   PUSH_PROMPT_KEYS,
+  enablePushForUser,
   shouldShowPushPrompt,
 } from '../../../utils/pushPrompt';
 
@@ -152,10 +153,14 @@ useFocusEffect(
   const handleAcceptPush = async () => {
     setShowPushModal(false);
     await StoreDataToStorage(PUSH_PROMPT_KEYS.chef, true);
-    const granted = await RequestPushPermission();
-    if (granted && self?.id) {
-      await OptInPushNotificationsAPI(self.id);
-    }
+    await enablePushForUser(
+      {
+        requestPermission: RequestPushPermission,
+        registerToken: GetFCMToken,
+        optIn: OptInPushNotificationsAPI,
+      },
+      self?.id,
+    );
   };
 
   const handleDeclinePush = async () => {

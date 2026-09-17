@@ -58,17 +58,11 @@ export const Delay = (ms: number) => {
   });
 };
 
-// Some records come back from the API with the literal strings "null" or
-// "undefined" (e.g. a null DB column that got stringified upstream). Treat
-// those — and whitespace-only values — as empty so they never render as text.
-export const cleanText = (value?: string | null): string => {
-  if (value == null) return '';
-  const trimmed = String(value).trim();
-  if (trimmed === '' || trimmed.toLowerCase() === 'null' || trimmed.toLowerCase() === 'undefined') {
-    return '';
-  }
-  return trimmed;
-};
+// Pure text helpers live in ./text so they stay importable without dragging
+// services/api.ts (and firebase) in. Re-exported here so existing call sites
+// are unchanged.
+import { cleanText } from './text';
+export { cleanText, formatStreetAddress } from './text';
 
 // Capitalizes the first letter of each space-separated word, leaving the rest
 // of each word untouched (so "pumpkin seeds" -> "Pumpkin Seeds" but "BBQ sauce"
