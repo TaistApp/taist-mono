@@ -32,7 +32,16 @@ import { useAppDispatch, useAppSelector } from '../../../hooks/useRedux';
 import PushPermissionModal from '../../../components/PushPermissionModal';
 import StyledProfileImage from '../../../components/styledProfileImage';
 import { GetFCMToken, RequestPushPermission } from '../../../firebase';
-import { PUSH_PROMPT_KEYS, enablePushForUser } from '../../../utils/pushPrompt';
+import {
+  PUSH_PROMPT_DELAY_MS,
+  PUSH_PROMPT_KEYS,
+  PushPromptRecord,
+  enablePushForUser,
+  parsePushPromptRecord,
+  recordPushPromptOutcome,
+  shouldOpenSystemSettings,
+  shouldShowPushPrompt,
+} from '../../../utils/pushPrompt';
 import { OptInPushNotificationsAPI } from '../../../services/api';
 import { buildOrderItems } from '../../../utils/orderItems';
 import { ReadDataFromStorage, StoreDataToStorage } from '../../../utils/storage';
@@ -94,6 +103,7 @@ const OrderDetail = () => {
   const [isLoading, setIsLoading] = useState(!initialOrder?.id);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [showPushModal, setShowPushModal] = useState(false);
+  const [pushRecord, setPushRecord] = useState<PushPromptRecord | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   // Y-offset of the "Review your Experience" section inside the scroll content,
   // so focusing the review input scrolls the section into view instead of
@@ -181,15 +191,32 @@ const OrderDetail = () => {
   };
 
   const checkPushPrompt = async () => {
-    const alreadyShown = await ReadDataFromStorage(PUSH_PROMPT_KEYS.customer);
-    if (alreadyShown) return;
-    setTimeout(() => setShowPushModal(true), 2000);
+    const record = parsePushPromptRecord(
+      await ReadDataFromStorage(PUSH_PROMPT_KEYS.customer),
+    );
+    setPushRecord(record);
+    if (!shouldShowPushPrompt({ record, userId: self?.id })) return;
+    setTimeout(() => setShowPushModal(true), PUSH_PROMPT_DELAY_MS);
+  };
+
+  const persistPushOutcome = async (outcome: 'accepted' | 'declined') => {
+    const next = recordPushPromptOutcome(pushRecord, outcome);
+    setPushRecord(next);
+    await StoreDataToStorage(PUSH_PROMPT_KEYS.customer, next);
   };
 
   const handleAcceptPush = async () => {
     setShowPushModal(false);
-    await StoreDataToStorage(PUSH_PROMPT_KEYS.customer, true);
-    await enablePushForUser(
+
+    // Once the OS dialog has been denied it stops appearing and just returns
+    // "denied", so settings is the only route left.
+    if (shouldOpenSystemSettings(pushRecord)) {
+      await persistPushOutcome('declined');
+      Linking.openSettings().catch(() => {});
+      return;
+    }
+
+    const granted = await enablePushForUser(
       {
         requestPermission: RequestPushPermission,
         registerToken: GetFCMToken,
@@ -197,11 +224,12 @@ const OrderDetail = () => {
       },
       self?.id,
     );
+    await persistPushOutcome(granted ? 'accepted' : 'declined');
   };
 
   const handleDeclinePush = async () => {
     setShowPushModal(false);
-    await StoreDataToStorage(PUSH_PROMPT_KEYS.customer, true);
+    await persistPushOutcome('declined');
   };
 
   const handleStatus = async (status: number) => {
@@ -740,6 +768,13 @@ const OrderDetail = () => {
       <PushPermissionModal
         visible={showPushModal}
         chefFirstName={chefInfo?.first_name ?? 'your chef'}
+        title={shouldOpenSystemSettings(pushRecord) ? 'Notifications are off' : undefined}
+        body={
+          shouldOpenSystemSettings(pushRecord)
+            ? "Notifications are switched off for Taist, so order updates won't reach you. Open settings to turn them back on."
+            : undefined
+        }
+        acceptLabel={shouldOpenSystemSettings(pushRecord) ? 'Open settings' : undefined}
         onAccept={handleAcceptPush}
         onDecline={handleDeclinePush}
       />

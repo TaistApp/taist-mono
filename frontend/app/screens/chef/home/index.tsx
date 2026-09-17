@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Linking,
   RefreshControl,
   SafeAreaView,
   ScrollView,
@@ -42,7 +43,11 @@ import { ReadDataFromStorage, StoreDataToStorage } from '../../../utils/storage'
 import {
   PUSH_PROMPT_DELAY_MS,
   PUSH_PROMPT_KEYS,
+  PushPromptRecord,
   enablePushForUser,
+  parsePushPromptRecord,
+  recordPushPromptOutcome,
+  shouldOpenSystemSettings,
   shouldShowPushPrompt,
 } from '../../../utils/pushPrompt';
 
@@ -75,6 +80,7 @@ const Home = () => {
   const [openPoolCount, setOpenPoolCount] = useState(0);
   // Chefs were never asked for notification permission — see utils/pushPrompt.
   const [showPushModal, setShowPushModal] = useState(false);
+  const [pushRecord, setPushRecord] = useState<PushPromptRecord | null>(null);
 
   const tabs = useMemo(
     () => [
@@ -137,10 +143,11 @@ useFocusEffect(
   );
 
   const checkPushPrompt = async () => {
-    const alreadyShown = await ReadDataFromStorage(PUSH_PROMPT_KEYS.chef);
+    const record = parsePushPromptRecord(await ReadDataFromStorage(PUSH_PROMPT_KEYS.chef));
+    setPushRecord(record);
     if (
       !shouldShowPushPrompt({
-        alreadyShown: !!alreadyShown,
+        record,
         userId: self?.id,
         redirecting: redirectingToWelcome,
       })
@@ -150,10 +157,24 @@ useFocusEffect(
     setTimeout(() => setShowPushModal(true), PUSH_PROMPT_DELAY_MS);
   };
 
+  const persistPushOutcome = async (outcome: 'accepted' | 'declined') => {
+    const next = recordPushPromptOutcome(pushRecord, outcome);
+    setPushRecord(next);
+    await StoreDataToStorage(PUSH_PROMPT_KEYS.chef, next);
+  };
+
   const handleAcceptPush = async () => {
     setShowPushModal(false);
-    await StoreDataToStorage(PUSH_PROMPT_KEYS.chef, true);
-    await enablePushForUser(
+
+    // Android stops showing the OS dialog after repeated denials and just
+    // returns "denied", so settings is the only route that still works.
+    if (shouldOpenSystemSettings(pushRecord)) {
+      await persistPushOutcome('declined');
+      Linking.openSettings().catch(() => {});
+      return;
+    }
+
+    const granted = await enablePushForUser(
       {
         requestPermission: RequestPushPermission,
         registerToken: GetFCMToken,
@@ -161,11 +182,12 @@ useFocusEffect(
       },
       self?.id,
     );
+    await persistPushOutcome(granted ? 'accepted' : 'declined');
   };
 
   const handleDeclinePush = async () => {
     setShowPushModal(false);
-    await StoreDataToStorage(PUSH_PROMPT_KEYS.chef, true);
+    await persistPushOutcome('declined');
   };
 
   // Cancelled and missed orders leave both home tabs, so without this the
@@ -635,9 +657,21 @@ useFocusEffect(
       />
       <PushPermissionModal
         visible={showPushModal}
-        title="Turn on notifications"
-        body="We'll let you know the moment your account is approved, and whenever a customer sends you an order."
-        acceptLabel="Turn on notifications"
+        title={
+          shouldOpenSystemSettings(pushRecord)
+            ? 'Notifications are off'
+            : 'Turn on notifications'
+        }
+        body={
+          shouldOpenSystemSettings(pushRecord)
+            ? "Notifications are switched off for Taist, so new orders won't reach you. Open settings to turn them back on."
+            : "We'll let you know the moment your account is approved, and whenever a customer sends you an order."
+        }
+        acceptLabel={
+          shouldOpenSystemSettings(pushRecord)
+            ? 'Open settings'
+            : 'Turn on notifications'
+        }
         onAccept={handleAcceptPush}
         onDecline={handleDeclinePush}
       />
