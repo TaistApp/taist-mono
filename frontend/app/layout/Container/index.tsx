@@ -3,7 +3,9 @@ import {
   Dimensions,
   Image,
   LayoutChangeEvent,
+  Platform,
   SafeAreaView,
+  StatusBar,
   Text,
   TouchableOpacity,
   View,
@@ -134,6 +136,10 @@ const Container = ({
       <SafeAreaView
         style={[
           styles.container,
+          // react-native's SafeAreaView is a no-op on Android, and the app runs
+          // edge-to-edge — so without this the header drew underneath the
+          // status bar and the logo was clipped.
+          Platform.OS === 'android' && { paddingTop: StatusBar.currentHeight ?? 0 },
           // Only add margin bottom when NOT in tab context and NOT in back mode
           (!isInTabContext && backMode !== true) && {marginBottom: 60},
           containerStyle,

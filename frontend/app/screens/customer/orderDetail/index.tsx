@@ -31,7 +31,8 @@ import { useAppDispatch, useAppSelector } from '../../../hooks/useRedux';
 
 import PushPermissionModal from '../../../components/PushPermissionModal';
 import StyledProfileImage from '../../../components/styledProfileImage';
-import { RequestPushPermission } from '../../../firebase';
+import { GetFCMToken, RequestPushPermission } from '../../../firebase';
+import { PUSH_PROMPT_KEYS, enablePushForUser } from '../../../utils/pushPrompt';
 import { OptInPushNotificationsAPI } from '../../../services/api';
 import { buildOrderItems } from '../../../utils/orderItems';
 import { ReadDataFromStorage, StoreDataToStorage } from '../../../utils/storage';
@@ -180,23 +181,27 @@ const OrderDetail = () => {
   };
 
   const checkPushPrompt = async () => {
-    const alreadyShown = await ReadDataFromStorage('@push_prompt_shown');
+    const alreadyShown = await ReadDataFromStorage(PUSH_PROMPT_KEYS.customer);
     if (alreadyShown) return;
     setTimeout(() => setShowPushModal(true), 2000);
   };
 
   const handleAcceptPush = async () => {
     setShowPushModal(false);
-    await StoreDataToStorage('@push_prompt_shown', true);
-    const granted = await RequestPushPermission();
-    if (granted && self?.id) {
-      await OptInPushNotificationsAPI(self.id);
-    }
+    await StoreDataToStorage(PUSH_PROMPT_KEYS.customer, true);
+    await enablePushForUser(
+      {
+        requestPermission: RequestPushPermission,
+        registerToken: GetFCMToken,
+        optIn: OptInPushNotificationsAPI,
+      },
+      self?.id,
+    );
   };
 
   const handleDeclinePush = async () => {
     setShowPushModal(false);
-    await StoreDataToStorage('@push_prompt_shown', true);
+    await StoreDataToStorage(PUSH_PROMPT_KEYS.customer, true);
   };
 
   const handleStatus = async (status: number) => {

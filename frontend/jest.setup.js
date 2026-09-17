@@ -28,3 +28,15 @@ jest.mock('react-native-toast-message', () => {
   mockToast.hide = jest.fn();
   return { __esModule: true, default: mockToast };
 });
+
+// utils/functions.ts imports services/api.ts (for Photo_URL), which drags in
+// native modules that have no Jest implementation. Mocking them here keeps any
+// test that touches a util from having to know about that coupling.
+jest.mock('@react-native-community/geolocation', () => ({
+  getCurrentPosition: jest.fn(),
+  watchPosition: jest.fn(),
+  clearWatch: jest.fn(),
+  stopObserving: jest.fn(),
+  setRNConfiguration: jest.fn(),
+  requestAuthorization: jest.fn(),
+}));

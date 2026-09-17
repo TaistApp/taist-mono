@@ -50,7 +50,7 @@ import {
 } from '../../../services/api';
 import { OrderStatus } from '../../../types/status';
 import { buildOrderItems } from '../../../utils/orderItems';
-import { GetOrderString } from '../../../utils/functions';
+import { GetOrderString, formatStreetAddress } from '../../../utils/functions';
 import { toBool } from '../../../utils/bool';
 import { goBack, navigate } from '../../../utils/navigation';
 import { ShowErrorToast, ShowSuccessToast } from '../../../utils/toast';
@@ -307,7 +307,9 @@ const OrderDetail = () => {
                 size={20}
               />
               <View style={{ flex: 1 }}>
-                <Text style={styles.text}>{`${customerInfo?.address ?? ''}${customerInfo?.address2 ? `, ${customerInfo.address2}` : ''}`}</Text>
+                <Text style={styles.text}>
+                  {formatStreetAddress(customerInfo?.address, customerInfo?.address2)}
+                </Text>
                 <Text style={styles.text}>{`${customerInfo?.city ?? ''}, ${customerInfo?.state ?? ''} ${customerInfo?.zip ?? ''}`}</Text>
               </View>
               <FontAwesomeIcon icon={faChevronRight} color="#999" size={16} />

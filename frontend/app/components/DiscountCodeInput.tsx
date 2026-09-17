@@ -70,9 +70,15 @@ const DiscountCodeInput: React.FC<DiscountCodeInputProps> = ({
         <View style={styles.appliedDiscountContainer}>
           <View style={styles.appliedDiscountInfo}>
             <FontAwesomeIcon icon={faCheck} size={16} color="#10B981" style={styles.icon} />
-            <Text style={styles.appliedDiscountText}>
-              {appliedDiscount.code} applied - Save ${appliedDiscount.discount_amount.toFixed(2)}
-            </Text>
+            {/* Two lines: the code wraps awkwardly against Remove otherwise. */}
+            <View style={styles.appliedDiscountLines}>
+              <Text style={styles.appliedDiscountText}>
+                {appliedDiscount.code} applied
+              </Text>
+              <Text style={styles.appliedDiscountSaving}>
+                {`Save $${appliedDiscount.discount_amount.toFixed(2)}`}
+              </Text>
+            </View>
           </View>
           <TouchableOpacity testID="discount.remove" onPress={onRemove} hitSlop={8}>
             <Text style={styles.removeText}>Remove</Text>
@@ -169,6 +175,15 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#065F46',
     fontWeight: '500',
+  },
+  appliedDiscountLines: {
+    flex: 1,
+  },
+  appliedDiscountSaving: {
+    fontSize: 15,
+    color: '#065F46',
+    fontWeight: '700',
+    marginTop: 2,
   },
   removeText: {
     fontSize: 14,
