@@ -13,6 +13,8 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+// Root _layout.tsx mounts a SafeAreaProvider, so this hook resolves here.
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // NPM
 import {
@@ -80,6 +82,9 @@ const OrderDetail = () => {
   const [reviewText, onChangeReviewText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+  // Android draws edge-to-edge, so the gesture/nav bar sat on top of the
+  // Call / Chat / Map row. Lift it clear of the inset.
+  const insets = useSafeAreaInsets();
   const [showPhotoPrompt, setShowPhotoPrompt] = useState(false);
   const [completedOrderId, setCompletedOrderId] = useState<number | null>(null);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
@@ -652,7 +657,12 @@ const OrderDetail = () => {
             </>
           )}
         </ScrollView>
-        <View style={styles.btnContainer}>
+        <View
+          style={[
+            styles.btnContainer,
+            { marginBottom: 10 + (Platform.OS === 'android' ? insets.bottom : 0) },
+          ]}
+        >
           {orderInfo?.status !== 1 && (
             <TouchableOpacity testID="chefOrderDetail.callButton" style={styles.btn} onPress={handleCall}>
               <FontAwesomeIcon icon={faPhone} color="#ffffff" size={20} />
@@ -703,14 +713,28 @@ const OrderDetail = () => {
             <View style={photoStyles.actionRow}>
               {photoUri && (
                 <StyledButton
-                  title={isUploading ? 'Uploading...' : 'Submit Photo'}
+                  testID="chefOrderDetail.useThisPhoto"
+                  title={isUploading ? 'Uploading…' : 'Use this Photo'}
                   onPress={handleUploadDishPhoto}
-                  style={{ flex: 1 }}
+                  disabled={isUploading}
+                  // actionRow is a column, so `flex: 1` collapsed this to a
+                  // near-zero-height bar and hid the label entirely. The button
+                  // is already full width on its own.
+                  style={{ width: '100%' }}
                   titleStyle={{ fontSize: 16 }}
                 />
               )}
-              <TouchableOpacity onPress={handleSkipPhoto} style={photoStyles.skipBtn}>
-                <Text style={photoStyles.skipText}>Skip for now</Text>
+              <TouchableOpacity
+                testID="chefOrderDetail.skipPhoto"
+                onPress={handleSkipPhoto}
+                disabled={isUploading}
+                style={photoStyles.skipBtn}
+              >
+                <Text
+                  style={[photoStyles.skipText, isUploading && { opacity: 0.4 }]}
+                >
+                  Skip for now
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
