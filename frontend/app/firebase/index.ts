@@ -11,6 +11,7 @@ import { GetUserById, UpdateFCMTokenAPI } from '../services/api';
 import { store } from '../store';
 import { navigate, getActiveOrderDetailId } from '../utils/navigation';
 import { NotificationTypes, buildChatNavParams } from '../utils/notificationRouting';
+import { setPendingDeepLink } from '../utils/pendingDeepLink';
 
 let ORDER_ID = -1;
 let isNavigationReady = false;
@@ -402,12 +403,11 @@ export const firebaseActions = () => {
       if (!remoteMessage?.data || Object.keys(remoteMessage.data).length === 0) return;
 
       console.log('>>>REMOTE .... MESSAGE DATA>>>', remoteMessage);
-      const ready = await waitForAuthAndNavigation(15000);
-      if (ready) {
-        handleNotificationNavigation(remoteMessage);
-      } else {
-        console.log('Auth/navigation not ready after killed-state tap, skipping');
-      }
+      // Cold start. Don't race the splash: it is mid auto-login and will call
+      // navigate.to*.home() when that finishes, which would throw the user out
+      // of whatever we push now. Park the target; the splash runs it once the
+      // authorized stack is up. See utils/pendingDeepLink.
+      setPendingDeepLink(() => handleNotificationNavigation(remoteMessage));
     });
 };
 
