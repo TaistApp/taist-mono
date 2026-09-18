@@ -49,6 +49,7 @@ import { setUser } from "../../../reducers/userSlice";
 import { updateMenus } from "../../../reducers/tableSlice";
 
 import { navigate } from "@/app/utils/navigation";
+import { runPendingDeepLink } from "../../../utils/pendingDeepLink";
 import {
   GETVERSIONAPICALL,
   LoginAPI,
@@ -343,6 +344,10 @@ const Splash = () => {
         } else {
           navigate.toCustomer.home();
         }
+        // A push tapped on a cold start parked its target rather than racing
+        // this navigation. Now that the tab stack is up, open it — otherwise
+        // the tap silently dumped the user on Home.
+        runPendingDeepLink(350);
         return true;
       } else {
         console.log(

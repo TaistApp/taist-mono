@@ -59,6 +59,7 @@ import { ShowErrorToast, ShowSuccessToast } from '../../../utils/toast';
 import { getFormattedDateTime, getFormattedDateTimeInTimezone } from '../../../utils/validations';
 import { getParkingLabel } from '../../../constants/parkingTypes';
 import { styles } from './styles';
+import { isAcceptanceExpired } from '../../../utils/acceptanceWindow';
  
 
 type PropsType = NativeStackScreenProps<NavigationStackType>;
@@ -81,6 +82,7 @@ const OrderDetail = () => {
   const [imageIndex, onChangeImageIndex] = useState(0);
   const [reviewText, onChangeReviewText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   // Android draws edge-to-edge, so the gesture/nav bar sat on top of the
   // Call / Chat / Map row. Lift it clear of the inset.
@@ -98,6 +100,7 @@ const OrderDetail = () => {
     const resp = await GetOrderDataAPI({ order_id: parseInt(orderId?.toString() || '0') }, dispatch);
     if (resp.success == 1) {
       console.log('------', resp);
+      setLoadFailed(false);
       setOrderInfo(resp.data);
       setCustomerInfo(resp.data.customer);
       setMenu(resp.data.menu);
@@ -108,6 +111,11 @@ const OrderDetail = () => {
       } else {
         setTimeRemaining(null);
       }
+    } else {
+      // Say so rather than rendering the empty state object as if it were an
+      // order — that is what produced "ORDER0000000000" and an arrival time of
+      // Dec 31, 1969 after tapping a push.
+      setLoadFailed(true);
     }
     setIsLoading(false);
   };
@@ -283,12 +291,41 @@ const OrderDetail = () => {
   // been deleted since the order was placed — see utils/orderItems.
   const items = buildOrderItems(orderInfo, menu);
 
+  // The acceptance window has closed — see utils/acceptanceWindow.
+  const acceptanceExpired = isAcceptanceExpired(orderInfo?.status, timeRemaining);
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.main}>
         <Container backMode title="">
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
             <ActivityIndicator size="large" color="#fa4616" />
+          </View>
+        </Container>
+      </SafeAreaView>
+    );
+  }
+
+  if (loadFailed || !orderInfo?.id) {
+    return (
+      <SafeAreaView style={styles.main}>
+        <Container backMode title="">
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30, gap: 15 }}>
+            <Text style={[styles.text, { fontWeight: '700', textAlign: 'center' }]}>
+              We couldn't load this order
+            </Text>
+            <Text style={[styles.text, { textAlign: 'center', color: AppColors.textSecondary }]}>
+              It may have been cancelled, or your connection dropped.
+            </Text>
+            <StyledButton
+              testID="chefOrderDetail.retryButton"
+              title={'TRY AGAIN'}
+              onPress={() => {
+                setIsLoading(true);
+                setLoadFailed(false);
+                loadData(orderId || orderInfoFromParams?.id);
+              }}
+            />
           </View>
         </Container>
       </SafeAreaView>
@@ -336,7 +373,6 @@ const OrderDetail = () => {
           {(orderInfo?.parking_type || orderInfo?.parking_instructions) && (
             <View style={[styles.card, { backgroundColor: '#FFF7ED', borderWidth: 1, borderColor: '#FDBA74' }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <Text style={{ fontSize: 20 }}>🚗</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.text, { fontWeight: '700', marginBottom: 2 }]}>
                     Arrival & Parking
@@ -357,7 +393,6 @@ const OrderDetail = () => {
           {(toBool(orderInfo?.request_shoe_coverings) || toBool(orderInfo?.request_containers)) && (
             <View style={[styles.card, { backgroundColor: '#FFF7ED', borderWidth: 1, borderColor: '#FDBA74' }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <Text style={{ fontSize: 20 }}>🧾</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.text, { fontWeight: '700', marginBottom: 2 }]}>
                     Customer Requests
@@ -562,7 +597,7 @@ const OrderDetail = () => {
                     </View>
                   )}
                   <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
-                    {orderInfo?.status == 1 && (
+                    {orderInfo?.status == 1 && !acceptanceExpired && (
                       <StyledButton
                         testID="chefOrderDetail.acceptButton"
                         title={'ACCEPT ORDER'}
@@ -613,7 +648,7 @@ const OrderDetail = () => {
                         titleStyle={{ fontSize: 16, letterSpacing: 0.5 }}
                       />
                     )}
-                    {orderInfo.status == 1 && (
+                    {orderInfo.status == 1 && !acceptanceExpired && (
                       <StyledButton
                         testID="chefOrderDetail.rejectButton"
                         title={'REJECT ORDER'}
@@ -627,7 +662,9 @@ const OrderDetail = () => {
                   </View>
 
                   <Text style={styles.text}>
-                    {orderInfo.status == 1
+                    {acceptanceExpired
+                      ? 'This order expired before it was accepted. The customer is being refunded.'
+                      : orderInfo.status == 1
                       ? 'This order is pending your acceptance. '
                       : orderInfo.status == 2
                         ? isOrderDay

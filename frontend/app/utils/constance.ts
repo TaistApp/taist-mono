@@ -15,3 +15,10 @@ const getStripePublishableKey = () => {
 };
 
 export const StripPublishableKey = getStripePublishableKey();
+
+/**
+ * True only in a build made with the `production` EAS profile — i.e. what
+ * reaches the App Store and Play Store. Use it to keep an unfinished flow out
+ * of a store release while leaving it testable on staging builds.
+ */
+export const IS_PRODUCTION_BUILD = APP_ENV === 'production';

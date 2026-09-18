@@ -4,6 +4,7 @@ import { hideLoading as hideHomeLoading } from '../reducers/home_loading_slice';
 import { hideLoading } from '../reducers/loadingSlice';
 import { store } from '../store';
 import { ClearStorage } from './storage';
+import { clearPendingDeepLink } from './pendingDeepLink';
 
 /**
  * The one way out of a signed-in session.
@@ -16,6 +17,9 @@ import { ClearStorage } from './storage';
  * store, then dismissing the whole stack keeps the next sign-in interactive.
  */
 export const performLogout = async () => {
+  // A push tapped just before signing out must not reopen the old user's
+  // order once the next person signs in.
+  clearPendingDeepLink();
   store.dispatch(hideLoading());
   store.dispatch(hideHomeLoading());
   store.dispatch({ type: 'USER_LOGOUT' });

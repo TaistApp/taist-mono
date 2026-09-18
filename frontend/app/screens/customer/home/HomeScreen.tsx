@@ -29,6 +29,7 @@ import { navigate } from '../../../utils/navigation';
 import ChefCard from './components/chefCard';
 import CustomCalendar from './components/customCalendar';
 import { styles } from './styles';
+import { IS_PRODUCTION_BUILD } from '../../../utils/constance';
 
 const Home = () => {
   const self = useAppSelector(x => x.user.user);
@@ -52,6 +53,12 @@ const Home = () => {
       setPoolEnabled(resp?.success == 1 && !!resp?.data?.enabled);
     }).catch(() => setPoolEnabled(false));
   }, []);
+
+  // Belt and braces for the store release: the entry point stays hidden in a
+  // production build whatever the server flag says, so a stray
+  // POOL_ORDERS_ENABLED can't put an unfinished flow in front of real
+  // customers. Staging builds still show it for testing.
+  const showRequestDish = poolEnabled && !IS_PRODUCTION_BUILD;
 
   const isInArea = zipcodes.includes(self.zip ?? '');
   const startDate = moment();
@@ -288,7 +295,7 @@ const Home = () => {
               /> */}
 
               {/* Pool ordering entry — only when the server flag is on */}
-              {poolEnabled && (
+              {showRequestDish && (
                 <Pressable
                   testID="customerHome.requestDishCard"
                   style={{
