@@ -1878,7 +1878,28 @@ class MapiController extends Controller
         $id = app(Categories::class)->insertGetId($ary);
 
         $data = app(Categories::class)->where(['id' => $id])->first();
+
+        // A chef asking for a category from the menu wizard created the row
+        // silently — it went live to customers with nobody told, so nothing
+        // ever got reviewed or renamed. Tell the team. Best effort: a failed
+        // email must not fail the chef's menu item.
+        try {
+            $this->_notifyAdminOfNewCategory($name, $id);
+        } catch (\Throwable $e) {
+            Log::warning('New category admin email failed: ' . $e->getMessage());
+        }
+
         return response()->json(['success' => 1, 'data' => $data]);
+    }
+
+    /**
+     * Tell the team a chef requested a category. Protected so tests can capture
+     * the call without reaching Resend; the wording itself lives in AppHelper.
+     */
+    protected function _notifyAdminOfNewCategory($name, $categoryId)
+    {
+        $mail = \App\Helpers\AppHelper::newCategoryRequestEmail($name, $categoryId, $this->_authUser());
+        $this->_sendEmail("contact@taist.app", $mail['subject'], $mail['body']);
     }
 
     public function updateCategory(Request $request, $id = "")

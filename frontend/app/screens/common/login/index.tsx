@@ -3,6 +3,7 @@ import React, { useRef, useState } from 'react';
 import { Image, Pressable, View } from 'react-native';
 
 import { navigate } from '@/app/utils/navigation';
+import { runPendingDeepLink } from '../../../utils/pendingDeepLink';
 import KeyboardAwareScrollView from '../../../components/KeyboardAwareScrollView';
 import { useAppDispatch } from '../../../hooks/useRedux';
 import { hideLoading, showLoading } from '../../../reducers/loadingSlice';
@@ -55,6 +56,9 @@ const Login = () => {
       } else {
         navigate.toAuthorizedStacks.customerAuthorized();
       }
+      // Cold start from a push with no stored credentials lands here instead
+      // of on auto-login; the parked target still belongs to this user.
+      runPendingDeepLink(350);
     } catch (error) {
       console.error('Login error:', error);
       ShowErrorToast('Login failed. Please try again.');

@@ -226,4 +226,39 @@ class AppHelper
             . '</body></html>';
         return response($html)->header('Content-Type', 'text/html');
     }
+
+    /**
+     * Admin email for a category a chef requested from the menu wizard.
+     *
+     * The row is created immediately and is already selectable by customers,
+     * so the copy says that outright rather than implying an approval queue
+     * that does not exist. Built here (rather than inline in the controller)
+     * so the wording is unit-testable without sending anything.
+     */
+    public static function newCategoryRequestEmail(
+        string $name,
+        $categoryId,
+        $chef = null
+    ): array {
+        $who = $chef
+            ? trim((string) ($chef->first_name ?? '') . ' ' . (string) ($chef->last_name ?? ''))
+            : '';
+        if ($who === '') $who = 'A chef';
+
+        $body = '<p><b>' . e($who) . '</b> requested a new category while creating a menu item.</p>';
+        $body .= '<p><b>Category:</b> ' . e($name) . '<br>';
+        $body .= '<b>Category ID:</b> ' . e((string) $categoryId) . '<br>';
+        if ($chef) {
+            $body .= '<b>Chef:</b> ' . e((string) ($chef->email ?? 'unknown'))
+                . ' (user #' . e((string) ($chef->id ?? '?')) . ')<br>';
+        }
+        $body .= '<b>Requested:</b> ' . now()->format('M j, Y g:ia') . ' UTC</p>';
+        $body .= '<p>This category is already live and selectable by customers. '
+            . 'Rename or remove it in the admin panel if it duplicates an existing cuisine.</p>';
+
+        return [
+            'subject' => 'Taist - New Category Requested: ' . $name,
+            'body' => $body,
+        ];
+    }
 }

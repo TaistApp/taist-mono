@@ -29,6 +29,7 @@ import { IMenu, IOrder, IPayment, IUser } from '../../../types/index';
 // Hooks
 import { useAppDispatch, useAppSelector } from '../../../hooks/useRedux';
 
+import OrderProgress from '../../../components/OrderProgress';
 import PushPermissionModal from '../../../components/PushPermissionModal';
 import StyledProfileImage from '../../../components/styledProfileImage';
 import { GetFCMToken, RequestPushPermission } from '../../../firebase';
@@ -100,7 +101,14 @@ const OrderDetail = () => {
   const [paymentMethod, onChangePaymentMethod] = useState<IPayment>();
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   // Only block on a spinner if we arrived without any order data to show.
-  const [isLoading, setIsLoading] = useState(!initialOrder?.id);
+  // An id on its own is not data: the inbox and push notifications hand over a
+  // bare `{ id }` stub, and rendering that produced the screen customers saw
+  // after tapping a notification — "undefined .", "Dec 31, 1969",
+  // "$undefined", "Item no longer on the menu" — until the fetch landed.
+  // `status` is the tell: the Orders list passes a full order, stubs don't.
+  const [isLoading, setIsLoading] = useState(
+    !(initialOrder?.id && initialOrder?.status != null),
+  );
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [showPushModal, setShowPushModal] = useState(false);
   const [pushRecord, setPushRecord] = useState<PushPromptRecord | null>(null);
@@ -570,6 +578,9 @@ const OrderDetail = () => {
               </View>
             </View>
           </View>
+
+          <Text style={styles.title}>Order Progress</Text>
+          <OrderProgress status={orderInfo?.status} />
 
           {orderInfo?.status == 3 && (
             <>
