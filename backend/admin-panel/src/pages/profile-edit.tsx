@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 interface ProfileDetail {
-  id: number;
+  // null until the chef has an availability row; saving the bio creates one.
+  id: number | null;
   user_id: number;
   bio: string | null;
 }

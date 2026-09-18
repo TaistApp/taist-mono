@@ -857,27 +857,75 @@ class AdminApiV2Controller extends Controller
 
     /**
      * Single profile for editing.
+     *
+     * The bio lives on the availability row, which a chef only gets once they
+     * save weekly hours. profiles() left-joins, so chefs without one are listed
+     * and can be opened here -- returning 404 for them rendered an empty Bio box
+     * with no explanation. Return an empty bio instead and let profileUpdate()
+     * create the row on save.
      */
     public function profileShow($id)
     {
-        $a = app(Availabilities::class)->where('user_id', $id)->first();
-        if (!$a) {
+        if (!$this->_chefExists($id)) {
             return response()->json(['error' => 'Profile not found'], 404);
         }
-        return response()->json(['id' => $a->id, 'user_id' => $id, 'bio' => $a->bio]);
+
+        $a = app(Availabilities::class)->where('user_id', $id)->first();
+
+        return response()->json([
+            'id' => $a->id ?? null,
+            'user_id' => (int) $id,
+            'bio' => $a->bio ?? null,
+        ]);
     }
 
     /**
      * Update profile bio.
+     *
+     * Creates the availability row when the chef has never set weekly hours: a
+     * bare update() matched zero rows there and the panel reported a success
+     * that never reached the database.
+     *
+     * Row counts cannot stand in for that check -- the MySQL connection does not
+     * set PDO::MYSQL_ATTR_FOUND_ROWS, so update() returns *changed* rows and
+     * re-saving an unchanged bio legitimately returns 0.
      */
     public function profileUpdate(Request $request, $id)
     {
         $request->validate(['bio' => 'required|string']);
-        app(Availabilities::class)->where('user_id', $id)->update([
-            'bio' => $request->bio,
-            'updated_at' => time(),
-        ]);
+
+        if (!$this->_chefExists($id)) {
+            return response()->json(['success' => false, 'error' => 'Profile not found'], 404);
+        }
+
+        $exists = app(Availabilities::class)->where('user_id', $id)->exists();
+
+        if ($exists) {
+            app(Availabilities::class)->where('user_id', $id)->update([
+                'bio' => $request->bio,
+                'updated_at' => now(),
+            ]);
+        } else {
+            // created_at is NOT NULL with no default; now() matches the datetime
+            // format createAvailability() writes and the model's strtotime casts.
+            app(Availabilities::class)->insert([
+                'user_id' => $id,
+                'bio' => $request->bio,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * Guards the bio endpoints against ids that are not chefs, so a stray id
+     * cannot create an orphan availability row.
+     */
+    private function _chefExists($id)
+    {
+        return DB::table('tbl_users')->where('id', $id)->where('user_type', 2)->exists();
     }
 
     // ==================== Phase 6: Chats + Reviews + Transactions ====================
