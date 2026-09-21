@@ -73,6 +73,16 @@ class Kernel extends ConsoleKernel
                  ->withoutOverlapping()
                  ->appendOutputTo('/proc/1/fd/1');
 
+        // Nudge approved chefs who never set weekly availability — the last
+        // onboarding step, and the only one with no reminder of its own.
+        // Hourly is granular enough: the command self-limits to 10:00-18:00
+        // chef-local, one reminder per 72h, four per chef for life.
+        $schedule->command('chef:send-availability-reminders')
+                 ->hourly()
+                 ->withoutOverlapping()
+                 ->runInBackground()
+                 ->appendOutputTo('/proc/1/fd/1');
+
         // TMA-011 REVISED: Clean up old availability overrides
         // Removes override records older than 7 days to keep database clean
         $schedule->command('chef:cleanup-old-overrides')
