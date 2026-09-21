@@ -49,6 +49,17 @@ class SendAvailabilitySetupReminders extends Command
     public const WINDOW_START_HOUR = 10;
     public const WINDOW_END_HOUR = 18;
 
+    /**
+     * SMS body for the nudge.
+     *
+     * Kept ASCII and under 160 characters on purpose: a single character
+     * outside GSM-7 (the first version of this used an em dash) switches the
+     * whole message to UCS-2, which drops the per-segment limit from 160 to
+     * 70 and silently doubles the cost of every send. The first production
+     * run billed two segments per chef for exactly that reason.
+     */
+    public const SMS_BODY = "Taist: you're approved to cook! One step left: open the app and set your weekly availability so customers can book you.";
+
     /** The seven `*_start` columns on tbl_availabilities. Note the legacy "saterday" spelling. */
     public const DAY_START_COLUMNS = [
         'monday_start', 'tuesday_start', 'wednesday_start', 'thursday_start',
@@ -243,7 +254,7 @@ class SendAvailabilitySetupReminders extends Command
         if ($withSms && !empty($chef->phone)) {
             $result = $twilioService->sendSMS(
                 $chef->phone,
-                "Taist: you're approved to cook! One step left — open the app and set your weekly availability so customers can book you.",
+                self::SMS_BODY,
                 ['chef_id' => $chef->id, 'notification_type' => self::CATEGORY]
             );
 
