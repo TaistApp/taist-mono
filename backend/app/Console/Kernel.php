@@ -77,7 +77,14 @@ class Kernel extends ConsoleKernel
         // onboarding step, and the only one with no reminder of its own.
         // Hourly is granular enough: the command self-limits to 10:00-18:00
         // chef-local, one reminder per 72h, four per chef for life.
-        $schedule->command('chef:send-availability-reminders')
+        //
+        // --sms because push alone does not reach this cohort: no chef account
+        // in production has push_opted_in set, and getToken() returns a valid
+        // token without notification permission, so a push-only reminder can
+        // report success, never display, and still spend one of the four. The
+        // lifetime cap bounds this at four texts per chef; TwilioService's own
+        // SMS_ENABLED gate keeps it to production.
+        $schedule->command('chef:send-availability-reminders --sms')
                  ->hourly()
                  ->withoutOverlapping()
                  ->runInBackground()
