@@ -399,11 +399,23 @@ const Splash = () => {
       // A newer app version (e.g. after a bump before the DB is updated) should not be blocked.
       if (
         versionResponse?.success === 1 &&
+        CURRENT_VERSION &&
         isVersionLessThan(CURRENT_VERSION, requiredVersion)
       ) {
         console.log(
           `App version ${CURRENT_VERSION} is below minimum ${requiredVersion}. APP_ENV=${APP_ENV}`,
         );
+        // Actually SHOW the update screen. This used to be a bare `return`,
+        // which left `isOutdated` false and `splash` true — so the app sat on
+        // the branded splash forever with no message and no way forward. The
+        // 35s fallback that would have rescued it is cleared by autoLogin()'s
+        // own .finally(), so nothing ever reset the screen. Raising
+        // MIN_VERSION therefore hard-bricked every user still on an older
+        // build: a chef missed a live order because the app never got past
+        // this screen, and the "Update Required" UI below was dead code that
+        // could never render.
+        setIsOutdated(true);
+        setSplash(false);
         return;
       }
 
