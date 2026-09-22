@@ -37,7 +37,7 @@ interface Order {
   status: string;
   status_code: number;
   notes: string | null;
-  cancelled_by: { role: string; name: string; email: string } | null;
+  cancelled_by: { role: string; name: string | null; email: string | null } | null;
   cancelled_at: string | null;
   cancellation_type: string | null;
   cancellation_reason: string | null;
@@ -209,8 +209,9 @@ const columns: ColumnDef<Order>[] = [
           <div>
             {o.cancelled_by.role
               ? `${o.cancelled_by.role.charAt(0).toUpperCase()}${o.cancelled_by.role.slice(1)}`
-              : ""}{" "}
-            - {o.cancelled_by.name}
+              : ""}
+            {/* System cancellations have no actor to name. */}
+            {o.cancelled_by.name ? ` - ${o.cancelled_by.name}` : ""}
           </div>
           {o.cancellation_reason && (
             <ExpandableText
