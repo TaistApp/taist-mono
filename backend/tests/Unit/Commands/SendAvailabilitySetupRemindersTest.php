@@ -145,4 +145,30 @@ class SendAvailabilitySetupRemindersTest extends TestCase
     {
         $this->assertTrue(Cmd::isInsideLocalWindow(null, Carbon::parse('2026-09-21 19:00:00', 'UTC')));
     }
+
+    // --- SMS cost ----------------------------------------------------------
+
+    /**
+     * The first production run billed two segments per chef because the copy
+     * contained an em dash: one character outside GSM-7 switches the whole
+     * message to UCS-2 and drops the segment limit from 160 to 70.
+     */
+    public function test_sms_body_contains_no_characters_outside_gsm7(): void
+    {
+        $offenders = [];
+        foreach (preg_split('//u', Cmd::SMS_BODY, -1, PREG_SPLIT_NO_EMPTY) as $char) {
+            $code = mb_ord($char, 'UTF-8');
+            if ($code > 127) {
+                $offenders[] = $char . ' (U+' . strtoupper(dechex($code)) . ')';
+            }
+        }
+
+        $this->assertSame([], $offenders, 'non-GSM-7 characters double the cost of every send: ' . implode(', ', $offenders));
+    }
+
+    /** Control case: the body must also stay inside one 160-character segment. */
+    public function test_sms_body_fits_a_single_segment(): void
+    {
+        $this->assertLessThanOrEqual(160, mb_strlen(Cmd::SMS_BODY, 'UTF-8'));
+    }
 }
