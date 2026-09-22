@@ -24,7 +24,7 @@ interface Order {
   status: string;
   status_code: number;
   notes: string | null;
-  cancelled_by: { role: string; name: string; email: string } | null;
+  cancelled_by: { role: string; name: string | null; email: string | null } | null;
   cancelled_at: string | null;
   cancellation_type: string | null;
   cancellation_reason: string | null;
@@ -277,8 +277,10 @@ export default function OrderDetailDrawer({
                   <span className="font-medium">
                     {order.cancelled_by.role
                       ? `${order.cancelled_by.role.charAt(0).toUpperCase()}${order.cancelled_by.role.slice(1)}`
-                      : "Unknown"}{" "}
-                    — {order.cancelled_by.name}
+                      : "Unknown"}
+                    {/* System cancellations have no actor, so there is no name
+                        to show — omit the dash rather than trailing one. */}
+                    {order.cancelled_by.name ? ` — ${order.cancelled_by.name}` : ""}
                   </span>
                 </div>
                 {order.cancellation_type && (

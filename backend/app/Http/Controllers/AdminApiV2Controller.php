@@ -206,6 +206,43 @@ class AdminApiV2Controller extends Controller
     }
 
     /**
+     * Whether an order row carries a cancellation the panel should render.
+     *
+     * This used to key off `cancelled_by_user_id` alone, which silently hid
+     * every SYSTEM cancellation: the 30-minute acceptance timeout
+     * (ProcessExpiredOrders) and the payment-failure void both set
+     * `cancelled_by_role = 'system'` and leave `cancelled_by_user_id` NULL,
+     * because no user cancelled them. The result was that a timed-out order
+     * showed an entirely empty Cancellation section — no type, no reason, and
+     * no refund — making it indistinguishable in the panel from an order that
+     * was never cancelled at all, even though the customer had already been
+     * refunded 100%.
+     */
+    public static function isCancelled($order): bool
+    {
+        return !empty($order->cancelled_by_user_id) || !empty($order->cancelled_by_role);
+    }
+
+    /**
+     * The actor descriptor for a cancellation.
+     *
+     * A system cancellation has no `tbl_users` row to join against, so the
+     * name/email come back empty. Emit null rather than an empty string so the
+     * UI can distinguish "there is no actor" from "we failed to load a name",
+     * and so it knows to omit the dash separator entirely.
+     */
+    public static function cancelledBy($order): array
+    {
+        $name = trim(($order->cancelled_by_first_name ?? '') . ' ' . ($order->cancelled_by_last_name ?? ''));
+
+        return [
+            'role' => $order->cancelled_by_role,
+            'name' => $name !== '' ? $name : null,
+            'email' => $order->cancelled_by_email ?? null,
+        ];
+    }
+
+    /**
      * All chefs with availability, overrides, and live menus.
      */
     /**
@@ -564,12 +601,8 @@ class AdminApiV2Controller extends Controller
                 'created_at' => (int)$o->created_at,
             ];
 
-            if ($hasCancellationCols && $o->cancelled_by_user_id) {
-                $row['cancelled_by'] = [
-                    'role' => $o->cancelled_by_role,
-                    'name' => trim($o->cancelled_by_first_name . ' ' . $o->cancelled_by_last_name),
-                    'email' => $o->cancelled_by_email,
-                ];
+            if ($hasCancellationCols && self::isCancelled($o)) {
+                $row['cancelled_by'] = self::cancelledBy($o);
                 $row['cancelled_at'] = $o->cancelled_at;
                 $row['cancellation_type'] = $o->cancellation_type;
                 $row['cancellation_reason'] = $o->cancellation_reason;
