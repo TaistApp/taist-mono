@@ -23,6 +23,7 @@ import {
   PanelLeftOpen,
   UserPlus,
   Mail,
+  Filter,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ChangePasswordDialog from "./change-password-dialog";
@@ -76,7 +77,8 @@ const navSections: NavSection[] = [
     section: "Marketing",
     items: [
       { to: "/admin-new/waitlist", icon: ClipboardList, label: "Waitlist" },
-      { to: "/admin-new/newsletter-preview", icon: Mail, label: "Newsletter Preview" },
+      { to: "/admin-new/newsletters", icon: Mail, label: "Newsletters" },
+      { to: "/admin-new/newsletter-preview", icon: Filter, label: "Newsletter Audience" },
       { to: "/admin-new/discount-codes", icon: Tag, label: "Discount Codes" },
       { to: "/admin-new/referrals", icon: UserPlus, label: "Referrals" },
       { to: "/admin-new/dish-photos", icon: Camera, label: "Dish Photos" },

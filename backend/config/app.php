@@ -149,6 +149,31 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Newsletters
+    |--------------------------------------------------------------------------
+    |
+    | newsletter_autosend: whether `newsletter:run` emails previews and sends
+    | scheduled editions. On in production only unless explicitly overridden,
+    | so staging never emails real chefs or customers.
+    |
+    | newsletter_preview_email: who gets the preview 48h before each send.
+    |
+    | newsletter_mailing_address: postal address in every newsletter footer.
+    | CAN-SPAM requires a valid street address or PO box.
+    |
+    */
+
+    'newsletter_autosend' => filter_var(
+        env('NEWSLETTER_AUTOSEND', env('APP_ENV') === 'production'),
+        FILTER_VALIDATE_BOOLEAN
+    ),
+
+    'newsletter_preview_email' => env('NEWSLETTER_PREVIEW_EMAIL', 'dayne@taist.app'),
+
+    'newsletter_mailing_address' => env('NEWSLETTER_MAILING_ADDRESS'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Autoloaded Service Providers
     |--------------------------------------------------------------------------
     |

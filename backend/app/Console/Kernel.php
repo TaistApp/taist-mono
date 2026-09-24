@@ -105,6 +105,15 @@ class Kernel extends ConsoleKernel
                  ->runInBackground()
                  ->appendOutputTo('/proc/1/fd/1');
 
+        // Newsletters: auto-draft the next edition from the backlog, email
+        // Dayne a preview 48h before each send, then deliver via Resend.
+        // Only active where NEWSLETTER_AUTOSEND is on (production by default).
+        $schedule->command('newsletter:run')
+                 ->everyFifteenMinutes()
+                 ->withoutOverlapping()
+                 ->runInBackground()
+                 ->appendOutputTo('/proc/1/fd/1');
+
         // Safety net: clean up stale verification accounts older than 2 hours.
         // Won't touch accounts from an active session (created < 2h ago).
         $schedule->command('verify:accounts cleanup --max-age=120')

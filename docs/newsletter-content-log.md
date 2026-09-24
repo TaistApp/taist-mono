@@ -4,17 +4,28 @@ Tracks what goes out in each newsletter, so we **never repeat a feature update a
 editions** and can keep cadence sane. When drafting the next edition, pull from the
 **Backlog** and move items up to **Featured** once that edition is sent.
 
-## Channels
+## How newsletters are sent (since Sept 2026)
 
-| Channel | Make scenario / location | Cadence |
+Newsletters run from the backend, not Make.com:
+
+- **Write / edit / schedule:** admin panel → Marketing → **Newsletters** (form editor with live preview and test send).
+- **Who receives it:** admin panel → Marketing → **Newsletter Audience** (filter per audience; unsubscribed addresses are always excluded).
+- **48-hour preview:** every scheduled edition is emailed to `NEWSLETTER_PREVIEW_EMAIL` (default dayne@taist.app) 48 hours before it sends, with **Edit in admin** and **Pause this send** links. No action = it sends on time. An edition can't be scheduled with less than 48 hours' notice, and a late preview pushes the send back so the full 48 hours always apply.
+- **Automatic cadence:** after a *regular* edition sends, the next one is auto-drafted from that audience's **backlog** (top 5 unused updates) and scheduled `cadence_days` later (default 14) at 10:00 ET. If the backlog is empty, it's left as an unscheduled draft and Dayne gets a "needs content" email. The first edition per audience is always scheduled by hand.
+- **Never repeat:** when an edition sends, the backlog items it featured are marked used.
+- **Unsubscribe:** every email has a footer unsubscribe link plus `List-Unsubscribe` / one-click headers (RFC 8058). Opt-outs are stored in `tbl_newsletter_unsubscribes`.
+- **Runner:** `php artisan newsletter:run` every 15 minutes (production only unless `NEWSLETTER_AUTOSEND=true`). `--dry-run` shows what would happen.
+- **Env vars:** `NEWSLETTER_MAILING_ADDRESS` (required by CAN-SPAM: street address or PO box), `NEWSLETTER_PREVIEW_EMAIL`, `NEWSLETTER_AUTOSEND`, plus the existing `RESEND_API_KEY`.
+
+The old Make scenarios (#5233475 customer, #5233482 Chef Regular, #5380856 Chef Special) are **retired**: they're inactive and have no unsubscribe link, so don't run them.
+
+| Channel | Where | Cadence |
 | --- | --- | --- |
-| Customer newsletter | #5233475 | biweekly |
-| **Chef Regular** | **#5233482** ("Newsletter - Chef Regular (biweekly)") | biweekly — feature & progress updates |
-| **Chef Special** | **#5380856** ("Newsletter - Chef Special (ad-hoc)") | ad-hoc — events & promotions, sent on demand |
+| Customer newsletter | Admin → Newsletters → Customers | biweekly, auto after the first send |
+| **Chef Regular** | Admin → Newsletters → Chefs (regular) | biweekly, auto after the first send |
+| **Chef Special** | Admin → Newsletters → Chefs → "Special (one-off)" | ad-hoc, scheduled by hand |
 | **Chef welcome email** | backend, `resources/views/emails/chef-welcome.blade.php` | triggered automatically when a chef is approved (not a newsletter) |
 
-- Audience preview / who-receives: admin panel → **Marketing → Newsletter Preview**.
-- Recipients come from `GET /admin-api-v2/newsletter-recipients?user_type=2` (active/approved chefs only).
 - Mirrored in Claude memory (`newsletter_chef_backlog`).
 
 ## Rules
@@ -22,12 +33,12 @@ editions** and can keep cadence sane. When drafting the next edition, pull from 
 - **Never feature the same update in more than one edition.** Check this log first.
 - **Regular** = feature & progress updates, biweekly. **Special** = events/promos, ad-hoc.
 - Space Regular and Special sends out so chefs don't get two emails back to back (avoid spammy feel).
-- Chef copy: use **"order"**, not "booking". No em dashes anywhere. Updates list ~3 items.
+- Chef copy: use **"order"**, not "booking". No em dashes anywhere. Updates list up to 5 items.
 - "Featured" only counts once an edition has actually been **sent**.
 
 ---
 
-## Chef — Regular (#5233482, biweekly)
+## Chef — Regular (biweekly)
 
 ### Featured / sent
 
@@ -37,15 +48,18 @@ editions** and can keep cadence sane. When drafting the next edition, pull from 
 
 **Used updates — do NOT repeat in any future edition:** minimum order total, arrival & parking details, share-your-profile links.
 
-### Backlog (for Regular #2 onward)
+| 2 — "What's New" | **Drafted in admin (seeded Sept 2026), not yet scheduled** | 5 updates: discount codes no longer come out of chef pay · one-tap Stripe payouts setup · step-by-step order reminders (ingredients, On My Way, wrap-up + dish photo) · missed/cancelled orders flagged on home + notification · Pause account |
 
-- **Richer notifications + in-app notification center** — order alerts include dish photos; one place for all messages. (PR #21.)
-- **Dish photo capture after orders** — chefs are prompted to snap the finished dish for approval/social. (PRs #12, #13.)
-- _Add newly shipped chef features here as they reach production (`origin/main`)._
+### Backlog
+
+The live backlog is in the admin panel (Newsletters → Chefs → Update backlog). Seeded with: review
+notifications, chat push alerts, customer name + unit number on orders, Meal Prep category, dish
+photos after orders. Dish-request ("pool") ordering is deliberately left out until it's enabled in
+production.
 
 ---
 
-## Chef — Special (#5380856, ad-hoc)
+## Chef — Special (ad-hoc)
 
 ### Featured / planned
 
@@ -70,14 +84,15 @@ status=1), unless **Silent Activate** is used. Evergreen content: congrats + nex
 
 ---
 
-## Customer newsletter (#5233475)
+## Customer newsletter (biweekly)
 
 ### Featured
 
 | Edition | Status | Content |
 | --- | --- | --- |
-| 1 — "Welcome In" | Drafted, not yet sent | Welcome / how-to-order (Download & discount · Browse chefs · Order). Not feature-update style. |
+| 1 — "Welcome In" | Drafted in admin (seeded from the unsent Make draft), not yet scheduled. **Confirm EARLYTAIST is active first**: the editor warns if it isn't. | Welcome / how-to-order (Download & discount · Browse chefs · Order). Not feature-update style. |
 
-### Backlog (not yet featured)
+### Backlog
 
-- _Add customer-facing product updates here as they ship._
+Live in the admin panel (Newsletters → Customers → Update backlog). Seeded with: new checkout,
+chat push alerts, easier password resets, "order from similar chefs" after a declined order.
