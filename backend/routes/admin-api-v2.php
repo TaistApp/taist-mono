@@ -80,6 +80,22 @@ Route::group(['middleware' => ['auth:adminapi']], function () {
     Route::get('newsletter-settings', 'AdminApiV2Controller@newsletterSettings');
     Route::put('newsletter-settings', 'AdminApiV2Controller@newsletterSettingsUpdate');
 
+    // Newsletter editions, backlog and automation (sending runs from newsletter:run)
+    Route::get('newsletters', 'NewsletterAdminController@index');
+    Route::post('newsletters', 'NewsletterAdminController@store');
+    Route::post('newsletters/render', 'NewsletterAdminController@render');
+    Route::get('newsletters/{id}', 'NewsletterAdminController@show')->where('id', '[0-9]+');
+    Route::put('newsletters/{id}', 'NewsletterAdminController@update')->where('id', '[0-9]+');
+    Route::delete('newsletters/{id}', 'NewsletterAdminController@destroy')->where('id', '[0-9]+');
+    Route::post('newsletters/{id}/schedule', 'NewsletterAdminController@schedule')->where('id', '[0-9]+');
+    Route::post('newsletters/{id}/unschedule', 'NewsletterAdminController@unschedule')->where('id', '[0-9]+');
+    Route::post('newsletters/{id}/test', 'NewsletterAdminController@sendTest')->where('id', '[0-9]+');
+    Route::post('newsletter-backlog', 'NewsletterAdminController@backlogStore');
+    Route::put('newsletter-backlog/{id}', 'NewsletterAdminController@backlogUpdate')->where('id', '[0-9]+');
+    Route::delete('newsletter-backlog/{id}', 'NewsletterAdminController@backlogDestroy')->where('id', '[0-9]+');
+    Route::put('newsletter-automation', 'NewsletterAdminController@automationUpdate');
+    Route::get('newsletter-unsubscribes', 'NewsletterAdminController@unsubscribes');
+
     // Proxy legacy mutation endpoints so frontend baseURL (/admin-api-v2) works
     Route::get('adminapi/change_chef_status', 'AdminapiController@changeChefStatus');
     Route::get('adminapi/change_ticket_status', 'AdminapiController@changeTicketStatus');

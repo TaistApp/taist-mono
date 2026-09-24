@@ -74,6 +74,7 @@ The active upload key is the `taistapp` org EAS keystore (`Build Credentials Kod
 - **Email:** Resend API via `_sendEmail()` in `MapiController.php` (not Laravel Mail). Env var: `RESEND_API_KEY`.
 - **SMS:** Twilio via `TwilioService.php` and `OrderSmsService.php`. Env vars: `TWILIO_SID`, `TWILIO_TOKEN`, `TWILIO_FROM`.
 - **Admin order notifications:** New orders send SMS to Dayne and Daryl, and email to `contact@taist.app`.
+- **Newsletters:** Chef + customer newsletters are written, scheduled and previewed in the admin panel (Marketing → Newsletters) and sent by `php artisan newsletter:run` via Resend. Dayne gets each edition by email 48h before it sends. See `docs/newsletter-content-log.md`. The old Make.com newsletter scenarios are retired.
 - **DNS:** `taist.app` domain is on Domain.com but nameservers point to **Vercel**. All DNS changes go in Vercel.
 - **Resend account:** Team "TaistApp" (formerly billygroble) on resend.com.
 

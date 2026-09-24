@@ -24,6 +24,7 @@ use App\Models\DishPhoto;
 use App\Models\SocialContentQueue;
 use App\Models\Waitlist;
 use App\Models\NewsletterSettings;
+use App\Services\NewsletterService;
 use App\Notification;
 use DB;
 use Illuminate\Support\Facades\Log;
@@ -1755,9 +1756,9 @@ class AdminApiV2Controller extends Controller
     }
 
     /**
-     * Update the audience filter mode for one user_type. This controls who the
-     * Make.com newsletter scenarios actually send to (they call
-     * newsletterRecipients, which reads these settings).
+     * Update the audience filter mode for one user_type. This controls who
+     * newsletter:run sends each edition to (and the legacy Make.com
+     * scenarios, via newsletterRecipients).
      */
     public function newsletterSettingsUpdate(Request $request)
     {
@@ -1780,99 +1781,12 @@ class AdminApiV2Controller extends Controller
     }
 
     /**
-     * Build the merged newsletter recipient list for a given user_type,
-     * applying the audience filter. Combines waitlist contacts and app users,
-     * deduped by email (app users take priority).
-     *
-     * Filter modes:
-     *   Customers (user_type 1):
-     *     - service_area : only zips listed in tbl_zipcodes (waitlist + app users)
-     *     - all          : every customer, no zip filter
-     *   Chefs (user_type 2):
-     *     - active         : approved app chefs only (verified=1, is_pending=0); no leads
-     *     - active_pending : app chefs only, approved or mid-application (verified 0/1); no leads
-     *     - all            : app chefs (verified 0/1) plus waitlist leads
-     *
-     * If $mode is null the stored setting for the user_type is used.
+     * Merged newsletter recipient list for a user_type (see
+     * NewsletterService::recipients for the filter modes). Unsubscribed
+     * addresses are always excluded.
      */
     private function buildNewsletterRecipients($userType, $mode = null)
     {
-        if ($mode === null) {
-            $mode = NewsletterSettings::modeForType($userType);
-        }
-
-        $isChef = ((int) $userType) === 2;
-
-        // ---- Waitlist contacts (leads) ----
-        // Chef "active"/"active_pending" modes exclude waitlist leads entirely.
-        $includeWaitlist = !($isChef && in_array($mode, ['active', 'active_pending'], true));
-
-        $waitlistContacts = collect([]);
-        if ($includeWaitlist) {
-            $waitlistQuery = Waitlist::where('user_type', $userType);
-            if (!$isChef && $mode === 'service_area') {
-                $zips = $this->serviceAreaZips();
-                $waitlistQuery->whereIn('zip', $zips);
-            }
-            $waitlistContacts = $waitlistQuery
-                ->select('email', 'first_name')
-                ->get()
-                ->map(function ($w) {
-                    return [
-                        'email' => strtolower($w->email),
-                        'first_name' => $w->first_name,
-                        'last_name' => null, // waitlist has no last name
-                        'source' => 'waitlist',
-                    ];
-                });
-        }
-
-        // ---- App users ----
-        $appQuery = app(Listener::class)->where('user_type', $userType);
-
-        if ($isChef) {
-            // Chef status via verified/is_pending.
-            if ($mode === 'active') {
-                $appQuery->where('verified', 1)->where('is_pending', 0);
-            } else {
-                // active_pending + all: approved or mid-application, never rejected/suspended.
-                $appQuery->whereIn('verified', [0, 1]);
-            }
-        } else {
-            $appQuery->whereIn('verified', [0, 1]); // pending or active customer
-            if ($mode === 'service_area') {
-                $appQuery->whereIn('zip', $this->serviceAreaZips());
-            }
-        }
-
-        $appContacts = $appQuery
-            ->select('email', 'first_name', 'last_name')
-            ->get()
-            ->map(function ($u) {
-                return [
-                    'email' => strtolower($u->email),
-                    'first_name' => $u->first_name,
-                    'last_name' => $u->last_name,
-                    'source' => 'app',
-                ];
-            });
-
-        // Merge and dedupe by email (app users take priority)
-        return $appContacts->concat($waitlistContacts)
-            ->unique('email')
-            ->values();
-    }
-
-    /**
-     * Parsed list of served zip codes from tbl_zipcodes (the Service Areas
-     * setting). Returns [] if unset — callers should treat that as "no match".
-     */
-    private function serviceAreaZips(): array
-    {
-        $record = app(Zipcodes::class)->first();
-        if (!$record || !$record->zipcodes) {
-            return [];
-        }
-        return array_values(array_filter(array_map('trim', explode(',', $record->zipcodes))));
+        return app(NewsletterService::class)->recipients($userType, $mode);
     }
 }
