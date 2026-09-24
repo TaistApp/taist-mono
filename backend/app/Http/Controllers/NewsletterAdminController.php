@@ -63,7 +63,7 @@ class NewsletterAdminController extends Controller
             'warnings' => $this->newsletters->warnings($edition),
             'recipient_count' => $edition->status === NewsletterEdition::STATUS_SENT
                 ? $edition->recipient_count
-                : $this->newsletters->recipients($edition->user_type)->count(),
+                : $this->newsletters->sendAudience($edition->user_type)->count(),
             'config' => $this->configSummary(),
         ]);
     }
@@ -388,7 +388,7 @@ class NewsletterAdminController extends Controller
             'send_at_label' => $toEastern($e->send_at, 'D, M j, Y g:i A') ? $toEastern($e->send_at, 'D, M j, Y g:i A') . ' ET' : null,
             'effective_send_at_label' => $toEastern($e->effectiveSendAt(), 'D, M j, Y g:i A') ? $toEastern($e->effectiveSendAt(), 'D, M j, Y g:i A') . ' ET' : null,
             'preview_at_label' => $e->send_at && $e->status === NewsletterEdition::STATUS_SCHEDULED && !$e->preview_sent_at
-                ? $toEastern($e->send_at->copy()->subHours(NewsletterSettings::NOTICE_HOURS), 'D, M j g:i A') . ' ET'
+                ? $toEastern($e->send_at->copy()->subMinutes(NewsletterSettings::noticeMinutes()), 'D, M j g:i A') . ' ET'
                 : null,
             'preview_sent_at_label' => $toEastern($e->preview_sent_at, 'D, M j g:i A') ? $toEastern($e->preview_sent_at, 'D, M j g:i A') . ' ET' : null,
             'sent_at_label' => $toEastern($e->sent_at, 'D, M j, Y g:i A') ? $toEastern($e->sent_at, 'D, M j, Y g:i A') . ' ET' : null,
@@ -399,6 +399,7 @@ class NewsletterAdminController extends Controller
     {
         return [
             'notice_hours' => NewsletterSettings::NOTICE_HOURS,
+            'notice_label' => NewsletterSettings::noticeLabel(),
             'preview_email' => $this->newsletters->previewEmail(),
             'autosend_enabled' => $this->newsletters->autosendEnabled(),
             'mailing_address' => $this->newsletters->mailingAddress(),
@@ -406,6 +407,8 @@ class NewsletterAdminController extends Controller
             'earliest_send_at_et' => $this->newsletters->earliestSendAt()
                 ->addMinutes(5)->setTimezone(NewsletterSettings::TIMEZONE)->format('Y-m-d\TH:i'),
             'max_items' => NewsletterEdition::MAX_ITEMS,
+            'test_mode' => $this->newsletters->isTestMode(),
+            'test_recipients' => $this->newsletters->isTestMode() ? $this->newsletters->testRecipients() : [],
         ];
     }
 
@@ -431,7 +434,7 @@ class NewsletterAdminController extends Controller
 
     private function noticeError(): string
     {
-        return 'Send time must be at least ' . NewsletterSettings::NOTICE_HOURS
-            . ' hours from now so the preview goes out first.';
+        return 'Send time must be at least ' . NewsletterSettings::noticeLabel()
+            . ' from now so the preview goes out first.';
     }
 }

@@ -52,6 +52,9 @@ export interface BacklogItem {
 
 export interface NewsletterConfig {
   notice_hours: number;
+  notice_label: string;
+  test_mode: boolean;
+  test_recipients: string[];
   preview_email: string;
   autosend_enabled: boolean;
   mailing_address: string;

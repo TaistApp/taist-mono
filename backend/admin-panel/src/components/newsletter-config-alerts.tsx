@@ -14,6 +14,17 @@ export function NewsletterConfigAlerts({ config }: { config?: NewsletterConfig }
           </span>
         </div>
       )}
+      {config.test_mode && (
+        <div className="mb-3 flex gap-2 rounded-lg border border-purple-200 bg-purple-50 p-3 text-sm text-purple-900">
+          <Info className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            Test environment: scheduled sends go only to{" "}
+            <strong>{config.test_recipients.length ? config.test_recipients.join(", ") : "nobody"}</strong>{" "}
+            (<code>NEWSLETTER_TEST_RECIPIENTS</code>), never the real audience. Preview-to-send window:{" "}
+            {config.notice_label}.
+          </span>
+        </div>
+      )}
       {!config.autosend_enabled && (
         <div className="mb-3 flex gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
           <Info className="mt-0.5 h-4 w-4 shrink-0" />

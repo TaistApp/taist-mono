@@ -15,7 +15,8 @@ Newsletters run from the backend, not Make.com:
 - **Never repeat:** when an edition sends, the backlog items it featured are marked used.
 - **Unsubscribe:** every email has a footer unsubscribe link plus `List-Unsubscribe` / one-click headers (RFC 8058). Opt-outs are stored in `tbl_newsletter_unsubscribes`.
 - **Runner:** `php artisan newsletter:run` every 15 minutes (production only unless `NEWSLETTER_AUTOSEND=true`). `--dry-run` shows what would happen.
-- **Env vars:** `NEWSLETTER_MAILING_ADDRESS` (required by CAN-SPAM: street address or PO box), `NEWSLETTER_PREVIEW_EMAIL`, `NEWSLETTER_AUTOSEND`, plus the existing `RESEND_API_KEY`.
+- **Env vars:** `NEWSLETTER_PREVIEW_EMAIL`, `NEWSLETTER_AUTOSEND`, plus the existing `RESEND_API_KEY`. The CAN-SPAM footer address defaults to 7701 Creekside Dr, Fishers, IN 46038 (`NEWSLETTER_MAILING_ADDRESS` overrides it).
+- **Testing on staging:** outside production, scheduled sends go **only** to `NEWSLETTER_TEST_RECIPIENTS` (nobody if unset), and `NEWSLETTER_NOTICE_MINUTES` shortens the 48h window. Production ignores both.
 
 The old Make scenarios (#5233475 customer, #5233482 Chef Regular, #5380856 Chef Special) are **retired**: they're inactive and have no unsubscribe link, so don't run them.
 
@@ -48,13 +49,12 @@ The old Make scenarios (#5233475 customer, #5233482 Chef Regular, #5380856 Chef 
 
 **Used updates — do NOT repeat in any future edition:** minimum order total, arrival & parking details, share-your-profile links.
 
-| 2 — "What's New" | **Drafted in admin (seeded Sept 2026), not yet scheduled** | 5 updates: discount codes no longer come out of chef pay · one-tap Stripe payouts setup · step-by-step order reminders (ingredients, On My Way, wrap-up + dish photo) · missed/cancelled orders flagged on home + notification · Pause account |
+| 2 — "What's New" | **Drafted in admin (seeded Sept 2026), not yet scheduled** | 5 updates: one-tap Stripe payouts setup · step-by-step order reminders (ingredients, On My Way, wrap-up + dish photo) · missed/cancelled orders flagged on home + notification · chat alerts that always arrive · Pause account. (Discount funding deliberately not featured.) |
 
 ### Backlog
 
 The live backlog is in the admin panel (Newsletters → Chefs → Update backlog). Seeded with: review
-notifications, chat push alerts, customer name + unit number on orders, Meal Prep category, dish
-photos after orders. Dish-request ("pool") ordering is deliberately left out until it's enabled in
+notifications, customer name + unit number on orders, Meal Prep category, dish photos after orders. Dish-request ("pool") ordering is deliberately left out until it's enabled in
 production.
 
 ---
@@ -90,7 +90,7 @@ status=1), unless **Silent Activate** is used. Evergreen content: congrats + nex
 
 | Edition | Status | Content |
 | --- | --- | --- |
-| 1 — "Welcome In" | Drafted in admin (seeded from the unsent Make draft), not yet scheduled. **Confirm EARLYTAIST is active first**: the editor warns if it isn't. | Welcome / how-to-order (Download & discount · Browse chefs · Order). Not feature-update style. |
+| 1 — "Welcome In" | Drafted in admin (seeded from the unsent Make draft), not yet scheduled. Uses **TAIST30** (EARLYTAIST expired); the editor warns if a mentioned code is inactive. | Welcome / how-to-order (Download & discount · Browse chefs · Order). Not feature-update style. |
 
 ### Backlog
 

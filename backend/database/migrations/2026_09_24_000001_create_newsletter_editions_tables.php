@@ -148,13 +148,14 @@ class CreateNewsletterEditionsTables extends Migration
 
         // Chef Regular #2. Digest #1 went out via Make on 2026-06-15 and used:
         // minimum order total, arrival & parking details, share-your-profile links.
+        // Discount funding is left out on purpose (Dayne, 2026-09-24).
         DB::table('tbl_newsletter_editions')->insert([
             'user_type' => 2,
             'kind' => 'regular',
             'edition_number' => 2,
             'status' => 'draft',
             'subject' => 'Taist Digest #2: 5 upgrades built for you, Chef {first_name}',
-            'preheader' => 'Faster payouts setup, smarter order reminders, and discounts that no longer come out of your pay.',
+            'preheader' => 'Faster payouts setup, smarter order reminders, and chat alerts that always arrive.',
             'eyebrow' => "What's New",
             'headline' => "Hey Chef {first_name}, here's what's new.",
             'intro' => "It's been a busy summer at Taist. We've been listening to your feedback and shipping updates to make every order smoother, from setup to the final plate.\n\nHere are the five biggest changes on your side of the app:",
@@ -162,10 +163,6 @@ class CreateNewsletterEditionsTables extends Migration
             'callout_subtitle' => null,
             'items_heading' => null,
             'items' => json_encode([
-                [
-                    'title' => 'Discount codes no longer come out of your pay.',
-                    'body' => 'When a customer uses a promo code, Taist now covers the discount from our commission. You earn the same as if no code was used.',
-                ],
                 [
                     'title' => 'Payouts setup in one tap.',
                     'body' => "Connect Stripe straight from your home screen. Enter your details once and you're ready to get paid.",
@@ -177,6 +174,10 @@ class CreateNewsletterEditionsTables extends Migration
                 [
                     'title' => 'Never miss an order.',
                     'body' => "Your home screen now flags any order that was cancelled or expired, and you'll get a notification the moment it happens.",
+                ],
+                [
+                    'title' => 'Chat alerts that always arrive.',
+                    'body' => 'Every customer message now sends a push notification. Tap it to jump straight into the conversation.',
                 ],
                 [
                     'title' => 'Pause your account anytime.',
@@ -211,7 +212,7 @@ class CreateNewsletterEditionsTables extends Migration
             'items' => json_encode([
                 [
                     'title' => 'Download & open the app.',
-                    'body' => 'Use code EARLYTAIST for 30% off your first order.',
+                    'body' => 'Use code TAIST30 for 30% off your first order.',
                 ],
                 [
                     'title' => 'Browse chefs & menus near you.',
@@ -228,7 +229,7 @@ class CreateNewsletterEditionsTables extends Migration
             'cta_url' => 'https://apps.apple.com/app/1598624809',
             'send_at' => null,
             'created_by' => 'seed',
-            'notes' => 'Seeded from the unsent Make draft. Confirm EARLYTAIST is active before scheduling.',
+            'notes' => 'Seeded from the unsent Make draft. Uses TAIST30 (EARLYTAIST expired).',
             'created_at' => $now,
             'updated_at' => $now,
         ]);
@@ -236,7 +237,6 @@ class CreateNewsletterEditionsTables extends Migration
         // Backlog: shipped features not featured yet, for future auto-drafts.
         $backlog = [
             [2, 'A heads-up for every review.', "You now get a notification for every new review, with or without a tip, so you can see what customers loved."],
-            [2, 'Chat alerts that always arrive.', 'Every customer message now sends a push notification. Tap it to jump straight into the conversation.'],
             [2, 'Customer name and unit number on every order.', 'Know exactly who you are cooking for and which door to knock on, including apartment and unit numbers.'],
             [2, 'A new Meal Prep category.', 'List meal-prep packages as their own dishes. Serving size defaults to the number of meals you offer.'],
             [2, 'Dish photos after every order.', "When you mark an order complete, snap the finished dish. Great photos get featured on Taist's socials."],

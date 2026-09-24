@@ -10,7 +10,8 @@ use Illuminate\Console\Command;
  * Drives the newsletter pipeline. Scheduled every 15 minutes:
  *
  *   1. Plan: auto-draft the next regular edition per audience from its backlog.
- *   2. Preview: email Dayne each scheduled edition 48 hours before it sends.
+ *   2. Preview: email Dayne each scheduled edition 48 hours before it sends
+ *      (shorter on staging via NEWSLETTER_NOTICE_MINUTES).
  *   3. Send: deliver editions whose time has come (and whose preview went out
  *      at least 48 hours earlier), resuming any send that was interrupted.
  */
@@ -46,7 +47,7 @@ class RunNewsletters extends Command
 
         foreach ($newsletters->sendDueEditions($now, $dryRun) as $edition) {
             $this->info($dryRun
-                ? "[dry run] Would send {$edition->displayName()} to " . $newsletters->recipients($edition->user_type)->count() . ' recipient(s)'
+                ? "[dry run] Would send {$edition->displayName()} to " . $newsletters->sendAudience($edition->user_type)->count() . ' recipient(s)'
                 : "Sent {$edition->displayName()}: {$edition->sent_count}/{$edition->recipient_count} delivered, {$edition->failed_count} failed");
         }
 

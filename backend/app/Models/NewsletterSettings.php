@@ -24,6 +24,7 @@ class NewsletterSettings extends Model
 
     // Dayne gets the preview this many hours before an edition goes out, and
     // an edition can never be scheduled with less notice than this.
+    // Production always uses it; see noticeMinutes() for staging tests.
     const NOTICE_HOURS = 48;
 
     // Send times are entered and shown in Indianapolis (Eastern) time.
@@ -75,5 +76,33 @@ class NewsletterSettings extends Model
             'cadence_days' => $row && $row->cadence_days ? (int) $row->cadence_days : static::DEFAULT_CADENCE_DAYS,
             'send_time' => $sendTime,
         ];
+    }
+
+    /**
+     * The preview-to-send notice window in minutes. Always 48 hours in
+     * production. Elsewhere NEWSLETTER_NOTICE_MINUTES can shorten it so the
+     * whole preview -> send flow can be tested on staging in one sitting.
+     */
+    public static function noticeMinutes(): int
+    {
+        $default = static::NOTICE_HOURS * 60;
+        if (app()->environment('production')) {
+            return $default;
+        }
+        $override = (int) config('app.newsletter_notice_minutes');
+        return $override > 0 ? $override : $default;
+    }
+
+    /**
+     * "48 hours", "10 minutes", etc. for copy in emails and the admin panel.
+     */
+    public static function noticeLabel(): string
+    {
+        $minutes = static::noticeMinutes();
+        if ($minutes % 60 === 0) {
+            $hours = intdiv($minutes, 60);
+            return $hours . ' hour' . ($hours === 1 ? '' : 's');
+        }
+        return $minutes . ' minute' . ($minutes === 1 ? '' : 's');
     }
 }

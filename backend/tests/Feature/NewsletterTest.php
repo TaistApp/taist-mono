@@ -32,6 +32,8 @@ class NewsletterTest extends TestCase
         parent::setUp();
 
         Carbon::setTestNow(Carbon::parse(self::NOW, 'UTC'));
+        // Real-audience behaviour; staging/test mode has its own tests below.
+        $this->app['env'] = 'production';
         config([
             'app.key' => 'base64:' . base64_encode(str_repeat('k', 32)),
             'app.url' => 'https://api.taist.app',
@@ -102,6 +104,11 @@ class NewsletterTest extends TestCase
         $chef = NewsletterEdition::where('user_type', 2)->first();
         $this->assertSame(2, $chef->edition_number);
         $this->assertCount(5, $chef->items);
+        $this->assertStringNotContainsStringIgnoringCase('discount', json_encode($chef->items) . $chef->preheader);
+
+        $customer = NewsletterEdition::where('user_type', 1)->first();
+        $this->assertStringContainsString('TAIST30', json_encode($customer->items));
+        $this->assertStringNotContainsString('EARLYTAIST', json_encode($customer->items));
 
         $this->artisan('newsletter:run')->assertExitCode(0);
 
@@ -284,6 +291,77 @@ class NewsletterTest extends TestCase
     }
 
     // ------------------------------------------------------------------
+    // Staging / test mode
+    // ------------------------------------------------------------------
+
+    public function test_outside_production_a_send_never_reaches_the_real_audience()
+    {
+        $this->app['env'] = 'staging';
+        $this->seedChef(1, 'maria@example.com', 'Maria');
+        $edition = $this->scheduledEdition([
+            'send_at' => Carbon::now()->subMinute(),
+            'preview_sent_at' => Carbon::now()->subHours(49),
+        ]);
+        Http::fake(['api.resend.com/*' => Http::response(['data' => [['id' => 'n']]])]);
+
+        $this->artisan('newsletter:run')->assertExitCode(0);
+
+        Http::assertNotSent(function (HttpRequest $request) {
+            return collect($request->data())->pluck('to')->flatten()->contains('maria@example.com');
+        });
+        $this->assertSame('sent', $edition->fresh()->status);
+        $this->assertSame(0, $edition->fresh()->recipient_count);
+    }
+
+    public function test_staging_run_goes_only_to_test_recipients_with_a_short_notice_window()
+    {
+        $this->app['env'] = 'staging';
+        config([
+            'app.newsletter_test_recipients' => 'Dayne@Taist.app, not-an-email',
+            'app.newsletter_notice_minutes' => 10,
+        ]);
+        $this->seedChef(1, 'maria@example.com', 'Maria');
+        $edition = $this->scheduledEdition(['send_at' => Carbon::now()->addMinutes(9)]);
+        Http::fake(['api.resend.com/*' => Http::response(['data' => [['id' => 'x']]])]);
+
+        // Inside the 10-minute window: preview only.
+        $this->artisan('newsletter:run')->assertExitCode(0);
+        Http::assertSent(function (HttpRequest $request) {
+            $m = $request->data()[0];
+            return strpos($m['subject'], '[Preview') === 0
+                && strpos($m['html'], 'sends in 10 minutes') !== false;
+        });
+        $this->assertSame('scheduled', $edition->fresh()->status);
+
+        // Ten minutes later the send goes out, to the test address only.
+        Carbon::setTestNow(Carbon::now()->addMinutes(11));
+        Http::fake(['api.resend.com/*' => Http::response(['data' => [['id' => 'y']]])]);
+        $this->artisan('newsletter:run')->assertExitCode(0);
+
+        Http::assertSent(function (HttpRequest $request) {
+            $to = collect($request->data())->pluck('to')->flatten()->all();
+            return $to === ['dayne@taist.app'] && isset($request->data()[0]['headers']['List-Unsubscribe']);
+        });
+        Http::assertNotSent(function (HttpRequest $request) {
+            return collect($request->data())->pluck('to')->flatten()->contains('maria@example.com');
+        });
+        $this->assertSame(1, $edition->fresh()->sent_count);
+    }
+
+    public function test_production_ignores_the_staging_overrides()
+    {
+        config([
+            'app.newsletter_test_recipients' => 'dayne@taist.app',
+            'app.newsletter_notice_minutes' => 10,
+        ]);
+        $this->seedChef(1, 'maria@example.com', 'Maria');
+        $service = app(NewsletterService::class);
+
+        $this->assertSame(['maria@example.com'], $service->sendAudience(2)->pluck('email')->all());
+        $this->assertSame(48 * 60, \App\Models\NewsletterSettings::noticeMinutes());
+    }
+
+    // ------------------------------------------------------------------
     // Auto-drafting
     // ------------------------------------------------------------------
 
@@ -302,7 +380,9 @@ class NewsletterTest extends TestCase
         $this->assertNotNull($next);
         $this->assertSame(3, $next->edition_number);
         $this->assertSame('auto', $next->created_by);
-        $this->assertCount(5, $next->items);
+        // Every unused chef backlog item (4 seeded), capped at 5.
+        $this->assertCount(NewsletterBacklogItem::where('user_type', 2)->whereNull('used_at')->count(), $next->items);
+        $this->assertLessThanOrEqual(5, count($next->items));
         $this->assertNotEmpty($next->items[0]['backlog_id']);
 
         // 14 days after the last send, 10:00 Eastern.

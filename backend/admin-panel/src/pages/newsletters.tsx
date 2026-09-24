@@ -71,7 +71,7 @@ export default function NewslettersPage() {
       </div>
       <p className="mb-4 max-w-3xl text-sm text-muted-foreground">
         Every scheduled edition is emailed to <strong>{data?.config.preview_email ?? "dayne@taist.app"}</strong>{" "}
-        {data?.config.notice_hours ?? 48} hours before it sends, with links to edit or pause it. If it
+        {data?.config.notice_label ?? "48 hours"} before it sends, with links to edit or pause it. If it
         looks good, do nothing and it sends on time. After a regular edition sends, the next one is
         drafted from the backlog below and scheduled automatically.
       </p>

@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\Log;
  * automation that runs from `php artisan newsletter:run`.
  *
  * Lifecycle of an edition:
- *   draft -> scheduled -> (preview emailed NOTICE_HOURS before) -> sending -> sent
+ *   draft -> scheduled -> (preview emailed 48h before) -> sending -> sent
  *
  * After an audience's regular edition is sent, the planner drafts and schedules
  * the next one (cadence_days later) from that audience's backlog. The first
@@ -32,7 +32,7 @@ class NewsletterService
 {
     const FROM = 'Taist <contact@taist.app>';
     const REPLY_TO = 'contact@taist.app';
-    const DEFAULT_MAILING_ADDRESS = 'Taist, Inc. · Fishers, IN 46038';
+    const DEFAULT_MAILING_ADDRESS = 'Taist, Inc. · 7701 Creekside Dr, Fishers, IN 46038';
     const APP_STORE_URL = 'https://apps.apple.com/app/1598624809';
     const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.taist.app';
 
@@ -134,6 +134,58 @@ class NewsletterService
         }
 
         return $merged->values();
+    }
+
+    /**
+     * Who an edition is actually delivered to. In production that is the real
+     * audience. Everywhere else it is ONLY the NEWSLETTER_TEST_RECIPIENTS
+     * addresses (nobody when unset), so a staging database that holds real
+     * chef or customer emails can never be mailed by a test run.
+     */
+    public function sendAudience($userType): Collection
+    {
+        if (!$this->isTestMode()) {
+            return $this->recipients($userType);
+        }
+
+        $unsubscribed = array_flip($this->unsubscribedEmails());
+        $known = $this->recipients($userType, 'all', false)->keyBy('email');
+
+        return collect($this->testRecipients())
+            ->reject(function ($email) use ($unsubscribed) {
+                return isset($unsubscribed[$email]);
+            })
+            ->map(function ($email) use ($known) {
+                return [
+                    'email' => $email,
+                    'first_name' => $known[$email]['first_name'] ?? ucfirst(strtok($email, '@')),
+                    'last_name' => $known[$email]['last_name'] ?? null,
+                    'source' => 'test',
+                ];
+            })
+            ->values();
+    }
+
+    public function isTestMode(): bool
+    {
+        return !app()->environment('production');
+    }
+
+    /**
+     * NEWSLETTER_TEST_RECIPIENTS, comma separated. Ignored in production.
+     */
+    public function testRecipients(): array
+    {
+        return collect(explode(',', (string) config('app.newsletter_test_recipients')))
+            ->map(function ($email) {
+                return $this->normalizeEmail($email);
+            })
+            ->filter(function ($email) {
+                return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+            })
+            ->unique()
+            ->values()
+            ->all();
     }
 
     /**
@@ -329,6 +381,13 @@ class NewsletterService
             if ($problem !== null) {
                 $warnings[] = $problem;
             }
+        }
+
+        if ($this->isTestMode()) {
+            $test = $this->testRecipients();
+            $warnings[] = $test
+                ? 'Test mode (' . app()->environment() . '): sends go only to ' . implode(', ', $test) . ', not the real audience.'
+                : 'Test mode (' . app()->environment() . '): NEWSLETTER_TEST_RECIPIENTS is empty, so a scheduled send reaches nobody. Test sends still work.';
         }
 
         if (!$this->mailingAddressConfigured()) {
@@ -539,8 +598,9 @@ class NewsletterService
     public function sendPreview(NewsletterEdition $edition, ?string $to = null, bool $isTest = false): array
     {
         $to = $to ?: $this->previewEmail();
-        $recipients = $this->recipients($edition->user_type);
-        $sample = $recipients->first();
+        $recipients = $this->sendAudience($edition->user_type);
+        // Render as a real audience member would see it, even in test mode.
+        $sample = $this->recipients($edition->user_type)->first() ?: $recipients->first();
 
         $when = $edition->send_at
             ? $edition->send_at->copy()->setTimezone(NewsletterSettings::TIMEZONE)->format('l, M j \a\t g:i A') . ' ET'
@@ -566,7 +626,7 @@ class NewsletterService
         }
 
         $banner = [
-            'title' => $isTest ? 'Test send' : 'Newsletter preview: sends in ' . NewsletterSettings::NOTICE_HOURS . ' hours',
+            'title' => $isTest ? 'Test send' : 'Newsletter preview: sends in ' . NewsletterSettings::noticeLabel(),
             'lines' => $lines,
             'links' => $links,
         ];
@@ -593,7 +653,7 @@ class NewsletterService
      */
     public function earliestSendAt(?Carbon $now = null): Carbon
     {
-        return ($now ?: Carbon::now())->copy()->addHours(NewsletterSettings::NOTICE_HOURS);
+        return ($now ?: Carbon::now())->copy()->addMinutes(NewsletterSettings::noticeMinutes());
     }
 
     /**
@@ -712,7 +772,7 @@ class NewsletterService
         $due = NewsletterEdition::where('status', NewsletterEdition::STATUS_SCHEDULED)
             ->whereNull('preview_sent_at')
             ->whereNotNull('send_at')
-            ->where('send_at', '<=', $now->copy()->addHours(NewsletterSettings::NOTICE_HOURS))
+            ->where('send_at', '<=', $now->copy()->addMinutes(NewsletterSettings::noticeMinutes()))
             ->orderBy('send_at')
             ->get();
 
@@ -724,7 +784,7 @@ class NewsletterService
             }
             $result = $this->sendPreview($edition);
             if ($result['ok']) {
-                // The send is held until NOTICE_HOURS after this moment.
+                // The send is held until the full notice window after this moment.
                 $edition->update(['preview_sent_at' => $now]);
                 $sent++;
             } else {
@@ -779,7 +839,7 @@ class NewsletterService
     {
         // Snapshot the audience once so a resumed send never adds or repeats anyone.
         if (!NewsletterSend::where('edition_id', $edition->id)->exists()) {
-            $rows = $this->recipients($edition->user_type)->map(function ($r) use ($edition, $now) {
+            $rows = $this->sendAudience($edition->user_type)->map(function ($r) use ($edition, $now) {
                 return [
                     'edition_id' => $edition->id,
                     'email' => $r['email'],

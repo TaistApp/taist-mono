@@ -158,8 +158,8 @@ return [
     |
     | newsletter_preview_email: who gets the preview 48h before each send.
     |
-    | newsletter_mailing_address: postal address in every newsletter footer.
-    | CAN-SPAM requires a valid street address or PO box.
+    | newsletter_mailing_address: postal address in every newsletter footer
+    | (CAN-SPAM requires a street address or PO box). Defaults to the office.
     |
     */
 
@@ -170,7 +170,14 @@ return [
 
     'newsletter_preview_email' => env('NEWSLETTER_PREVIEW_EMAIL', 'dayne@taist.app'),
 
-    'newsletter_mailing_address' => env('NEWSLETTER_MAILING_ADDRESS'),
+    'newsletter_mailing_address' => env('NEWSLETTER_MAILING_ADDRESS', 'Taist, Inc. · 7701 Creekside Dr, Fishers, IN 46038'),
+
+    // Outside production only: scheduled sends go ONLY to these comma-separated
+    // addresses (nobody when unset), and the preview-to-send window can be
+    // shortened from 48 hours so a full run can be tested on staging.
+    'newsletter_test_recipients' => env('NEWSLETTER_TEST_RECIPIENTS'),
+
+    'newsletter_notice_minutes' => env('NEWSLETTER_NOTICE_MINUTES'),
 
     /*
     |--------------------------------------------------------------------------

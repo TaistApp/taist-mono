@@ -167,7 +167,7 @@ function EditionEditor({ data }: { data: ShowData }) {
       return api.post(`/newsletters/${id}/schedule`, { send_at_et: form.send_at_et }).then((r) => r.data);
     },
     onSuccess: () => {
-      toast.success("Scheduled. The preview email goes out 48 hours before it sends.");
+      toast.success(`Scheduled. The preview email goes out ${data.config.notice_label} before it sends.`);
       invalidate();
     },
     onError: (err) => toast.error(apiError(err, "Couldn't schedule.")),

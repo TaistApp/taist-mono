@@ -107,7 +107,7 @@ class NewsletterEdition extends Model
         if (!$this->preview_sent_at) {
             return $this->send_at;
         }
-        $earliest = $this->preview_sent_at->copy()->addHours(NewsletterSettings::NOTICE_HOURS);
+        $earliest = $this->preview_sent_at->copy()->addMinutes(NewsletterSettings::noticeMinutes());
         return $this->send_at->greaterThan($earliest) ? $this->send_at : $earliest;
     }
 }
