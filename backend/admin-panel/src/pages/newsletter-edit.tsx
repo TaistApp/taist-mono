@@ -225,7 +225,7 @@ function EditionEditor({ data }: { data: ShowData }) {
     (b) => !b.used_at && !usedBacklogIds.has(b.id),
   );
   const warnings = preview?.warnings ?? data.warnings;
-  const audience = edition.user_type === 2 ? "chefs" : "customers";
+  const audience = (edition.user_type === 2 ? "chef" : "customer") + (data.recipient_count === 1 ? "" : "s");
 
   return (
     <div>

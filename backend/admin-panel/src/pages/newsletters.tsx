@@ -147,10 +147,10 @@ export default function NewslettersPage() {
               <li key={e.id}>
                 <Link
                   to={`/admin-new/newsletters/${e.id}`}
-                  className="flex flex-wrap items-center gap-x-4 gap-y-1 p-4 hover:bg-muted/50"
+                  className="flex flex-col gap-2 p-4 hover:bg-muted/50 sm:flex-row sm:items-center sm:gap-4"
                 >
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium">{e.display_name}</span>
                       <Badge className={STATUS_STYLES[e.status]}>{e.status}</Badge>
                       {e.created_by === "auto" && (
@@ -159,7 +159,7 @@ export default function NewslettersPage() {
                     </div>
                     <div className="truncate text-sm text-muted-foreground">{e.subject}</div>
                   </div>
-                  <div className="text-right text-sm">
+                  <div className="text-sm sm:shrink-0 sm:text-right">
                     {e.status === "sent" ? (
                       <>
                         <div>Sent {e.sent_at_label}</div>

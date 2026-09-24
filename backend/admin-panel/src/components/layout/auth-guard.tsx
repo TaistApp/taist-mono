@@ -1,8 +1,10 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
+import { loginPathFor } from "@/lib/login-redirect";
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -13,7 +15,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    return <Navigate to="/admin-new/login" replace />;
+    return <Navigate to={loginPathFor(location.pathname + location.search)} replace />;
   }
 
   return <>{children}</>;
