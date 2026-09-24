@@ -23,6 +23,8 @@ const ContentQueuePage = lazy(() => import("./pages/content-queue"));
 const WaitlistPage = lazy(() => import("./pages/waitlist"));
 const ReferralsPage = lazy(() => import("./pages/referrals"));
 const NewsletterPreviewPage = lazy(() => import("./pages/newsletter-preview"));
+const NewslettersPage = lazy(() => import("./pages/newsletters"));
+const NewsletterEditPage = lazy(() => import("./pages/newsletter-edit"));
 
 function PageLoader() {
   return (
@@ -69,6 +71,8 @@ export default function App() {
               <Route path="waitlist" element={<Suspense fallback={<PageLoader />}><WaitlistPage /></Suspense>} />
               <Route path="referrals" element={<Suspense fallback={<PageLoader />}><ReferralsPage /></Suspense>} />
               <Route path="newsletter-preview" element={<Suspense fallback={<PageLoader />}><NewsletterPreviewPage /></Suspense>} />
+              <Route path="newsletters" element={<Suspense fallback={<PageLoader />}><NewslettersPage /></Suspense>} />
+              <Route path="newsletters/:id" element={<Suspense fallback={<PageLoader />}><NewsletterEditPage /></Suspense>} />
 
                 {/* Redirects for removed/renamed routes */}
                 <Route path="pendings" element={<Navigate to="/admin-new/chefs" replace />} />

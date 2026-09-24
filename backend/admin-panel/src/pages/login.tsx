@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
+import { safeNextPath } from "@/lib/login-redirect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +16,7 @@ import {
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -27,7 +29,7 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      navigate("/admin-new/", { replace: true });
+      navigate(safeNextPath(searchParams.get("next")), { replace: true });
     } catch (err: unknown) {
       const axiosError = err as { response?: { data?: { error?: string } } };
       setError(

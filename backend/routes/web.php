@@ -117,6 +117,14 @@ Route::redirect('/contact/', '/account-deletion', 302);
 Route::view('/assets/uploads/html/privacy.html', 'legal.privacy');
 Route::view('/assets/uploads/html/terms.html', 'legal.terms');
 
+// Newsletter links (token-signed; CSRF-exempt in VerifyCsrfToken so mail
+// clients can POST one-click unsubscribes per RFC 8058).
+Route::get('/newsletter/unsubscribe', 'NewsletterPublicController@unsubscribeForm');
+Route::post('/newsletter/unsubscribe', 'NewsletterPublicController@unsubscribe');
+Route::post('/newsletter/resubscribe', 'NewsletterPublicController@resubscribe');
+Route::get('/newsletter/pause/{id}', 'NewsletterPublicController@pauseForm')->where('id', '[0-9]+');
+Route::post('/newsletter/pause/{id}', 'NewsletterPublicController@pause')->where('id', '[0-9]+');
+
 // Admin panel SPA catch-all — serves the React app for all /admin-new/* routes.
 // Locally: server.php handles this (PHP built-in server quirk with directory paths).
 // Production: Nginx try_files serves index.html for non-asset paths.

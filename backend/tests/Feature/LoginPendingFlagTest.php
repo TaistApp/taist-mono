@@ -154,6 +154,7 @@ class LoginPendingFlagTest extends TestCase
     public function test_duplicate_login_email_is_logged(): void
     {
         Log::shouldReceive('info')->andReturnNull();
+        $this->allowFirebaseNotConfiguredWarning();
         Log::shouldReceive('warning')
             ->once()
             ->withArgs(function ($message, $context = []) {
@@ -169,11 +170,31 @@ class LoginPendingFlagTest extends TestCase
     public function test_unique_email_logs_in_without_a_warning(): void
     {
         Log::shouldReceive('info')->andReturnNull();
-        Log::shouldReceive('warning')->never();
+        $this->allowFirebaseNotConfiguredWarning();
+        Log::shouldReceive('warning')
+            ->withArgs(function ($message) {
+                return str_contains($message, 'Multiple accounts share a login email');
+            })
+            ->never();
 
         $response = $this->login('new-customer@example.com');
 
         $response->assertJsonPath('success', 1);
         $this->assertSame(2, $response->json('data.user.id'));
+    }
+
+    /**
+     * MapiController warns "Firebase not configured" when
+     * firebase_credentials.json is absent, which is every checkout without
+     * the (gitignored) credentials file. That warning is unrelated to login,
+     * so the Log mocks above must not count it.
+     */
+    private function allowFirebaseNotConfiguredWarning(): void
+    {
+        Log::shouldReceive('warning')
+            ->withArgs(function ($message) {
+                return str_contains($message, 'Firebase not configured');
+            })
+            ->zeroOrMoreTimes();
     }
 }

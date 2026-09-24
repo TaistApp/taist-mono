@@ -12,6 +12,8 @@ class VerifyCsrfToken extends Middleware
      * @var array
      */
     protected $except = [
-        //
+        // Newsletter unsubscribe/pause links carry their own HMAC token, and
+        // one-click unsubscribes arrive from mail providers without a session.
+        'newsletter/*',
     ];
 }

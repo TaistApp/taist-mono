@@ -1,4 +1,5 @@
 import axios from "axios";
+import { loginPathFor } from "@/lib/login-redirect";
 
 const api = axios.create({
   baseURL: import.meta.env.DEV
@@ -26,7 +27,7 @@ api.interceptors.response.use(
       localStorage.removeItem("admin_token");
       // Only redirect if not already on login page
       if (!window.location.pathname.includes("/login")) {
-        window.location.href = "/admin-new/login";
+        window.location.href = loginPathFor(window.location.pathname + window.location.search);
       }
     }
     return Promise.reject(error);
