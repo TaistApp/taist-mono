@@ -40,3 +40,9 @@ jest.mock('@react-native-community/geolocation', () => ({
   setRNConfiguration: jest.fn(),
   requestAuthorization: jest.fn(),
 }));
+
+// Ships untransformed ESM, so any screen that reaches an icon fails to parse.
+jest.mock('@fortawesome/react-native-fontawesome', () => ({
+  FontAwesomeIcon: 'FontAwesomeIcon',
+}));
+

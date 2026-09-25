@@ -114,6 +114,34 @@ export const shouldOpenSystemSettings = (
   record?: PushPromptRecord | null,
 ): boolean => (record?.declineCount ?? 0) >= 1;
 
+/**
+ * Why an opt-in call failed, or null when it succeeded.
+ *
+ * The API helper never throws: it catches every HTTP error and resolves with
+ * `{ success: 0, message }`. So the try/catch that used to wrap optIn only ever
+ * caught programming errors, and a 401, a 404 or a 500 was indistinguishable
+ * from success — which is how push_opted_in stayed 0 in production with
+ * nothing recorded on either side of the call.
+ */
+export const optInFailureReason = (result: unknown): string | null => {
+  if (result == null) return 'no response from opt-in';
+
+  if (typeof result === 'object') {
+    const r = result as { success?: unknown; message?: unknown; error?: unknown };
+    if ('success' in r) {
+      const ok = r.success === true || r.success === 1 || r.success === '1';
+      if (!ok) {
+        const detail = r.error ?? r.message;
+        return typeof detail === 'string' && detail
+          ? detail
+          : 'opt-in rejected by the server';
+      }
+    }
+  }
+
+  return null;
+};
+
 export type EnablePushDeps = {
   /** Shows the OS permission dialog; resolves true when granted. */
   requestPermission: () => Promise<boolean>;
@@ -121,6 +149,8 @@ export type EnablePushDeps = {
   registerToken: () => Promise<unknown>;
   /** Records the opt-in server-side. Best effort. */
   optIn?: (userId: number) => Promise<unknown>;
+  /** Surfaces a failed opt-in. Without this the failure leaves no trace at all. */
+  reportOptInFailure?: (reason: string) => void;
 };
 
 /**
@@ -146,11 +176,17 @@ export const enablePushForUser = async (
   await deps.registerToken();
 
   if (userId && deps.optIn) {
+    let reason: string | null = null;
     try {
-      await deps.optIn(userId);
-    } catch {
-      // Opt-in is bookkeeping; the token is what actually delivers the push.
+      reason = optInFailureReason(await deps.optIn(userId));
+    } catch (error) {
+      reason = error instanceof Error ? error.message : 'opt-in threw';
     }
+
+    // Opt-in is bookkeeping; the token is what actually delivers the push, so a
+    // failure must not abort. It must not vanish either — silently discarding
+    // it left no way to tell "never called" from "called and failed".
+    if (reason) deps.reportOptInFailure?.(reason);
   }
 
   return true;

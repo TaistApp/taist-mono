@@ -229,6 +229,8 @@ const OrderDetail = () => {
         requestPermission: RequestPushPermission,
         registerToken: GetFCMToken,
         optIn: OptInPushNotificationsAPI,
+        reportOptInFailure: reason =>
+          console.warn('[push] customer opt-in failed:', reason),
       },
       self?.id,
     );

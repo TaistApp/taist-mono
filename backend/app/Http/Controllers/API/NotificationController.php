@@ -7,7 +7,9 @@ use App\Listener;
 use App\Notification;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class NotificationController extends Controller
 {
@@ -80,23 +82,56 @@ class NotificationController extends Controller
         }
     }
 
+    /**
+     * Record that a user granted notification permission.
+     *
+     * Every branch logs. push_opted_in sat at 0 for all 174 chefs in production
+     * and nothing anywhere could say whether the app had never called this or
+     * had called it and been turned away: the endpoint wrote no log, and the
+     * caller discarded the response. The log line is the only thing that tells
+     * those two apart, so it is not optional.
+     */
     public function optInPush(Request $request)
     {
+        $userId = $request->input('user_id');
+
         try {
-            $userId = $request->input('user_id');
             if (!$userId) {
+                Log::warning('push opt-in rejected: no user_id', ['ip' => $request->ip()]);
                 return response()->json(['success' => false, 'error' => 'user_id is required']);
+            }
+
+            // Any signed-in user could flip anyone else's flag. The app only ever
+            // sends its own id, so requiring that costs nothing and closes it.
+            $caller = Auth::guard('mapi')->user();
+            if ($caller && (int) $caller->id !== (int) $userId) {
+                Log::warning('push opt-in rejected: not the caller', [
+                    'caller_id' => (int) $caller->id,
+                    'user_id' => (int) $userId,
+                ]);
+                return response()->json(['success' => false, 'error' => 'User not found']);
             }
 
             $user = Listener::where('id', $userId)->first();
             if (!$user) {
+                Log::warning('push opt-in rejected: user not found', ['user_id' => (int) $userId]);
                 return response()->json(['success' => false, 'error' => 'User not found']);
             }
 
             $user->update(['push_opted_in' => true]);
 
+            Log::info('push opt-in recorded', [
+                'user_id' => (int) $userId,
+                'user_type' => (int) $user->user_type,
+                'has_fcm_token' => !empty($user->fcm_token),
+            ]);
+
             return response()->json(['success' => true]);
         } catch (Exception $e) {
+            Log::error('push opt-in failed', [
+                'user_id' => $userId,
+                'error' => $e->getMessage(),
+            ]);
             return response()->json(['success' => false, 'error' => $e->getMessage()]);
         }
     }

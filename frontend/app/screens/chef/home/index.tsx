@@ -179,6 +179,8 @@ useFocusEffect(
         requestPermission: RequestPushPermission,
         registerToken: GetFCMToken,
         optIn: OptInPushNotificationsAPI,
+        reportOptInFailure: reason =>
+          console.warn('[push] chef opt-in failed:', reason),
       },
       self?.id,
     );
@@ -414,6 +416,32 @@ useFocusEffect(
   // the old filter dropping On-My-Way (status 7) orders from ACCEPTED.
   const filteredOrders = orders.filter(x => orderMatchesTab(x, selectedTab));
 
+  // Rendered by every branch below. The paused screen used to return early
+  // without it, so a paused chef's prompt was scheduled, flipped state and
+  // displayed nothing — and recorded no outcome, so it retried forever.
+  const pushModal = (
+    <PushPermissionModal
+      visible={showPushModal}
+      title={
+        shouldOpenSystemSettings(pushRecord)
+          ? 'Notifications are off'
+          : 'Turn on notifications'
+      }
+      body={
+        shouldOpenSystemSettings(pushRecord)
+          ? "Notifications are switched off for Taist, so new orders won't reach you. Open settings to turn them back on."
+          : "We'll let you know the moment your account is approved, and whenever a customer sends you an order."
+      }
+      acceptLabel={
+        shouldOpenSystemSettings(pushRecord)
+          ? 'Open settings'
+          : 'Turn on notifications'
+      }
+      onAccept={handleAcceptPush}
+      onDecline={handleDeclinePush}
+    />
+  );
+
   // Paused chefs see a dedicated reactivation screen instead of the dashboard
   // or onboarding checklist. They remain logged in and hidden from customers.
   if (self.is_paused == 1) {
@@ -437,6 +465,7 @@ useFocusEffect(
             </TouchableOpacity>
           </View>
         </Container>
+        {pushModal}
       </SafeAreaView>
     );
   }
@@ -655,26 +684,7 @@ useFocusEffect(
           !!payment?.stripe_account_id && !payment?.verification_complete
         }
       />
-      <PushPermissionModal
-        visible={showPushModal}
-        title={
-          shouldOpenSystemSettings(pushRecord)
-            ? 'Notifications are off'
-            : 'Turn on notifications'
-        }
-        body={
-          shouldOpenSystemSettings(pushRecord)
-            ? "Notifications are switched off for Taist, so new orders won't reach you. Open settings to turn them back on."
-            : "We'll let you know the moment your account is approved, and whenever a customer sends you an order."
-        }
-        acceptLabel={
-          shouldOpenSystemSettings(pushRecord)
-            ? 'Open settings'
-            : 'Turn on notifications'
-        }
-        onAccept={handleAcceptPush}
-        onDecline={handleDeclinePush}
-      />
+      {pushModal}
     </SafeAreaView>
   );
 };
