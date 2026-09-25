@@ -27,6 +27,7 @@ use App\Models\NotificationTemplates;
 use App\Models\PaymentMethodListener;
 use App\Notification;
 use App\Notifications\ChefApprovedNotification;
+use App\Services\EmailGate;
 use Illuminate\Support\Str;
 use DB;
 //require 'api/vendor/autoload.php';
@@ -120,6 +121,16 @@ class AdminapiController extends Controller
             if (!$user || empty($user->email)) {
                 return;
             }
+            $suppressed = EmailGate::suppressionReason($user->email);
+            if ($suppressed !== null) {
+                \Log::debug('Chef welcome email suppressed', [
+                    'to' => $user->email,
+                    'reason' => $suppressed,
+                ]);
+
+                return;
+            }
+
             $firstName = trim((string) $user->first_name) ?: 'there';
             $body = view('emails.chef-welcome', ['firstName' => $firstName])->render();
             $subject = "You're approved, Chef {$firstName}. Let's get cooking.";

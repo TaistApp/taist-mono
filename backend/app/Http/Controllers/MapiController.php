@@ -38,6 +38,7 @@ use App\Notifications\NewMessageNotification;
 use App\Notifications\OrderRejectedNotification;
 use App\Notifications\ChefOnTheWayNotification;
 use App\Notifications\NewMenuItemNotification;
+use App\Services\EmailGate;
 use App\Services\TwilioService;
 use App\Services\OrderSmsService;
 use App\Services\ChatSmsService;
@@ -292,8 +293,21 @@ class MapiController extends Controller
 
     private function _sendEmail($email, $subject, $body)
     {
+        $suppressed = EmailGate::suppressionReason($email);
+        if ($suppressed !== null) {
+            Log::debug('Resend email suppressed', [
+                'to' => $email,
+                'subject' => $subject,
+                'reason' => $suppressed,
+            ]);
+
+            // Report success so the caller's flow is unchanged — the E2E suite
+            // asserts on the API response, not on delivery.
+            return true;
+        }
+
         try {
-            $client = new \GuzzleHttp\Client();
+            $client = $this->_resendClient();
             $response = $client->post('https://api.resend.com/emails', [
                 'headers' => [
                     'Authorization' => 'Bearer ' . env('RESEND_API_KEY'),
@@ -312,6 +326,15 @@ class MapiController extends Controller
             Log::error('Resend email error: ' . $e->getMessage());
             return $e->getMessage();
         }
+    }
+
+    /**
+     * Seam so tests can assert on the outbound Resend request (or on its
+     * absence, when EmailGate suppresses the recipient) without a network call.
+     */
+    protected function _resendClient()
+    {
+        return new \GuzzleHttp\Client();
     }
 
     private function _sendEmail_2($email, $from, $subject, $body)
