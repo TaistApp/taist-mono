@@ -95,6 +95,14 @@ const API_KEY =
 
 export const GET_VERSION = BASE_URL + 'get-version'
 
+// Tell the backend which build is calling, so it can see who is still on an old
+// version before MIN_VERSION is raised (RecordAppVersion middleware). Set on
+// axios defaults so every call carries it, whichever helper sends it.
+axios.defaults.headers.common["X-App-Version"] =
+  Constants.nativeAppVersion || Constants.expoConfig?.version || "";
+axios.defaults.headers.common["X-App-Build"] = Constants.nativeBuildVersion || "";
+axios.defaults.headers.common["X-App-Platform"] = Platform.OS;
+
 // var API_TOKEN = '';
 
 const APICODE = {
