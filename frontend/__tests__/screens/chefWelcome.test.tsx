@@ -11,6 +11,24 @@ jest.mock('../../app/utils/navigation', () => ({
   },
 }));
 
+// The screen now asks pending chefs for notification permission, which reaches
+// the native Firebase modules and the store. Covered in
+// chefWelcomePushPrompt.test.tsx; here it just has to not blow up the import.
+jest.mock('../../app/firebase', () => ({
+  RequestPushPermission: jest.fn(async () => true),
+  GetFCMToken: jest.fn(async () => 'fcm-token'),
+}));
+
+jest.mock('../../app/services/api', () => ({
+  OptInPushNotificationsAPI: jest.fn(async () => ({ success: true })),
+}));
+
+jest.mock('../../app/hooks/useRedux', () => ({
+  useAppSelector: (selector: (s: unknown) => unknown) =>
+    selector({ user: { user: {} } }),
+  useAppDispatch: () => jest.fn(),
+}));
+
 describe('ChefWelcome', () => {
   beforeEach(() => {
     jest.clearAllMocks();

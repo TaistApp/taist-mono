@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Image,
   Dimensions,
+  Linking,
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
@@ -14,13 +15,97 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { navigate } from '../../../utils/navigation';
 import { AppColors } from '../../../../constants/theme';
 import PrepList from '../components/prepList';
+import PushPermissionModal from '../../../components/PushPermissionModal';
+import { GetFCMToken, RequestPushPermission } from '../../../firebase';
+import { OptInPushNotificationsAPI } from '../../../services/api';
+import { useAppSelector } from '../../../hooks/useRedux';
+import { ReadDataFromStorage, StoreDataToStorage } from '../../../utils/storage';
+import {
+  PUSH_PROMPT_DELAY_MS,
+  PUSH_PROMPT_KEYS,
+  PushPromptRecord,
+  enablePushForUser,
+  parsePushPromptRecord,
+  recordPushPromptOutcome,
+  shouldOpenSystemSettings,
+  shouldShowPushPrompt,
+} from '../../../utils/pushPrompt';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const PAGE_COUNT = 2;
 
+/**
+ * The chef notification prompt lives on the chef home screen, but a chef who
+ * has not finished the safety quiz is redirected off that screen the moment it
+ * mounts — and the prompt is explicitly suppressed while that redirect is
+ * pending. In production that is 133 of 174 chefs: they are sent here instead
+ * and were never asked, while 77 of them already had an FCM token stored, so
+ * Firebase reported every send as a success and the device dropped it.
+ *
+ * This is where that cohort actually lands, so this is where they get asked.
+ * It shares PUSH_PROMPT_KEYS.chef with the home screen, so nobody is asked
+ * twice and the cooldown and decline cap carry across both surfaces.
+ */
 const ChefWelcome = () => {
   const scrollRef = useRef<ScrollView>(null);
   const [page, setPage] = useState(0);
+  const self = useAppSelector(x => x.user.user);
+  const [showPushModal, setShowPushModal] = useState(false);
+  const [pushRecord, setPushRecord] = useState<PushPromptRecord | null>(null);
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    (async () => {
+      const record = parsePushPromptRecord(
+        await ReadDataFromStorage(PUSH_PROMPT_KEYS.chef),
+      );
+      setPushRecord(record);
+      if (!shouldShowPushPrompt({ record, userId: self?.id })) return;
+      timer = setTimeout(() => setShowPushModal(true), PUSH_PROMPT_DELAY_MS);
+    })();
+
+    // Leaving for the quiz within the delay must not fire the prompt onto a
+    // screen that is on its way out.
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [self?.id]);
+
+  const persistPushOutcome = async (outcome: 'accepted' | 'declined') => {
+    const next = recordPushPromptOutcome(pushRecord, outcome);
+    setPushRecord(next);
+    await StoreDataToStorage(PUSH_PROMPT_KEYS.chef, next);
+  };
+
+  const handleAcceptPush = async () => {
+    setShowPushModal(false);
+
+    // Android stops showing the OS dialog after a denial and just returns
+    // "denied", so settings is the only route that still works.
+    if (shouldOpenSystemSettings(pushRecord)) {
+      await persistPushOutcome('declined');
+      Linking.openSettings().catch(() => {});
+      return;
+    }
+
+    const granted = await enablePushForUser(
+      {
+        requestPermission: RequestPushPermission,
+        registerToken: GetFCMToken,
+        optIn: OptInPushNotificationsAPI,
+        reportOptInFailure: reason =>
+          console.warn('[push] chef opt-in failed:', reason),
+      },
+      self?.id,
+    );
+    await persistPushOutcome(granted ? 'accepted' : 'declined');
+  };
+
+  const handleDeclinePush = async () => {
+    setShowPushModal(false);
+    await persistPushOutcome('declined');
+  };
 
   const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const idx = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
@@ -137,6 +222,27 @@ const ChefWelcome = () => {
           {page === 0 ? 'What you’ll need →' : '5 quick questions →'}
         </Text>
       </TouchableOpacity>
+
+      <PushPermissionModal
+        visible={showPushModal}
+        title={
+          shouldOpenSystemSettings(pushRecord)
+            ? 'Notifications are off'
+            : 'Turn on notifications'
+        }
+        body={
+          shouldOpenSystemSettings(pushRecord)
+            ? "Notifications are switched off for Taist, so we can't tell you when your application moves forward. Open settings to turn them back on."
+            : "We'll let you know the moment your application moves forward, and whenever a customer sends you an order."
+        }
+        acceptLabel={
+          shouldOpenSystemSettings(pushRecord)
+            ? 'Open settings'
+            : 'Turn on notifications'
+        }
+        onAccept={handleAcceptPush}
+        onDecline={handleDeclinePush}
+      />
     </SafeAreaView>
   );
 };
