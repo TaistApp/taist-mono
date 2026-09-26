@@ -96,6 +96,24 @@ Route::group(['middleware' => ['auth:adminapi']], function () {
     Route::put('newsletter-automation', 'NewsletterAdminController@automationUpdate');
     Route::get('newsletter-unsubscribes', 'NewsletterAdminController@unsubscribes');
 
+    // Paid Instagram/Facebook ads: weekly batches, idea backlog, automation (previews run from ads:run)
+    Route::get('ad-batches', 'AdAdminController@index');
+    Route::post('ad-batches', 'AdAdminController@store');
+    Route::post('ad-batches/lint', 'AdAdminController@lint');
+    Route::get('ad-batches/{id}', 'AdAdminController@show')->where('id', '[0-9]+');
+    Route::put('ad-batches/{id}', 'AdAdminController@update')->where('id', '[0-9]+');
+    Route::delete('ad-batches/{id}', 'AdAdminController@destroy')->where('id', '[0-9]+');
+    Route::post('ad-batches/{id}/schedule', 'AdAdminController@schedule')->where('id', '[0-9]+');
+    Route::post('ad-batches/{id}/unschedule', 'AdAdminController@unschedule')->where('id', '[0-9]+');
+    Route::post('ad-batches/{id}/launched', 'AdAdminController@launched')->where('id', '[0-9]+');
+    Route::post('ad-batches/{id}/end', 'AdAdminController@end')->where('id', '[0-9]+');
+    Route::post('ad-batches/{id}/test', 'AdAdminController@sendTest')->where('id', '[0-9]+');
+    Route::get('ad-dish-photo', 'AdAdminController@dishPhoto');
+    Route::post('ad-backlog', 'AdAdminController@backlogStore');
+    Route::put('ad-backlog/{id}', 'AdAdminController@backlogUpdate')->where('id', '[0-9]+');
+    Route::delete('ad-backlog/{id}', 'AdAdminController@backlogDestroy')->where('id', '[0-9]+');
+    Route::put('ad-settings', 'AdAdminController@settingsUpdate');
+
     // Proxy legacy mutation endpoints so frontend baseURL (/admin-api-v2) works
     Route::get('adminapi/change_chef_status', 'AdminapiController@changeChefStatus');
     Route::get('adminapi/change_ticket_status', 'AdminapiController@changeTicketStatus');

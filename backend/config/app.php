@@ -181,6 +181,29 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Paid ads (Instagram/Facebook)
+    |--------------------------------------------------------------------------
+    |
+    | ads_automation: whether `ads:run` drafts batches and emails previews.
+    | On in production only unless explicitly overridden.
+    |
+    | ads_preview_email: who gets each batch 48h before it goes live.
+    |
+    | ads_notice_minutes: outside production only, shortens the 48h window.
+    |
+    */
+
+    'ads_automation' => filter_var(
+        env('ADS_AUTOMATION', env('APP_ENV') === 'production'),
+        FILTER_VALIDATE_BOOLEAN
+    ),
+
+    'ads_preview_email' => env('ADS_PREVIEW_EMAIL', 'dayne@taist.app'),
+
+    'ads_notice_minutes' => env('ADS_NOTICE_MINUTES'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Autoloaded Service Providers
     |--------------------------------------------------------------------------
     |

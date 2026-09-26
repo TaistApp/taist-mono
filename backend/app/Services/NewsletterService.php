@@ -426,7 +426,7 @@ class NewsletterService
             ->all();
     }
 
-    private function discountCodeProblem(string $code): ?string
+    public function discountCodeProblem(string $code): ?string
     {
         try {
             $record = DiscountCodes::whereRaw('UPPER(code) = ?', [$code])->first();
