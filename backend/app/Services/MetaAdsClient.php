@@ -23,6 +23,16 @@ class MetaAdsClient
     }
 
     /**
+     * Token + ad account are enough for the one-time setup commands, which
+     * run before an ad set exists.
+     */
+    public function canReachAccount(): bool
+    {
+        return trim((string) config('app.meta_access_token')) !== ''
+            && trim((string) config('app.meta_ad_account_id')) !== '';
+    }
+
+    /**
      * Railway variables still to set before ads can publish.
      */
     public function missingConfig(): array
@@ -132,6 +142,25 @@ class MetaAdsClient
     }
 
     /**
+     * Switch the customer ad set (and its campaign) on if setup left them
+     * paused. Spends nothing by itself: only ads that are also ACTIVE deliver.
+     */
+    public function ensureAdSetActive(): void
+    {
+        $adsetId = (string) config('app.meta_adset_id');
+        $adset = $this->get($adsetId, ['fields' => 'status,campaign_id']);
+        if (!empty($adset['campaign_id'])) {
+            $campaign = $this->get((string) $adset['campaign_id'], ['fields' => 'status']);
+            if (($campaign['status'] ?? null) !== 'ACTIVE') {
+                $this->setStatus((string) $adset['campaign_id'], 'ACTIVE');
+            }
+        }
+        if (($adset['status'] ?? null) !== 'ACTIVE') {
+            $this->setStatus($adsetId, 'ACTIVE');
+        }
+    }
+
+    /**
      * @param  string  $status  ACTIVE | PAUSED | ARCHIVED
      */
     public function setStatus(string $adId, string $status): void
@@ -152,7 +181,7 @@ class MetaAdsClient
         return ['effective_status' => $data['effective_status'] ?? null, 'feedback' => $feedback ?: null];
     }
 
-    private function account(): string
+    public function account(): string
     {
         $id = trim((string) config('app.meta_ad_account_id'));
         return strpos($id, 'act_') === 0 ? $id : 'act_' . $id;
@@ -163,14 +192,14 @@ class MetaAdsClient
         return 'https://graph.facebook.com/' . config('app.meta_graph_version', 'v23.0') . '/' . ltrim($path, '/');
     }
 
-    private function post(string $path, array $params): array
+    public function post(string $path, array $params): array
     {
         $response = Http::asForm()->timeout(30)
             ->post($this->url($path), $params + ['access_token' => (string) config('app.meta_access_token')]);
         return $this->decode($response);
     }
 
-    private function get(string $path, array $params): array
+    public function get(string $path, array $params = []): array
     {
         $response = Http::timeout(30)
             ->get($this->url($path), $params + ['access_token' => (string) config('app.meta_access_token')]);

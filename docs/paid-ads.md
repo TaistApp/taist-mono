@@ -25,6 +25,35 @@ Customer-only paid ads, drafted and approved the same way as the newsletters
   - `META_ACCESS_TOKEN` (system user token with `ads_management`, `pages_read_engagement`, `instagram_basic`), `META_AD_ACCOUNT_ID`, `META_ADSET_ID`.
   - `META_PAGE_ID` (default `111916651258217`), `META_INSTAGRAM_USER_ID` (default `17841448434123490`), `META_GRAPH_VERSION` (default `v23.0`).
 
+## Approved setup (Dayne, 2026-09-26)
+
+| Setting | Value |
+| --- | --- |
+| Campaign | "Taist Customers (automated)", goal **Traffic**, optimised for **landing page views** on taist.app, no special ad category |
+| Budget | **$3/day** on the ad set (about $91/month), lowest-cost bidding |
+| Spending limit | **$95** on the ad account (hard ceiling under $100; reset monthly in Billing) |
+| Location | **People living in** the ZIP codes in Admin > Service Areas (read when the ad set is created; re-run setup after changing service areas) |
+| Age / gender | 25-64 (25 is a hard minimum; with Advantage+ audience the upper bound is a suggestion), all genders |
+| Audience | Advantage+ audience with suggested interests: cooking, restaurants/dining out, meal kits, date night, entertaining |
+| Placements | Facebook + Instagram feeds, Instagram Explore, Stories, Reels |
+| Language | English (All) |
+| Automation | **1 ad per batch**, new batch **every 7 days**, each runs **14 days** (two ads always overlap) |
+
+The campaign and ad set are created **paused**. The first go-live switches them on; only ads that are switched on spend.
+
+### One-time setup (in Railway)
+
+1. Merge the ads PR and let Railway deploy (runs the migration).
+2. Railway variables: `META_ACCESS_TOKEN` (system user **TaistPaid**, app **Taist Social Publisher** `1273862204957503`, never expires) and `META_AD_ACCOUNT_ID=1498725312091866`.
+3. `php artisan ads:meta-check` : read-only; confirms token, permissions, ad account (USD / America/New_York / payment method), Page, @taist.team and service-area ZIPs.
+4. `php artisan ads:meta-setup` shows the plan; `php artisan ads:meta-setup --apply` creates the paused campaign + ad set, sets the $95 limit and the automation settings, and prints `META_ADSET_ID`.
+5. Add `META_ADSET_ID` in Railway. From then on the automation publishes.
+6. Schedule the first batch in Admin > Marketing > Ads (at least 48 hours out).
+
+### Open question: review one month after the first batch goes live
+
+**Where should ads send people: the taist.app landing page (current) or the App Store / Google Play page?** Decide after a month of results. Going to the store pages directly means switching the campaign goal to app promotion, which needs install tracking in the app (Facebook SDK app events), so plan that app release alongside the decision.
+
 ## Relationship to organic posting
 
 Organic posts (feed, Stories, Reels) run from the `taist-social` repo through Make.com
@@ -36,7 +65,10 @@ promote a post that is already on the grid, without adding anything new.
 
 - Business portfolio **"taist"** (ID `721114992618593`), likely the "TAIST INC." portfolio that was in business verification on 2026-06-07 (outcome not confirmed).
 - Facebook Page `111916651258217`, Instagram @taist.team `17841448434123490`.
-- **Ad account created 2026-09-26:** **Taist Ads**, `act_1498725312091866` (USD, America/New_York), in the "taist" portfolio. Still to do: payment method, system user token, customer ad set. No pixel/dataset yet.
+- **Ad account created 2026-09-26:** **Taist Ads**, `act_1498725312091866` (USD, America/New_York), in the "taist" portfolio, payment method on file.
+- **System user:** **TaistPaid**, token generated from **Taist Social Publisher** (`1273862204957503`) with the Marketing API use cases; partial access to the Page and @taist.team (Content, Ads, Insights), full access to the ad account. Token lives only in Railway (`META_ACCESS_TOKEN`).
+- The mobile app's Facebook Login app **Taist** (`2239965926757774`) is deliberately **not** used for ads.
+- No pixel/dataset yet.
 - The Make "Taist Instagram" connection (8437279) already has `ads_management`, but only the organic scenarios use it.
 
 ## Not built yet

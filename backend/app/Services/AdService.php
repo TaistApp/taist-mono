@@ -787,6 +787,13 @@ class AdService
                 continue;
             }
 
+            try {
+                $this->meta->ensureAdSetActive();
+            } catch (\Throwable $e) {
+                $this->holdBatch($batch, ['Could not switch on the customer ad set: ' . $e->getMessage()]);
+                continue;
+            }
+
             $failed = [];
             foreach ($batch->ads->values() as $i => $ad) {
                 try {

@@ -197,6 +197,10 @@ class AdsTest extends TestCase
             });
             $this->assertSame('ACTIVE', $ad->meta_status);
         }
+        // The paused customer ad set is switched on too (spends only via active ads).
+        Http::assertSent(function (HttpRequest $r) {
+            return strpos($r->url(), '/v23.0/5555') !== false && ($r['status'] ?? null) === 'ACTIVE';
+        });
         $this->assertSame(2, AdBacklogItem::where('used_in_batch_id', $batch->id)->count());
         $this->assertEmailSent('Ads live');
 
