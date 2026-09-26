@@ -69,18 +69,31 @@ export default function AdsPage() {
       </div>
       <p className="mb-4 max-w-3xl text-sm text-muted-foreground">
         Paid Instagram and Facebook ads for customers, in weekly batches. Every scheduled batch is
-        emailed to <strong>{data?.config.preview_email ?? "dayne@taist.app"}</strong>{" "}
+        created in Meta (paused) and emailed to{" "}
+        <strong>{data?.config.preview_email ?? "dayne@taist.app"}</strong>{" "}
         {data?.config.notice_label ?? "48 hours"} before it goes live, with links to edit or pause
-        it. If nothing is paused, it is approved at go-live and you get the copy to launch in Ads
-        Manager. The next batch is then drafted from the idea backlog automatically.
+        it. If nothing is paused, its ads switch on automatically at go-live and switch off when
+        the run ends. The next batch is then drafted from the ideas below, or from the best organic
+        Instagram posts of the last {data?.config.recycle_window_days ?? 30} days when the ideas run
+        out.
       </p>
+
+      {data && !data.config.meta_connected && (
+        <div className="mb-4 flex gap-2 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-900">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            Meta is not connected, so batches can't go live (a due batch goes back to a draft).
+            Set these in Railway: {data.config.meta_missing.join(", ")}.
+          </span>
+        </div>
+      )}
 
       {data && !data.config.automation_enabled && (
         <div className="mb-4 flex gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
-            Automation is off in this environment (ADS_AUTOMATION), so no previews or approvals go
-            out. Test sends still work.
+            Automation is off in this environment (ADS_AUTOMATION), so nothing previews or goes
+            live. Test sends still work.
           </span>
         </div>
       )}
@@ -145,8 +158,6 @@ export default function AdsPage() {
                             : `Preview ${b.preview_at_label ?? "soon"}`}
                         </div>
                       </>
-                    ) : b.status === "ready" ? (
-                      <div className="font-medium text-amber-700">Launch in Ads Manager</div>
                     ) : b.status === "live" ? (
                       <div className="text-muted-foreground">Runs until {b.ends_at_label}</div>
                     ) : b.status === "ended" ? (
@@ -245,9 +256,10 @@ function BacklogPanel({
           Ad ideas
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          The next auto-drafted batch takes the top {perBatch}. Ideas without an image get an
-          approved chef dish photo. Once a batch is approved, its ideas move to "used" so they
-          never repeat.
+          The next auto-drafted batch takes the top {perBatch}. Ideas without an image get a real,
+          admin-approved chef dish photo (never an AI image). Once a batch goes live, its ideas move
+          to "used" so they never repeat. When this list is empty, top organic posts are recycled
+          instead.
         </p>
       </div>
       <ul className="divide-y">
@@ -452,7 +464,7 @@ function SettingsPanel({ settings }: { settings: AdSettings }) {
           className="mt-0.5"
         />
         <span>
-          Auto-draft and schedule the next batch after each one is approved
+          Auto-draft and schedule the next batch after each one goes live
           <span className="block text-xs text-muted-foreground">The first batch is always scheduled by hand.</span>
         </span>
       </label>

@@ -9,11 +9,13 @@ use Illuminate\Console\Command;
 /**
  * Drives the paid-ads pipeline. Scheduled every 15 minutes:
  *
- *   1. Approve: at go-live, mark the batch ready and email the copy to launch.
- *   2. End: close batches past their run length with a turn-off reminder.
- *   3. Plan: auto-draft the next weekly batch from the ad backlog (right after
- *      an approval, so the next batch is on the calendar a week ahead).
- *   4. Preview: email Dayne each scheduled batch 48 hours before it goes live.
+ *   1. Launch: at go-live, switch the batch's (already uploaded) ads on in Meta.
+ *   2. End: pause the ads of batches past their run length.
+ *   3. Plan: auto-draft the next weekly batch from the idea backlog, or from
+ *      top organic posts when it is empty (right after a launch, so the next
+ *      batch is on the calendar a week ahead).
+ *   4. Preview: 48 hours before go-live, create the ads in Meta (paused) and
+ *      email Dayne the preview.
  */
 class RunAds extends Command
 {
@@ -21,7 +23,7 @@ class RunAds extends Command
         {--dry-run : Report what would be planned, previewed, approved and ended without changing or sending anything}
         {--force : Run even when ADS_AUTOMATION is off (e.g. on staging)}';
 
-    protected $description = 'Auto-draft, preview (48h ahead) and approve weekly Instagram/Facebook ad batches';
+    protected $description = 'Auto-draft, preview (48h ahead), launch and end weekly Instagram/Facebook ad batches';
 
     public function handle(AdService $ads)
     {
@@ -35,8 +37,8 @@ class RunAds extends Command
         $now = Carbon::now();
         $prefix = $dryRun ? '[dry run] ' : '';
 
-        foreach ($ads->approveDueBatches($now, $dryRun) as $batch) {
-            $this->info($prefix . 'Approved ' . $batch->displayName() . ' (ready to launch)');
+        foreach ($ads->launchDueBatches($now, $dryRun) as $batch) {
+            $this->info($prefix . 'Launched ' . $batch->displayName());
         }
 
         foreach ($ads->endExpiredBatches($now, $dryRun) as $batch) {

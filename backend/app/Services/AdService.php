@@ -16,13 +16,17 @@ use Illuminate\Support\Facades\Log;
  * on the same pattern as the newsletters.
  *
  * Lifecycle of a batch:
- *   draft -> scheduled -> (preview emailed 48h before) -> ready -> live -> ended
+ *   draft -> scheduled -> (48h before: ads created in Meta, paused, and the
+ *   preview emailed) -> live (ads switched on) -> ended (ads paused)
  *
- * Nothing here calls Meta yet. At the go-live time a batch becomes "ready"
- * and Dayne is emailed the copy to create in Ads Manager, then marks it
- * launched in the admin panel. After a batch goes ready the planner drafts
- * and schedules the next one (cadence_days later) from the backlog. The first
- * batch is always scheduled by hand.
+ * Everything runs through the Meta Marketing API; nobody works in Ads
+ * Manager. Creating the ads paused at preview time surfaces Meta's review
+ * inside the 48-hour window, and edits made after that are re-uploaded
+ * before go-live. If a batch can't go live cleanly, nothing is switched on:
+ * it goes back to a draft and Dayne is emailed. After a batch goes live the
+ * planner schedules the next one (cadence_days later) from the idea backlog,
+ * or recycles top organic posts when the backlog is empty. The first batch
+ * is always scheduled by hand.
  */
 class AdService
 {
@@ -31,14 +35,27 @@ class AdService
     // A chef dish photo is not reused in another ad within this many days.
     const DISH_PHOTO_REUSE_DAYS = 60;
 
+    // Recycling: organic posts from this many days back are eligible.
+    const RECYCLE_WINDOW_DAYS = 30;
+
+    // An image post this close to a Menu Item receipt counts as a Menu Item post.
+    const MENU_ITEM_MATCH_HOURS = 6;
+
     const COMPETITORS = ['doordash', 'door dash', 'uber eats', 'ubereats', 'grubhub', 'instacart', 'postmates', 'hellofresh', 'hello fresh'];
 
     private $newsletters;
+    private $meta;
 
-    public function __construct(NewsletterService $newsletters)
+    public function __construct(NewsletterService $newsletters, MetaAdsClient $meta)
     {
         // Email delivery and discount-code checks are shared with newsletters.
         $this->newsletters = $newsletters;
+        $this->meta = $meta;
+    }
+
+    public function meta(): MetaAdsClient
+    {
+        return $this->meta;
     }
 
     // ------------------------------------------------------------------
@@ -111,6 +128,11 @@ class AdService
      */
     public function adWarnings(Ad $ad): array
     {
+        // A recycled post runs exactly as it was published organically.
+        if ($ad->source_ig_media_id) {
+            return [];
+        }
+
         $warnings = [];
         $primary = trim((string) $ad->primary_text);
         $headline = trim((string) $ad->headline);
@@ -275,7 +297,7 @@ class AdService
     /**
      * Email the batch preview to Dayne (or a test copy to any address).
      */
-    public function sendPreview(AdBatch $batch, ?string $to = null, bool $isTest = false): array
+    public function sendPreview(AdBatch $batch, ?string $to = null, bool $isTest = false, array $metaProblems = []): array
     {
         $to = $to ?: $this->previewEmail();
         $settings = AdSettings::current();
@@ -288,7 +310,10 @@ class AdService
             'Shown as they would appear in the Instagram feed. Facebook uses the same copy.',
         ];
         if (!$isTest && $batch->status === AdBatch::STATUS_SCHEDULED) {
-            $lines[] = 'No action needed if they look good. They are approved automatically at go-live.';
+            $lines[] = 'No action needed if they look good. They switch on automatically at go-live.';
+        }
+        foreach ($metaProblems as $problem) {
+            $lines[] = 'Meta: ' . $problem . ' The batch will not go live until this is fixed.';
         }
         foreach ($this->warnings($batch) as $warning) {
             $lines[] = 'Warning: ' . $warning;
@@ -343,8 +368,10 @@ class AdService
     }
 
     /**
-     * Draft (and schedule, when the backlog has ideas) the next batch once
-     * the latest one has gone ready and nothing newer is in the pipeline.
+     * Draft (and schedule, when there is content) the next batch once the
+     * latest one has gone live and nothing newer is in the pipeline. Content
+     * comes from the idea backlog; when that is empty, the best-performing
+     * recent organic Instagram posts are recycled as ads.
      */
     public function planNextBatch(Carbon $now, bool $dryRun = false): ?AdBatch
     {
@@ -358,20 +385,22 @@ class AdService
             return null;
         }
 
-        // The chain only starts once an admin-scheduled batch has gone ready.
-        $last = AdBatch::whereIn('status', [AdBatch::STATUS_READY, AdBatch::STATUS_LIVE, AdBatch::STATUS_ENDED])
-            ->whereNotNull('go_live_at')
-            ->orderByDesc('go_live_at')
+        // The chain only starts once an admin-scheduled batch has gone live.
+        $last = AdBatch::whereIn('status', [AdBatch::STATUS_LIVE, AdBatch::STATUS_ENDED])
+            ->whereNotNull('launched_at')
+            ->orderByDesc('launched_at')
             ->first();
         if (!$last) {
             return null;
         }
 
-        $goLiveAt = $this->nextSlot($last->effectiveGoLiveAt()->copy()->addDays($settings['cadence_days']), $now);
-        $backlog = AdBacklogItem::available()->orderBy('sort')->orderBy('id')
-            ->limit(min($settings['ads_per_batch'], AdBatch::MAX_ADS))->get();
+        $perBatch = min($settings['ads_per_batch'], AdBatch::MAX_ADS);
+        $goLiveAt = $this->nextSlot($last->launched_at->copy()->addDays($settings['cadence_days']), $now);
+        $backlog = AdBacklogItem::available()->orderBy('sort')->orderBy('id')->limit($perBatch)->get();
+        $recycled = $backlog->isEmpty() ? $this->pickRecycledPosts($now, $perBatch) : [];
+        $hasContent = $backlog->isNotEmpty() || $recycled;
         $number = ((int) AdBatch::max('batch_number')) + 1;
-        $status = $backlog->isEmpty() ? AdBatch::STATUS_DRAFT : AdBatch::STATUS_SCHEDULED;
+        $status = $hasContent ? AdBatch::STATUS_SCHEDULED : AdBatch::STATUS_DRAFT;
 
         if ($dryRun) {
             return new AdBatch(['batch_number' => $number, 'status' => $status, 'go_live_at' => $goLiveAt]);
@@ -382,27 +411,26 @@ class AdService
             'status' => $status,
             'go_live_at' => $goLiveAt,
             'created_by' => 'auto',
-            'notes' => $backlog->isEmpty()
-                ? 'Auto-drafted with an empty backlog, so it is NOT scheduled. Add ads and schedule it.'
-                : 'Auto-drafted from the backlog.',
+            'notes' => !$hasContent
+                ? 'Auto-drafted with no ideas and no organic posts to recycle, so it is NOT scheduled. Add ads and schedule it.'
+                : ($recycled ? 'Auto-drafted from the top organic Instagram posts of the last '
+                    . self::RECYCLE_WINDOW_DAYS . ' days (the idea backlog was empty).' : 'Auto-drafted from the backlog.'),
         ]);
 
-        $usedPhotos = [];
-        foreach ($backlog->values() as $i => $item) {
-            $ad = $this->adFromBacklog($item, $usedPhotos);
+        $ads = $backlog->isNotEmpty() ? $this->adsFromBacklog($backlog) : collect($recycled)->map(function ($post) {
+            return $this->adFromInstagramPost($post);
+        });
+        foreach ($ads->values() as $i => $ad) {
             $ad->batch_id = $batch->id;
             $ad->sort = $i;
             $ad->save();
-            if ($ad->dish_photo_id) {
-                $usedPhotos[] = $ad->dish_photo_id;
-            }
         }
 
-        if ($backlog->isEmpty()) {
+        if (!$hasContent) {
             $this->notify(
                 "Ads need content: {$batch->displayName()}",
-                '<p>' . e($batch->displayName()) . ' was auto-drafted, but the ad backlog is empty, so it is '
-                . '<strong>not scheduled</strong>.</p><p>Add ads and schedule it here: '
+                '<p>' . e($batch->displayName()) . ' was auto-drafted, but the idea backlog is empty and there are no '
+                . 'recent organic posts left to recycle, so it is <strong>not scheduled</strong>.</p><p>Add ads and schedule it here: '
                 . '<a href="' . e($this->adminEditUrl($batch)) . '">' . e($this->adminEditUrl($batch)) . '</a></p>'
             );
         }
@@ -411,8 +439,24 @@ class AdService
     }
 
     /**
+     * Unsaved ads for backlog ideas, each image-less idea getting a
+     * different dish photo.
+     */
+    public function adsFromBacklog(Collection $items): Collection
+    {
+        $usedPhotos = [];
+        return $items->values()->map(function (AdBacklogItem $item) use (&$usedPhotos) {
+            $ad = $this->adFromBacklog($item, $usedPhotos);
+            if ($ad->dish_photo_id) {
+                $usedPhotos[] = $ad->dish_photo_id;
+            }
+            return $ad;
+        });
+    }
+
+    /**
      * An unsaved ad built from a backlog idea. Ideas without an image get an
-     * approved chef dish photo.
+     * approved chef dish photo (real photos chefs take after an order).
      */
     public function adFromBacklog(AdBacklogItem $item, array $excludePhotoIds = []): Ad
     {
@@ -435,8 +479,245 @@ class AdService
         return $ad;
     }
 
+    // ------------------------------------------------------------------
+    // Recycling organic posts
+    // ------------------------------------------------------------------
+
     /**
-     * Email previews for scheduled batches entering the notice window.
+     * The best organic Instagram posts of the last RECYCLE_WINDOW_DAYS that
+     * have never been an ad: most likes + comments first, newest first on a
+     * tie. Menu Item posts are skipped because their photo may be
+     * AI-generated.
+     *
+     * @return array[] Instagram media rows
+     */
+    public function pickRecycledPosts(Carbon $now, int $limit): array
+    {
+        if (!$this->meta->configured()) {
+            return [];
+        }
+
+        try {
+            $media = $this->meta->recentInstagramMedia($now->copy()->subDays(self::RECYCLE_WINDOW_DAYS));
+        } catch (\Throwable $e) {
+            Log::warning('Could not list Instagram posts to recycle: ' . $e->getMessage());
+            return [];
+        }
+
+        $used = Ad::whereNotNull('source_ig_media_id')->pluck('source_ig_media_id')->all();
+        $menuItemTimes = $this->menuItemPostTimes($now);
+
+        return collect($media)
+            ->reject(function ($post) use ($used) {
+                return in_array((string) $post['id'], $used, true);
+            })
+            ->reject(function ($post) use ($menuItemTimes) {
+                return $this->looksLikeMenuItemPost($post, $menuItemTimes);
+            })
+            ->sort(function ($a, $b) {
+                $engagement = ($b['like_count'] ?? 0) + ($b['comments_count'] ?? 0)
+                    - (($a['like_count'] ?? 0) + ($a['comments_count'] ?? 0));
+                return $engagement !== 0 ? $engagement : strcmp($b['timestamp'] ?? '', $a['timestamp'] ?? '');
+            })
+            ->take($limit)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * When the organic publisher posted Menu Item posts. The taist-social
+     * Content Publisher records a "menu-item" receipt each time it posts
+     * one; returns null when that ledger can't be read, so callers can fail
+     * safe.
+     *
+     * @return Carbon[]|null
+     */
+    private function menuItemPostTimes(Carbon $now): ?array
+    {
+        try {
+            return DB::table('social_posted_receipts')
+                ->where('kind', 'menu-item')
+                ->where('posted_at', '>=', $now->copy()->subDays(self::RECYCLE_WINDOW_DAYS + 1))
+                ->pluck('posted_at')
+                ->map(function ($t) {
+                    return Carbon::parse($t);
+                })
+                ->all();
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * An image post published within MENU_ITEM_MATCH_HOURS of a Menu Item
+     * receipt is treated as a Menu Item post. Without the receipt ledger,
+     * every image post is treated as one and only videos (Reels) recycle.
+     */
+    private function looksLikeMenuItemPost(array $post, ?array $menuItemTimes): bool
+    {
+        $isVideo = in_array($post['media_type'] ?? '', ['VIDEO', 'REELS'], true)
+            || ($post['media_product_type'] ?? '') === 'REELS';
+        if ($isVideo) {
+            return false;
+        }
+        if ($menuItemTimes === null) {
+            return true;
+        }
+
+        $postedAt = Carbon::parse($post['timestamp'] ?? 'now');
+        foreach ($menuItemTimes as $time) {
+            if (abs($postedAt->diffInMinutes($time, false)) <= self::MENU_ITEM_MATCH_HOURS * 60) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * An unsaved ad that promotes an existing Instagram post as-is (its
+     * likes and comments carry over). Caption and image are copied only for
+     * the preview.
+     */
+    public function adFromInstagramPost(array $post): Ad
+    {
+        $engagement = ($post['like_count'] ?? 0) + ($post['comments_count'] ?? 0);
+
+        return new Ad([
+            'angle' => 'Recycled post, ' . Carbon::parse($post['timestamp'] ?? 'now')->setTimezone(AdSettings::TIMEZONE)->format('M j')
+                . ' (' . $engagement . ' likes + comments)',
+            'primary_text' => (string) ($post['caption'] ?? ''),
+            'cta' => 'LEARN_MORE',
+            'link_url' => self::DEFAULT_LINK_URL,
+            'image_url' => $post['thumbnail_url'] ?? $post['media_url'] ?? null,
+            'source_ig_media_id' => (string) $post['id'],
+            'source_permalink' => $post['permalink'] ?? null,
+        ]);
+    }
+
+    // ------------------------------------------------------------------
+    // Meta sync
+    // ------------------------------------------------------------------
+
+    /**
+     * Make sure every ad in the batch exists in Meta (paused) with its
+     * current content. New ads are created; ads edited since upload are
+     * replaced (the old Meta ad is archived). Never switches anything on.
+     *
+     * @return array error lines ("Ad 2: Meta: ..."), empty when all synced
+     */
+    public function syncToMeta(AdBatch $batch): array
+    {
+        if (!$this->meta->configured()) {
+            return ['Meta is not connected (missing ' . implode(', ', $this->meta->missingConfig()) . ').'];
+        }
+
+        $errors = [];
+        foreach ($batch->ads->values() as $i => $ad) {
+            $hash = $ad->contentHash();
+            if ($ad->meta_ad_id && $ad->meta_content_hash === $hash) {
+                continue;
+            }
+            try {
+                if ($ad->meta_ad_id) {
+                    $this->meta->setStatus($ad->meta_ad_id, 'ARCHIVED');
+                }
+                $ids = $this->meta->createPausedAd($ad, 'Taist ' . $batch->displayName() . ' - ' . mb_substr($ad->angle ?: 'Ad ' . ($i + 1), 0, 80));
+                $ad->update([
+                    'meta_ad_id' => $ids['ad_id'],
+                    'meta_creative_id' => $ids['creative_id'],
+                    'meta_content_hash' => $hash,
+                    'meta_status' => 'PAUSED',
+                    'meta_note' => null,
+                ]);
+            } catch (\Throwable $e) {
+                $ad->update(['meta_note' => mb_substr($e->getMessage(), 0, 500)]);
+                $errors[] = 'Ad ' . ($i + 1) . ': ' . $e->getMessage();
+            }
+        }
+
+        return $errors;
+    }
+
+    /**
+     * Refresh each uploaded ad's Meta review state. Returns problem lines for
+     * ads Meta rejected.
+     */
+    public function refreshReviewState(AdBatch $batch): array
+    {
+        if (!$this->meta->configured()) {
+            return [];
+        }
+
+        $problems = [];
+        foreach ($batch->ads->values() as $i => $ad) {
+            if (!$ad->meta_ad_id) {
+                continue;
+            }
+            try {
+                $state = $this->meta->reviewState($ad->meta_ad_id);
+            } catch (\Throwable $e) {
+                continue; // a failed read is not a rejection
+            }
+            $ad->update([
+                'meta_status' => $state['effective_status'],
+                'meta_note' => $state['feedback'] ? mb_substr($state['feedback'], 0, 500) : $ad->meta_note,
+            ]);
+            if ($state['effective_status'] === 'DISAPPROVED') {
+                $problems[] = 'Ad ' . ($i + 1) . ': Meta rejected it' . ($state['feedback'] ? ' (' . $state['feedback'] . ')' : '') . '.';
+            }
+        }
+
+        return $problems;
+    }
+
+    /**
+     * Take a batch's ads out of Meta (paused or deleted batch). Best effort.
+     */
+    public function withdrawFromMeta(AdBatch $batch): void
+    {
+        if (!$this->meta->configured()) {
+            return;
+        }
+        foreach ($batch->ads as $ad) {
+            if (!$ad->meta_ad_id) {
+                continue;
+            }
+            try {
+                $this->meta->setStatus($ad->meta_ad_id, 'ARCHIVED');
+                $ad->update(['meta_ad_id' => null, 'meta_creative_id' => null, 'meta_content_hash' => null, 'meta_status' => 'ARCHIVED']);
+            } catch (\Throwable $e) {
+                Log::warning("Archiving Meta ad {$ad->meta_ad_id} failed: " . $e->getMessage());
+            }
+        }
+    }
+
+    /**
+     * Pause every ad of a live batch in Meta and mark the batch ended.
+     */
+    public function endBatch(AdBatch $batch, Carbon $now): void
+    {
+        foreach ($batch->ads as $ad) {
+            if (!$ad->meta_ad_id || !$this->meta->configured()) {
+                continue;
+            }
+            try {
+                $this->meta->setStatus($ad->meta_ad_id, 'PAUSED');
+                $ad->update(['meta_status' => 'PAUSED']);
+            } catch (\Throwable $e) {
+                Log::error("Pausing Meta ad {$ad->meta_ad_id} failed: " . $e->getMessage());
+                $ad->update(['meta_note' => mb_substr('Could not pause: ' . $e->getMessage(), 0, 500)]);
+            }
+        }
+        $batch->update(['status' => AdBatch::STATUS_ENDED, 'ended_at' => $now]);
+    }
+
+    // ------------------------------------------------------------------
+    // Automation steps
+    // ------------------------------------------------------------------
+
+    /**
+     * Upload scheduled batches entering the notice window to Meta (paused)
+     * and email Dayne the preview, including anything Meta turned down.
      */
     public function sendDuePreviews(Carbon $now, bool $dryRun = false): int
     {
@@ -453,7 +734,8 @@ class AdService
                 $sent++;
                 continue;
             }
-            $result = $this->sendPreview($batch);
+            $metaProblems = $this->syncToMeta($batch);
+            $result = $this->sendPreview($batch->fresh('ads'), null, false, $metaProblems);
             if ($result['ok']) {
                 // Go-live is held until the full notice window after this moment.
                 $batch->update(['preview_sent_at' => $now]);
@@ -467,37 +749,72 @@ class AdService
     }
 
     /**
-     * Approve batches whose go-live time has come: mark them ready, retire
-     * their backlog ideas, and email Dayne the copy to launch.
+     * Switch on batches whose go-live time has come. Edits made since the
+     * preview are uploaded first. If anything can't go live (Meta not
+     * connected, an upload fails, Meta rejected an ad) no ad is switched on:
+     * the batch goes back to a draft and Dayne is told why.
      *
-     * @return AdBatch[]
+     * @return AdBatch[] batches that went live
      */
-    public function approveDueBatches(Carbon $now, bool $dryRun = false): array
+    public function launchDueBatches(Carbon $now, bool $dryRun = false): array
     {
         $candidates = AdBatch::where('status', AdBatch::STATUS_SCHEDULED)->whereNotNull('preview_sent_at')->get();
         $runDays = AdSettings::current()['run_days'];
 
-        $approved = [];
+        $launched = [];
         foreach ($candidates as $batch) {
             $goLive = $batch->effectiveGoLiveAt();
             if (!$goLive || $goLive->greaterThan($now)) {
                 continue;
             }
             if ($dryRun) {
-                $approved[] = $batch;
+                $launched[] = $batch;
                 continue;
             }
 
-            // Claim it; a concurrent run (or a pause) that wins the race skips it.
-            $claimed = AdBatch::where('id', $batch->id)->where('status', AdBatch::STATUS_SCHEDULED)->update([
-                'status' => AdBatch::STATUS_READY,
-                'ready_at' => $now,
-                'ends_at' => $goLive->copy()->addDays($runDays),
-            ]);
-            if ($claimed !== 1) {
+            $problems = $this->syncToMeta($batch);
+            $batch->load('ads');
+            if (!$problems) {
+                $problems = $this->refreshReviewState($batch);
+            }
+
+            // A pause that landed while we were uploading wins.
+            if ($batch->fresh()->status !== AdBatch::STATUS_SCHEDULED) {
                 continue;
             }
-            $batch->refresh();
+            if ($problems) {
+                $this->holdBatch($batch, $problems);
+                continue;
+            }
+
+            $failed = [];
+            foreach ($batch->ads->values() as $i => $ad) {
+                try {
+                    $this->meta->setStatus($ad->meta_ad_id, 'ACTIVE');
+                    $ad->update(['meta_status' => 'ACTIVE']);
+                } catch (\Throwable $e) {
+                    $failed[] = 'Ad ' . ($i + 1) . ': ' . $e->getMessage();
+                }
+            }
+            if ($failed) {
+                // All or nothing: switch off whatever did go on.
+                foreach ($batch->ads as $ad) {
+                    try {
+                        $this->meta->setStatus($ad->meta_ad_id, 'PAUSED');
+                        $ad->update(['meta_status' => 'PAUSED']);
+                    } catch (\Throwable $e) {
+                        Log::error("Re-pausing Meta ad {$ad->meta_ad_id} failed: " . $e->getMessage());
+                    }
+                }
+                $this->holdBatch($batch, $failed);
+                continue;
+            }
+
+            $batch->update([
+                'status' => AdBatch::STATUS_LIVE,
+                'launched_at' => $now,
+                'ends_at' => $now->copy()->addDays($runDays),
+            ]);
 
             $backlogIds = $batch->ads->pluck('backlog_id')->filter()->all();
             if ($backlogIds) {
@@ -507,73 +824,59 @@ class AdService
                 ]);
             }
 
-            $this->sendReadyEmail($batch);
-            $approved[] = $batch;
+            $this->notify(
+                "Ads live: {$batch->displayName()}",
+                '<p>' . e($batch->displayName()) . ' (' . $batch->ads->count() . ' ads) is now running on Instagram and Facebook'
+                . ' until ' . e($this->eastern($batch->ends_at, 'l, M j')) . '. Nothing to do.</p>'
+                . '<p><a href="' . e($this->adminEditUrl($batch)) . '">' . e($this->adminEditUrl($batch)) . '</a></p>'
+            );
+            $launched[] = $batch;
         }
 
-        return $approved;
+        return $launched;
     }
 
     /**
-     * End batches past their run length and remind Dayne to turn them off.
+     * Pause the ads of live batches past their run length.
      *
      * @return AdBatch[]
      */
     public function endExpiredBatches(Carbon $now, bool $dryRun = false): array
     {
-        $expired = AdBatch::whereIn('status', [AdBatch::STATUS_READY, AdBatch::STATUS_LIVE])
+        $expired = AdBatch::where('status', AdBatch::STATUS_LIVE)
             ->whereNotNull('ends_at')
             ->where('ends_at', '<=', $now)
             ->get();
 
-        if ($dryRun) {
-            return $expired->all();
-        }
-
-        foreach ($expired as $batch) {
-            $wasLive = $batch->status === AdBatch::STATUS_LIVE;
-            $batch->update(['status' => AdBatch::STATUS_ENDED, 'ended_at' => $now]);
-
-            if ($wasLive) {
-                $this->notify(
-                    "Turn off ads: {$batch->displayName()}",
-                    '<p>' . e($batch->displayName()) . ' has run its ' . AdSettings::current()['run_days']
-                    . ' days. Turn its ads off in Ads Manager (keep any clear winner running if you like).</p>'
-                    . '<p><a href="' . e($this->adminEditUrl($batch)) . '">' . e($this->adminEditUrl($batch)) . '</a></p>'
-                );
+        if (!$dryRun) {
+            foreach ($expired as $batch) {
+                $this->endBatch($batch, $now);
             }
         }
 
         return $expired->all();
     }
 
-    private function sendReadyEmail(AdBatch $batch): void
+    /**
+     * Back to a draft with the reasons, and tell Dayne. Nothing is switched on.
+     */
+    private function holdBatch(AdBatch $batch, array $problems): void
     {
-        $lines = [
-            'The 48-hour preview passed without a pause, so these are approved.',
-            'Create them in Ads Manager in the customer ad set (copy below), then click "Mark launched" in the admin panel.',
-            'Run them until ' . $this->eastern($batch->ends_at, 'l, M j') . '. You will get a reminder to turn them off.',
-        ];
-        foreach ($this->warnings($batch) as $warning) {
-            $lines[] = 'Warning: ' . $warning;
-        }
-
-        $rendered = $this->renderEmail($batch, 'Ready to launch: ' . $batch->displayName(), [
-            'title' => 'Ready to launch: ' . $batch->displayName(),
-            'lines' => $lines,
-            'links' => [['Open in admin', $this->adminEditUrl($batch)]],
+        $batch->update([
+            'status' => AdBatch::STATUS_DRAFT,
+            'preview_sent_at' => null,
+            'notes' => "Could not go live, so it is back to a draft:\n- " . implode("\n- ", $problems),
         ]);
 
-        $result = $this->newsletters->deliver([[
-            'to' => $this->previewEmail(),
-            'subject' => $rendered['subject'],
-            'html' => $rendered['html'],
-            'text' => $rendered['text'],
-        ]])[0];
-
-        if (!$result['ok']) {
-            Log::error("Ads ready email for batch {$batch->id} failed: {$result['error']}");
-        }
+        $this->notify(
+            "Ads NOT live: {$batch->displayName()}",
+            '<p>' . e($batch->displayName()) . ' did not go live. No ads were switched on.</p><ul>'
+            . collect($problems)->map(function ($p) {
+                return '<li>' . e($p) . '</li>';
+            })->implode('')
+            . '</ul><p>Fix it and reschedule here: <a href="' . e($this->adminEditUrl($batch)) . '">'
+            . e($this->adminEditUrl($batch)) . '</a></p>'
+        );
     }
 
     private function notify(string $subject, string $html): void

@@ -202,6 +202,16 @@ return [
 
     'ads_notice_minutes' => env('ADS_NOTICE_MINUTES'),
 
+    // Meta Marketing API. Ads are created inside one existing customer ad
+    // set (budget and targeting live there); nothing publishes until all of
+    // these are set. Page and Instagram IDs default to Taist's accounts.
+    'meta_access_token' => env('META_ACCESS_TOKEN'),
+    'meta_ad_account_id' => env('META_AD_ACCOUNT_ID'),
+    'meta_adset_id' => env('META_ADSET_ID'),
+    'meta_page_id' => env('META_PAGE_ID', '111916651258217'),
+    'meta_instagram_user_id' => env('META_INSTAGRAM_USER_ID', '17841448434123490'),
+    'meta_graph_version' => env('META_GRAPH_VERSION', 'v23.0'),
+
     /*
     |--------------------------------------------------------------------------
     | Autoloaded Service Providers

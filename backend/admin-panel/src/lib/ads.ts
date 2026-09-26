@@ -8,6 +8,8 @@ export interface AdContent {
   image_url: string | null;
   dish_photo_id: number | null;
   backlog_id: number | null;
+  source_ig_media_id: string | null;
+  source_permalink: string | null;
 }
 
 export interface Ad extends AdContent {
@@ -16,9 +18,11 @@ export interface Ad extends AdContent {
   sort: number;
   cta_label: string;
   meta_ad_id: string | null;
+  meta_status: string | null;
+  meta_note: string | null;
 }
 
-export type BatchStatus = "draft" | "scheduled" | "ready" | "live" | "ended" | "cancelled";
+export type BatchStatus = "draft" | "scheduled" | "live" | "ended" | "cancelled";
 
 export interface AdBatch {
   id: number;
@@ -65,6 +69,9 @@ export interface AdsConfig {
   notice_label: string;
   preview_email: string;
   automation_enabled: boolean;
+  meta_connected: boolean;
+  meta_missing: string[];
+  recycle_window_days: number;
   earliest_go_live_at_et: string;
   max_ads: number;
   ctas: Record<string, string>;
@@ -75,7 +82,6 @@ export interface AdsConfig {
 export const BATCH_STATUS_STYLES: Record<BatchStatus, string> = {
   draft: "bg-gray-100 text-gray-700",
   scheduled: "bg-blue-100 text-blue-700",
-  ready: "bg-amber-100 text-amber-800",
   live: "bg-green-100 text-green-700",
   ended: "bg-slate-100 text-slate-600",
   cancelled: "bg-red-100 text-red-700",
@@ -84,7 +90,6 @@ export const BATCH_STATUS_STYLES: Record<BatchStatus, string> = {
 export const BATCH_STATUS_LABELS: Record<BatchStatus, string> = {
   draft: "draft",
   scheduled: "scheduled",
-  ready: "ready to launch",
   live: "live",
   ended: "ended",
   cancelled: "cancelled",

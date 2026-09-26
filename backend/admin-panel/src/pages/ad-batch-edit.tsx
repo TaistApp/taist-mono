@@ -6,6 +6,7 @@ import api from "@/lib/api";
 import {
   BATCH_STATUS_LABELS,
   BATCH_STATUS_STYLES,
+  type Ad,
   type AdBacklogItem,
   type AdBatch,
   type AdContent,
@@ -28,7 +29,6 @@ import {
   Camera,
   CircleStop,
   Plus,
-  Rocket,
   Save,
   Send,
   Trash2,
@@ -40,7 +40,8 @@ interface ShowData {
   config: AdsConfig;
 }
 
-type FormState = { go_live_at_et: string; notes: string; ads: AdContent[] };
+type FormAd = AdContent & { id?: number };
+type FormState = { go_live_at_et: string; notes: string; ads: FormAd[] };
 
 function toForm(b: AdBatch): FormState {
   return {
@@ -56,6 +57,9 @@ function toForm(b: AdBatch): FormState {
       image_url: a.image_url ?? "",
       dish_photo_id: a.dish_photo_id,
       backlog_id: a.backlog_id,
+      source_ig_media_id: a.source_ig_media_id,
+      source_permalink: a.source_permalink,
+      id: a.id,
     })),
   };
 }
@@ -90,8 +94,6 @@ function BatchEditor({ data }: { data: ShowData }) {
   const savedForm = useMemo(() => JSON.stringify(toForm(batch)), [batch]);
   const [testOpen, setTestOpen] = useState(false);
   const [testEmail, setTestEmail] = useState(config.preview_email);
-  const [launchOpen, setLaunchOpen] = useState(false);
-  const [metaIds, setMetaIds] = useState<Record<number, string>>({});
 
   const { data: index } = useQuery<{ backlog: AdBacklogItem[] }>({
     queryKey: ["ads"],
@@ -139,7 +141,7 @@ function BatchEditor({ data }: { data: ShowData }) {
       return api.post(`/ad-batches/${id}/schedule`, { go_live_at_et: form.go_live_at_et }).then((r) => r.data);
     },
     onSuccess: () => {
-      toast.success(`Scheduled. The preview email goes out ${config.notice_label} before go-live.`);
+      toast.success(`Scheduled. The ads are created in Meta and previewed ${config.notice_label} before go-live.`);
       invalidate();
     },
     onError: onError("Couldn't schedule."),
@@ -154,23 +156,13 @@ function BatchEditor({ data }: { data: ShowData }) {
     onError: onError("Couldn't unschedule."),
   });
 
-  const launchedMutation = useMutation({
-    mutationFn: () => api.post(`/ad-batches/${id}/launched`, { meta_ad_ids: metaIds }).then((r) => r.data),
-    onSuccess: () => {
-      toast.success("Marked live.");
-      setLaunchOpen(false);
-      invalidate();
-    },
-    onError: onError("Couldn't mark launched."),
-  });
-
   const endMutation = useMutation({
     mutationFn: () => api.post(`/ad-batches/${id}/end`).then((r) => r.data),
     onSuccess: () => {
-      toast.success("Marked ended.");
+      toast.success("Stopped. Its ads are paused in Meta.");
       invalidate();
     },
-    onError: onError("Couldn't end the batch."),
+    onError: onError("Couldn't stop the batch."),
   });
 
   const deleteMutation = useMutation({
@@ -229,6 +221,8 @@ function BatchEditor({ data }: { data: ShowData }) {
           image_url: "",
           dish_photo_id: null,
           backlog_id: null,
+          source_ig_media_id: null,
+          source_permalink: null,
           ...ad,
         },
       ],
@@ -257,26 +251,31 @@ function BatchEditor({ data }: { data: ShowData }) {
           Edits you save here are what gets approved; no need to reschedule.
         </div>
       )}
-      {batch.status === "ready" && (
-        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-          <span className="flex-1">
-            Approved. Create these ads in Ads Manager (the copy was emailed to {config.preview_email}),
-            then mark the batch launched. Planned to run until {batch.ends_at_label}.
-          </span>
-          <Button size="sm" className="gap-1" onClick={() => setLaunchOpen(true)}>
-            <Rocket className="h-4 w-4" /> Mark launched
-          </Button>
-        </div>
-      )}
       {batch.status === "live" && (
         <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-900">
           <span className="flex-1">
-            Live since {batch.launched_at_label}. Runs until {batch.ends_at_label}; you'll get a
-            reminder to turn it off.
+            Live on Instagram and Facebook since {batch.launched_at_label}. Its ads switch off
+            automatically on {batch.ends_at_label}.
           </span>
-          <Button size="sm" variant="outline" className="gap-1" onClick={() => endMutation.mutate()}>
-            <CircleStop className="h-4 w-4" /> Mark ended
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1"
+            onClick={() => {
+              if (confirm(`Stop ${batch.display_name} now? Its ads are paused in Meta.`)) endMutation.mutate();
+            }}
+          >
+            <CircleStop className="h-4 w-4" /> Stop now
           </Button>
+        </div>
+      )}
+      {!config.meta_connected && (
+        <div className="mb-4 flex gap-2 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-900">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            Meta is not connected, so this batch can't go live. Set in Railway:{" "}
+            {config.meta_missing.join(", ")}.
+          </span>
         </div>
       )}
       {batch.status === "draft" && batch.notes && (
@@ -355,6 +354,17 @@ function BatchEditor({ data }: { data: ShowData }) {
         {form.ads.map((ad, i) => (
           <div key={i} className="grid gap-4 rounded-lg border bg-card p-4 xl:grid-cols-[1fr_380px]">
             <fieldset disabled={!editable} className="space-y-3">
+              {ad.source_ig_media_id && (
+                <p className="rounded-md bg-muted/60 p-2 text-xs text-muted-foreground">
+                  Recycled organic post, promoted as-is with its likes and comments. Only the button
+                  and link can change.{" "}
+                  {ad.source_permalink && (
+                    <a href={ad.source_permalink} target="_blank" rel="noreferrer" className="text-[#fa4616]">
+                      View on Instagram
+                    </a>
+                  )}
+                </p>
+              )}
               <div className="flex items-center gap-2">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#fa4616] text-xs font-semibold text-white">
                   {i + 1}
@@ -384,14 +394,14 @@ function BatchEditor({ data }: { data: ShowData }) {
                 )}
               </div>
               <Field label="Primary text" count={ad.primary_text?.length ?? 0} limit={config.limits.primary_text}>
-                <Textarea rows={3} value={ad.primary_text ?? ""} onChange={(e) => setAd(i, { primary_text: e.target.value })} />
+                <Textarea rows={3} readOnly={!!ad.source_ig_media_id} value={ad.primary_text ?? ""} onChange={(e) => setAd(i, { primary_text: e.target.value })} />
               </Field>
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field label="Headline" count={ad.headline?.length ?? 0} limit={config.limits.headline}>
-                  <Input value={ad.headline ?? ""} onChange={(e) => setAd(i, { headline: e.target.value })} />
+                  <Input readOnly={!!ad.source_ig_media_id} value={ad.headline ?? ""} onChange={(e) => setAd(i, { headline: e.target.value })} />
                 </Field>
                 <Field label="Description" count={ad.description?.length ?? 0} limit={config.limits.description}>
-                  <Input value={ad.description ?? ""} onChange={(e) => setAd(i, { description: e.target.value })} />
+                  <Input readOnly={!!ad.source_ig_media_id} value={ad.description ?? ""} onChange={(e) => setAd(i, { description: e.target.value })} />
                 </Field>
               </div>
               <div className="grid gap-3 sm:grid-cols-[180px_1fr]">
@@ -415,10 +425,11 @@ function BatchEditor({ data }: { data: ShowData }) {
               <Field label="Image link" hint="Square (1:1) or 4:5 works best in the feed.">
                 <div className="flex gap-2">
                   <Input
+                    readOnly={!!ad.source_ig_media_id}
                     value={ad.image_url ?? ""}
                     onChange={(e) => setAd(i, { image_url: e.target.value, dish_photo_id: null })}
                   />
-                  {editable && (
+                  {editable && !ad.source_ig_media_id && (
                     <Button
                       type="button"
                       variant="outline"
@@ -432,9 +443,7 @@ function BatchEditor({ data }: { data: ShowData }) {
                   )}
                 </div>
               </Field>
-              {batch.ads[i]?.meta_ad_id && (
-                <p className="text-xs text-muted-foreground">Meta ad ID: {batch.ads[i].meta_ad_id}</p>
-              )}
+              <MetaStatus ad={batch.ads.find((a) => a.id === ad.id)} />
             </fieldset>
             <AdMockup ad={ad} ctaLabel={config.ctas[ad.cta] ?? "Learn more"} />
           </div>
@@ -505,36 +514,32 @@ function BatchEditor({ data }: { data: ShowData }) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={launchOpen} onOpenChange={setLaunchOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Mark {batch.display_name} launched</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Optional: paste each ad's ID from Ads Manager so results can be matched up later.
-          </p>
-          <div className="space-y-2">
-            {batch.ads.map((ad, i) => (
-              <label key={ad.id} className="block text-sm">
-                Ad {i + 1}: {ad.headline || ad.angle}
-                <Input
-                  placeholder="Meta ad ID"
-                  value={metaIds[ad.id] ?? ""}
-                  onChange={(e) => setMetaIds({ ...metaIds, [ad.id]: e.target.value })}
-                />
-              </label>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setLaunchOpen(false)}>
-              Cancel
-            </Button>
-            <Button disabled={launchedMutation.isPending} onClick={() => launchedMutation.mutate()}>
-              Mark launched
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+    </div>
+  );
+}
+
+const META_STATUS_STYLES: Record<string, string> = {
+  ACTIVE: "bg-green-100 text-green-700",
+  PAUSED: "bg-gray-100 text-gray-700",
+  PENDING_REVIEW: "bg-blue-100 text-blue-700",
+  IN_PROCESS: "bg-blue-100 text-blue-700",
+  DISAPPROVED: "bg-red-100 text-red-700",
+  WITH_ISSUES: "bg-amber-100 text-amber-800",
+};
+
+function MetaStatus({ ad }: { ad?: Ad }) {
+  if (!ad || (!ad.meta_ad_id && !ad.meta_note)) {
+    return <p className="text-xs text-muted-foreground">Not in Meta yet. It's created there when the preview goes out.</p>;
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+      {ad.meta_status && (
+        <Badge className={META_STATUS_STYLES[ad.meta_status] ?? "bg-gray-100 text-gray-700"}>
+          Meta: {ad.meta_status.toLowerCase().replace(/_/g, " ")}
+        </Badge>
+      )}
+      {ad.meta_ad_id && <span>Ad ID {ad.meta_ad_id}</span>}
+      {ad.meta_note && <span className="text-amber-700">{ad.meta_note}</span>}
     </div>
   );
 }

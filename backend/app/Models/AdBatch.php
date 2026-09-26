@@ -10,8 +10,6 @@ class AdBatch extends Model
 
     const STATUS_DRAFT = 'draft';
     const STATUS_SCHEDULED = 'scheduled';
-    // Go-live time reached after the preview window: approved to launch.
-    const STATUS_READY = 'ready';
     const STATUS_LIVE = 'live';
     const STATUS_ENDED = 'ended';
     const STATUS_CANCELLED = 'cancelled';
@@ -23,7 +21,6 @@ class AdBatch extends Model
         'status',
         'go_live_at',
         'preview_sent_at',
-        'ready_at',
         'launched_at',
         'ends_at',
         'ended_at',
@@ -35,7 +32,6 @@ class AdBatch extends Model
         'batch_number' => 'integer',
         'go_live_at' => 'datetime',
         'preview_sent_at' => 'datetime',
-        'ready_at' => 'datetime',
         'launched_at' => 'datetime',
         'ends_at' => 'datetime',
         'ended_at' => 'datetime',

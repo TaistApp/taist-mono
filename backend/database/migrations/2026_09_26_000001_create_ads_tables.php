@@ -14,10 +14,10 @@ use Illuminate\Support\Facades\Schema;
  *   tbl_ad_backlog   ad ideas the planner pulls from, so no idea repeats
  *   tbl_ad_settings  single row: cadence, ads per batch, go-live time, run length
  *
- * Customer ads only. Nothing here talks to Meta yet: when a batch's go-live
- * time arrives it becomes "ready" and Dayne gets the copy to launch in Ads
- * Manager. The backlog is seeded, but no batch is created or scheduled, so
- * nothing happens until an admin schedules the first batch.
+ * Customer ads only. Ads are created in Meta (paused) when the preview goes
+ * out and switched on at go-live by `ads:run`. The backlog is seeded, but no
+ * batch is created or scheduled, so nothing happens until an admin schedules
+ * the first batch.
  */
 class CreateAdsTables extends Migration
 {
@@ -28,10 +28,9 @@ class CreateAdsTables extends Migration
                 $table->id();
                 $table->unsignedInteger('batch_number')->nullable();
                 $table->string('status', 16)->default('draft')
-                    ->comment('draft|scheduled|ready|live|ended|cancelled');
+                    ->comment('draft|scheduled|live|ended|cancelled');
                 $table->timestamp('go_live_at')->nullable();
                 $table->timestamp('preview_sent_at')->nullable();
-                $table->timestamp('ready_at')->nullable();
                 $table->timestamp('launched_at')->nullable();
                 $table->timestamp('ends_at')->nullable();
                 $table->timestamp('ended_at')->nullable();
@@ -58,10 +57,17 @@ class CreateAdsTables extends Migration
                 $table->string('image_url', 500)->nullable();
                 $table->unsignedBigInteger('dish_photo_id')->nullable()->comment('tbl_dish_photos.id when the image is a chef dish photo');
                 $table->string('meta_ad_id', 64)->nullable();
+                $table->string('meta_creative_id', 64)->nullable();
+                $table->string('meta_content_hash', 64)->nullable()->comment('Content the Meta ad was built from, to detect edits');
+                $table->string('meta_status', 32)->nullable()->comment('Last known Meta effective_status');
+                $table->string('meta_note', 500)->nullable()->comment('Meta error or review feedback');
+                $table->string('source_ig_media_id', 64)->nullable()->comment('Organic Instagram post this ad recycles');
+                $table->string('source_permalink', 500)->nullable();
                 $table->timestamps();
 
                 $table->index('batch_id');
                 $table->index('dish_photo_id');
+                $table->index('source_ig_media_id');
             });
         }
 

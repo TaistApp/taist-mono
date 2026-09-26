@@ -105,7 +105,6 @@ Route::group(['middleware' => ['auth:adminapi']], function () {
     Route::delete('ad-batches/{id}', 'AdAdminController@destroy')->where('id', '[0-9]+');
     Route::post('ad-batches/{id}/schedule', 'AdAdminController@schedule')->where('id', '[0-9]+');
     Route::post('ad-batches/{id}/unschedule', 'AdAdminController@unschedule')->where('id', '[0-9]+');
-    Route::post('ad-batches/{id}/launched', 'AdAdminController@launched')->where('id', '[0-9]+');
     Route::post('ad-batches/{id}/end', 'AdAdminController@end')->where('id', '[0-9]+');
     Route::post('ad-batches/{id}/test', 'AdAdminController@sendTest')->where('id', '[0-9]+');
     Route::get('ad-dish-photo', 'AdAdminController@dishPhoto');

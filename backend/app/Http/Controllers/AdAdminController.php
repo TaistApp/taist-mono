@@ -28,7 +28,7 @@ class AdAdminController extends Controller
     public function index()
     {
         $batches = AdBatch::with('ads')
-            ->orderByRaw("CASE status WHEN 'live' THEN 0 WHEN 'ready' THEN 1 WHEN 'scheduled' THEN 2 WHEN 'draft' THEN 3 ELSE 4 END")
+            ->orderByRaw("CASE status WHEN 'live' THEN 0 WHEN 'scheduled' THEN 1 WHEN 'draft' THEN 2 ELSE 3 END")
             ->orderByRaw('go_live_at IS NULL')
             ->orderByDesc('go_live_at')
             ->orderByDesc('id')
@@ -72,15 +72,10 @@ class AdAdminController extends Controller
             $settings = AdSettings::current();
             $items = AdBacklogItem::available()->orderBy('sort')->orderBy('id')
                 ->limit(min($settings['ads_per_batch'], AdBatch::MAX_ADS))->get();
-            $usedPhotos = [];
-            foreach ($items->values() as $i => $item) {
-                $ad = $this->ads->adFromBacklog($item, $usedPhotos);
+            foreach ($this->ads->adsFromBacklog($items) as $i => $ad) {
                 $ad->batch_id = $batch->id;
                 $ad->sort = $i;
                 $ad->save();
-                if ($ad->dish_photo_id) {
-                    $usedPhotos[] = $ad->dish_photo_id;
-                }
             }
         }
 
@@ -128,11 +123,27 @@ class AdAdminController extends Controller
         $batch->save();
 
         if ($ads !== null) {
-            Ad::where('batch_id', $batch->id)->delete();
-            foreach ($ads->values() as $i => $ad) {
-                $ad->batch_id = $batch->id;
-                $ad->sort = $i;
-                $ad->save();
+            // Update ads in place so their Meta copies stay linked (an edited
+            // ad is re-uploaded before go-live); removed ads leave Meta too.
+            $existing = $batch->ads->keyBy('id');
+            $keep = [];
+            foreach (array_values($request->input('ads')) as $i => $row) {
+                $incoming = $ads[$i];
+                $current = isset($row['id']) ? $existing->get((int) $row['id']) : null;
+                $target = $current ?: new Ad(['batch_id' => $batch->id]);
+                foreach (Ad::CONTENT_FIELDS as $field) {
+                    $target->{$field} = $incoming->{$field};
+                }
+                $target->sort = $i;
+                $target->save();
+                $keep[] = $target->id;
+            }
+            $removed = $batch->ads->reject(function ($ad) use ($keep) {
+                return in_array($ad->id, $keep, true);
+            });
+            if ($removed->isNotEmpty()) {
+                $this->ads->withdrawFromMeta((new AdBatch())->setRelation('ads', $removed));
+                Ad::whereIn('id', $removed->pluck('id'))->delete();
             }
         }
 
@@ -196,54 +207,34 @@ class AdAdminController extends Controller
         if ($updated !== 1) {
             return response()->json(['success' => 0, 'error' => 'Only scheduled batches can be unscheduled.'], 422);
         }
+        $this->ads->withdrawFromMeta(AdBatch::with('ads')->find($id));
 
         return response()->json(['success' => 1, 'batch' => $this->serialize(AdBatch::with('ads')->find($id))]);
     }
 
     /**
-     * Dayne created the ads in Ads Manager. Optionally records each ad's
-     * Meta ad ID: meta_ad_ids = {ad id: meta id}.
+     * Stop a live batch early: pauses its ads in Meta.
      */
-    public function launched(Request $request, $id)
-    {
-        $batch = AdBatch::with('ads')->findOrFail($id);
-        if ($batch->status !== AdBatch::STATUS_READY) {
-            return response()->json(['success' => 0, 'error' => 'Only batches that are ready to launch can be marked launched.'], 422);
-        }
-
-        $metaIds = (array) $request->input('meta_ad_ids', []);
-        foreach ($batch->ads as $ad) {
-            $metaId = trim((string) ($metaIds[$ad->id] ?? ''));
-            if ($metaId !== '') {
-                $ad->update(['meta_ad_id' => mb_substr($metaId, 0, 64)]);
-            }
-        }
-
-        $batch->update(['status' => AdBatch::STATUS_LIVE, 'launched_at' => Carbon::now()]);
-
-        return response()->json(['success' => 1, 'batch' => $this->serialize($batch->fresh('ads'))]);
-    }
-
     public function end($id)
     {
-        $updated = AdBatch::where('id', $id)
-            ->whereIn('status', [AdBatch::STATUS_READY, AdBatch::STATUS_LIVE])
-            ->update(['status' => AdBatch::STATUS_ENDED, 'ended_at' => Carbon::now()]);
-
-        if ($updated !== 1) {
-            return response()->json(['success' => 0, 'error' => 'Only ready or live batches can be ended.'], 422);
+        $batch = AdBatch::with('ads')->findOrFail($id);
+        if ($batch->status !== AdBatch::STATUS_LIVE) {
+            return response()->json(['success' => 0, 'error' => 'Only live batches can be stopped.'], 422);
         }
 
-        return response()->json(['success' => 1, 'batch' => $this->serialize(AdBatch::with('ads')->find($id))]);
+        $this->ads->endBatch($batch, Carbon::now());
+
+        return response()->json(['success' => 1, 'batch' => $this->serialize($batch->fresh('ads'))]);
     }
 
     public function destroy($id)
     {
         $batch = AdBatch::findOrFail($id);
         if (!in_array($batch->status, [AdBatch::STATUS_DRAFT, AdBatch::STATUS_CANCELLED], true)) {
-            return response()->json(['success' => 0, 'error' => 'Unschedule the batch before deleting it. Approved batches are kept.'], 422);
+            return response()->json(['success' => 0, 'error' => 'Unschedule the batch before deleting it. Batches that went live are kept.'], 422);
         }
 
+        $this->ads->withdrawFromMeta($batch->load('ads'));
         Ad::where('batch_id', $batch->id)->delete();
         $batch->delete();
 
@@ -467,6 +458,9 @@ class AdAdminController extends Controller
             'notice_label' => AdSettings::noticeLabel(),
             'preview_email' => $this->ads->previewEmail(),
             'automation_enabled' => $this->ads->automationEnabled(),
+            'meta_connected' => $this->ads->meta()->configured(),
+            'meta_missing' => $this->ads->meta()->missingConfig(),
+            'recycle_window_days' => AdService::RECYCLE_WINDOW_DAYS,
             'earliest_go_live_at_et' => $this->ads->eastern($this->ads->earliestGoLiveAt()->addMinutes(5), 'Y-m-d\TH:i'),
             'max_ads' => AdBatch::MAX_ADS,
             'ctas' => Ad::CTAS,

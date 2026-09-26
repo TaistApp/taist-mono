@@ -48,7 +48,7 @@ class AdPublicController extends Controller
             return $this->page('This link is not valid', ['It may be incomplete or out of date.'], null, null, 403);
         }
 
-        // Conditional update: a batch already approved cannot be paused here.
+        // Conditional update: a batch already live cannot be paused here.
         $paused = AdBatch::where('id', $batch->id)
             ->where('status', AdBatch::STATUS_SCHEDULED)
             ->update(['status' => AdBatch::STATUS_DRAFT, 'preview_sent_at' => null]);
@@ -58,6 +58,7 @@ class AdPublicController extends Controller
                 $batch->displayName() . ' is already ' . $batch->fresh()->status . '.',
             ]);
         }
+        $this->ads->withdrawFromMeta($batch->fresh('ads'));
 
         return $this->page('Paused', [
             $batch->displayName() . ' will not go live. It is back to a draft in the admin panel.',

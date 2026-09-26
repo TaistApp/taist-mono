@@ -34,6 +34,8 @@ class Ad extends Model
         'image_url',
         'dish_photo_id',
         'backlog_id',
+        'source_ig_media_id',
+        'source_permalink',
     ];
 
     protected $fillable = [
@@ -49,6 +51,12 @@ class Ad extends Model
         'image_url',
         'dish_photo_id',
         'meta_ad_id',
+        'meta_creative_id',
+        'meta_content_hash',
+        'meta_status',
+        'meta_note',
+        'source_ig_media_id',
+        'source_permalink',
     ];
 
     protected $casts = [
@@ -57,6 +65,18 @@ class Ad extends Model
         'sort' => 'integer',
         'dish_photo_id' => 'integer',
     ];
+
+    /**
+     * Fingerprint of everything Meta's copy of the ad is built from, so an
+     * edit made after upload can be detected and re-uploaded.
+     */
+    public function contentHash(): string
+    {
+        return hash('sha256', json_encode([
+            $this->primary_text, $this->headline, $this->description,
+            $this->cta, $this->link_url, $this->image_url, $this->source_ig_media_id,
+        ]));
+    }
 
     public function ctaLabel(): string
     {
