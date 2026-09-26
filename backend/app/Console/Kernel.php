@@ -114,6 +114,15 @@ class Kernel extends ConsoleKernel
                  ->runInBackground()
                  ->appendOutputTo('/proc/1/fd/1');
 
+        // Paid ads: auto-draft the next weekly batch from the ad backlog, email
+        // Dayne a preview 48h before go-live, then mark it ready to launch.
+        // Only active where ADS_AUTOMATION is on (production by default).
+        $schedule->command('ads:run')
+                 ->everyFifteenMinutes()
+                 ->withoutOverlapping()
+                 ->runInBackground()
+                 ->appendOutputTo('/proc/1/fd/1');
+
         // Safety net: clean up stale verification accounts older than 2 hours.
         // Won't touch accounts from an active session (created < 2h ago).
         $schedule->command('verify:accounts cleanup --max-age=120')

@@ -125,6 +125,10 @@ Route::post('/newsletter/resubscribe', 'NewsletterPublicController@resubscribe')
 Route::get('/newsletter/pause/{id}', 'NewsletterPublicController@pauseForm')->where('id', '[0-9]+');
 Route::post('/newsletter/pause/{id}', 'NewsletterPublicController@pause')->where('id', '[0-9]+');
 
+// "Pause this batch" link in the ads preview email (token-signed, CSRF-exempt).
+Route::get('/ads/pause/{id}', 'AdPublicController@pauseForm')->where('id', '[0-9]+');
+Route::post('/ads/pause/{id}', 'AdPublicController@pause')->where('id', '[0-9]+');
+
 // Admin panel SPA catch-all — serves the React app for all /admin-new/* routes.
 // Locally: server.php handles this (PHP built-in server quirk with directory paths).
 // Production: Nginx try_files serves index.html for non-asset paths.

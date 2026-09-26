@@ -44,6 +44,7 @@ Compare it against the version currently live on the App Store. If they are out 
 | Google Play       | daryl@taist.org           | Daryl — pending migration to daryl@taist.app |
 | Resend            | billygroble (team: TaistApp) | Billy's account — taist.app domain verified |
 | Vercel (DNS)      | (check with team)         | Hosts taist.app website + manages DNS |
+| Meta Business     | portfolio "taist" (`721114992618593`) | Dayne — ad account **Taist Ads** `act_1498725312091866` (USD, America/New_York). Paid ads: `docs/paid-ads.md` |
 
 ## Expo Project
 
@@ -75,6 +76,7 @@ The active upload key is the `taistapp` org EAS keystore (`Build Credentials Kod
 - **SMS:** Twilio via `TwilioService.php` and `OrderSmsService.php`. Env vars: `TWILIO_SID`, `TWILIO_TOKEN`, `TWILIO_FROM`.
 - **Admin order notifications:** New orders send SMS to Dayne and Daryl, and email to `contact@taist.app`.
 - **Newsletters:** Chef + customer newsletters are written, scheduled and previewed in the admin panel (Marketing → Newsletters) and sent by `php artisan newsletter:run` via Resend. Dayne gets each edition by email 48h before it sends. See `docs/newsletter-content-log.md`. The old Make.com newsletter scenarios are retired.
+- **Paid ads:** Customer-only Instagram/Facebook ads run in weekly batches (admin panel → Marketing → Ads) driven by `php artisan ads:run` through the Meta Marketing API: created paused and emailed to Dayne 48h before go-live, switched on automatically unless paused, switched off after the run. Nobody uses Ads Manager. Needs `META_ACCESS_TOKEN`, `META_AD_ACCOUNT_ID`, `META_ADSET_ID` in Railway. See `docs/paid-ads.md`.
 - **DNS:** `taist.app` domain is on Domain.com but nameservers point to **Vercel**. All DNS changes go in Vercel.
 - **Resend account:** Team "TaistApp" (formerly billygroble) on resend.com.
 

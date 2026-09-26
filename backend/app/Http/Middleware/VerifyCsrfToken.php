@@ -15,5 +15,7 @@ class VerifyCsrfToken extends Middleware
         // Newsletter unsubscribe/pause links carry their own HMAC token, and
         // one-click unsubscribes arrive from mail providers without a session.
         'newsletter/*',
+        // Same for the ads preview's pause link.
+        'ads/pause/*',
     ];
 }
