@@ -145,6 +145,7 @@ These run automatically on a schedule with no manual intervention:
 | Google Maps       | `contact@taist.app`                     | GCP project `project-98b5e874…` ("My First Project"), Geocoding API key; paid billing since 2026-09-04 |
 | Resend            | contact@taist.app                       | Email delivery service                                             |
 | OpenAI            | contact@taist.app                       | AI features                                                        |
+| Meta (Facebook/Instagram ads) | Business portfolio "taist" (`721114992618593`) | Dayne — ad account **Taist Ads** `act_1498725312091866` (USD, America/New_York, created 2026-09-26). Page `111916651258217`, Instagram @taist.team `17841448434123490`. Paid ads run via `ads:run`, see `docs/paid-ads.md` |
 | SafeScreener      | Dayne/Daryl (ask them)                  | Chef background checks — currently sandbox mode                    |
 | Domain DNS        | arnettfinancial.com (Network Solutions) | `taist.app` domain management                                      |
 

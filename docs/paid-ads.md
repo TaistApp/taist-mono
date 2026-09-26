@@ -32,11 +32,11 @@ and are unaffected. New ads are ad-only creatives, so they never appear on the P
 the @taist.team grid (the organic grid colour steering isn't disturbed). Recycled posts
 promote a post that is already on the grid, without adding anything new.
 
-## Meta account status (Sept 26, 2026)
+## Meta account status
 
 - Business portfolio **"taist"** (ID `721114992618593`), likely the "TAIST INC." portfolio that was in business verification on 2026-06-07 (outcome not confirmed).
 - Facebook Page `111916651258217`, Instagram @taist.team `17841448434123490`.
-- **No ad account** found under the portfolio yet, no pixel/dataset, no payment method.
+- **Ad account created 2026-09-26:** **Taist Ads**, `act_1498725312091866` (USD, America/New_York), in the "taist" portfolio. Still to do: payment method, system user token, customer ad set. No pixel/dataset yet.
 - The Make "Taist Instagram" connection (8437279) already has `ads_management`, but only the organic scenarios use it.
 
 ## Not built yet

@@ -44,6 +44,7 @@ Compare it against the version currently live on the App Store. If they are out 
 | Google Play       | daryl@taist.org           | Daryl — pending migration to daryl@taist.app |
 | Resend            | billygroble (team: TaistApp) | Billy's account — taist.app domain verified |
 | Vercel (DNS)      | (check with team)         | Hosts taist.app website + manages DNS |
+| Meta Business     | portfolio "taist" (`721114992618593`) | Dayne — ad account **Taist Ads** `act_1498725312091866` (USD, America/New_York). Paid ads: `docs/paid-ads.md` |
 
 ## Expo Project
 
